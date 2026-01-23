@@ -1,5 +1,5 @@
 # Schemas package exports
-from .user import UserCreate, UserLogin, UserResponse, Token, TokenPayload
+from .user import UserCreate, UserResponse, Token
 from .category import CategoryCreate, CategoryUpdate, CategoryResponse
-from .expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse, ExpenseFilter
+from .expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse
 from .dashboard import DashboardStats, CategoryStat, MonthlyTrend

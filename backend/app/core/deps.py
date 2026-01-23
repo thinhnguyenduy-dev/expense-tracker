@@ -1,4 +1,3 @@
-from typing import Generator
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -22,23 +21,17 @@ def get_current_user(
     
     payload = decode_access_token(token)
     if payload is None:
-        print("DEBUG: Token decoding failed")
         raise credentials_exception
     
     try:
         user_id = int(payload.get("sub"))
     except (TypeError, ValueError):
-        print("DEBUG: 'sub' cannot be converted to int")
         raise credentials_exception
     if user_id is None:
-        print("DEBUG: 'sub' (user_id) missing in payload")
         raise credentials_exception
-    
-    print(f"DEBUG: Token payload user_id: {user_id} (type: {type(user_id)})")
     
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
-        print(f"DEBUG: User not found for id {user_id}")
         raise credentials_exception
     
     return user

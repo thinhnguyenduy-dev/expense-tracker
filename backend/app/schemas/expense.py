@@ -31,11 +31,3 @@ class ExpenseResponse(ExpenseBase):
     
     class Config:
         from_attributes = True
-
-
-class ExpenseFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    category_id: Optional[int] = None
-    min_amount: Optional[Decimal] = None
-    max_amount: Optional[Decimal] = None
