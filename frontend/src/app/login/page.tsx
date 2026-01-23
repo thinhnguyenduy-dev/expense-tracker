@@ -50,10 +50,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 p-4">
       <Card className="w-full max-w-md border-0 shadow-2xl bg-white/10 backdrop-blur-xl">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg">
             <Wallet className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-3xl font-bold text-white">Welcome Back</CardTitle>
@@ -93,7 +93,7 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-4">
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -107,7 +107,7 @@ export default function LoginPage() {
             </Button>
             <p className="text-sm text-center text-slate-300">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-purple-400 hover:text-purple-300 font-medium">
+              <Link href="/register" className="text-emerald-400 hover:text-emerald-300 font-medium">
                 Sign up
               </Link>
             </p>

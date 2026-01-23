@@ -191,7 +191,7 @@ export default function ExpensesPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
@@ -210,7 +210,7 @@ export default function ExpensesPage() {
           <DialogTrigger asChild>
             <Button
               onClick={openCreateDialog}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Expense
@@ -322,7 +322,7 @@ export default function ExpensesPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -340,7 +340,7 @@ export default function ExpensesPage() {
 
       {/* Summary and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <Card className="flex-1 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/30">
+        <Card className="flex-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30">
           <CardContent className="pt-6">
             <p className="text-sm text-slate-400">Total Expenses</p>
             <p className="text-2xl font-bold text-white">{formatCurrency(totalExpenses)}</p>
@@ -389,7 +389,7 @@ export default function ExpensesPage() {
             </p>
             <Button
               onClick={openCreateDialog}
-              className="bg-gradient-to-r from-purple-500 to-pink-500"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Expense

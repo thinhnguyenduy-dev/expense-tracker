@@ -75,7 +75,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function DashboardPage() {
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">Total Expenses</CardTitle>
-            <DollarSign className="h-5 w-5 text-purple-400" />
+            <DollarSign className="h-5 w-5 text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
@@ -150,7 +150,7 @@ export default function DashboardPage() {
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-400" />
+              <TrendingUp className="h-5 w-5 text-emerald-400" />
               Monthly Trend
             </CardTitle>
             <CardDescription className="text-slate-400">
@@ -180,8 +180,8 @@ export default function DashboardPage() {
                   />
                   <defs>
                     <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#a855f7" />
-                      <stop offset="100%" stopColor="#ec4899" />
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#14b8a6" />
                     </linearGradient>
                   </defs>
                 </BarChart>

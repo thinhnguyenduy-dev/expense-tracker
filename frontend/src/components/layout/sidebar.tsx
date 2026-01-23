@@ -58,7 +58,7 @@ export function Sidebar() {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-700">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500">
               <Wallet className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-white">ExpenseTracker</span>
@@ -76,11 +76,11 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
                     isActive
-                      ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white border border-purple-500/30'
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-white border border-emerald-500/30'
                       : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                   )}
                 >
-                  <item.icon className={cn('h-5 w-5', isActive && 'text-purple-400')} />
+                  <item.icon className={cn('h-5 w-5', isActive && 'text-emerald-400')} />
                   {item.label}
                 </Link>
               );
@@ -90,7 +90,7 @@ export function Sidebar() {
           {/* User section */}
           <div className="p-4 border-t border-slate-700">
             <div className="flex items-center gap-3 px-4 py-3 mb-2">
-              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-medium">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium">
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">

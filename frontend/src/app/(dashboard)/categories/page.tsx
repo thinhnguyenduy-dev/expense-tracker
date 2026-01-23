@@ -135,7 +135,7 @@ export default function CategoriesPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function CategoriesPage() {
           <DialogTrigger asChild>
             <Button
               onClick={openCreateDialog}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Category
@@ -191,7 +191,7 @@ export default function CategoriesPage() {
                         onClick={() => setValue('icon', icon)}
                         className={`w-10 h-10 text-xl rounded-lg transition-all ${
                           selectedIcon === icon
-                            ? 'bg-purple-500/30 ring-2 ring-purple-500'
+                            ? 'bg-emerald-500/30 ring-2 ring-emerald-500'
                             : 'bg-slate-800 hover:bg-slate-700'
                         }`}
                       >
@@ -248,7 +248,7 @@ export default function CategoriesPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -277,7 +277,7 @@ export default function CategoriesPage() {
             </p>
             <Button
               onClick={openCreateDialog}
-              className="bg-gradient-to-r from-purple-500 to-pink-500"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Category

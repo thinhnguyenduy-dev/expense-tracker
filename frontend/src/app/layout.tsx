@@ -14,8 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Expense Tracker",
-  description: "Personal expense management application",
+  title: "Expense Tracker - Personal Finance Management",
+  description: "Track your expenses, manage budgets, and visualize spending patterns with our modern expense management application. Features include category management, dashboard analytics, and secure authentication.",
+  keywords: ["expense tracker", "personal finance", "budget management", "expense management", "money tracking"],
+  authors: [{ name: "Expense Tracker Team" }],
+  openGraph: {
+    title: "Expense Tracker - Personal Finance Management",
+    description: "Track your expenses, manage budgets, and visualize spending patterns with our modern expense management application.",
+    type: "website",
+    locale: "en_US",
+    siteName: "Expense Tracker",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Expense Tracker - Personal Finance Management",
+    description: "Track your expenses, manage budgets, and visualize spending patterns.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
