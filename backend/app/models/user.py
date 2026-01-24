@@ -16,3 +16,4 @@ class User(Base):
     # Relationships
     categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
+    recurring_expenses = relationship("RecurringExpense", back_populates="user", cascade="all, delete-orphan")

@@ -91,3 +91,33 @@ export const expensesApi = {
 export const dashboardApi = {
   getStats: () => api.get('/dashboard'),
 };
+
+// Recurring Expenses API
+export interface RecurringExpenseData {
+  category_id: number;
+  amount: number;
+  description: string;
+  frequency: 'monthly' | 'weekly' | 'yearly';
+  day_of_month?: number;
+  day_of_week?: number;
+  start_date: string;
+  end_date?: string;
+  is_active?: boolean;
+}
+
+export const recurringExpensesApi = {
+  getAll: () => api.get('/recurring-expenses'),
+  
+  getOne: (id: number) => api.get(`/recurring-expenses/${id}`),
+  
+  create: (data: RecurringExpenseData) => api.post('/recurring-expenses', data),
+  
+  update: (id: number, data: Partial<RecurringExpenseData>) =>
+    api.put(`/recurring-expenses/${id}`, data),
+  
+  delete: (id: number) => api.delete(`/recurring-expenses/${id}`),
+  
+  createExpense: (id: number) => 
+    api.post(`/recurring-expenses/${id}/create-expense`),
+};
+

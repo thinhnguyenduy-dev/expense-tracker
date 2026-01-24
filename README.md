@@ -104,6 +104,31 @@ uvicorn main:app --reload
 
 Backend runs at: http://localhost:8000
 
+### 5. Seed Test Data (Optional)
+
+To populate the database with realistic test data for development and testing:
+
+```bash
+# Make sure you're in backend directory with venv activated
+cd backend
+source venv/bin/activate
+
+# Run seeder
+python seed.py --users 2 --months 3 --verbose
+```
+
+**Seeder Options:**
+- `--users N`: Number of demo users to create (default: 2, max: 2)
+- `--months N`: Months of expense history to generate (default: 3)
+- `--verbose` or `-v`: Show detailed progress output
+- `--dry-run`: Preview what would be created without making changes
+
+**Demo User Credentials:**
+- **Email:** `demo@expense-tracker.com` / **Password:** `Demo123!`
+- **Email:** `test@expense-tracker.com` / **Password:** `Test123!`
+
+The seeder is **idempotent** - you can run it multiple times, and it will skip existing data automatically.
+
 ### 4. Setup Frontend
 
 ```bash

@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+"""
+Database Seeder for Expense Tracker
+Creates realistic test data with idempotent design.
+"""
+import sys
+import argparse
+import random
+from datetime import datetime, timedelta, date
+from decimal import Decimal
+from sqlalchemy.orm import Session
+
+from app.core.database import SessionLocal, engine
+from app.core.security import get_password_hash
+from app.models.user import User
+from app.models.category import Category
+from app.models.expense import Expense
+
+
+# Demo users
+DEMO_USERS = [
+    {"email": "demo@expense-tracker.com", "password": "Demo123!", "name": "Demo User"},
+    {"email": "test@expense-tracker.com", "password": "Test123!", "name": "Test User"},
+]
+
+# Categories with icons and colors
+CATEGORIES = [
+    {"name": "Rent/Mortgage", "icon": "🏠", "color": "#FF6B6B"},
+    {"name": "Food & Groceries", "icon": "🍔", "color": "#4ECDC4"},
+    {"name": "Transportation", "icon": "🚗", "color": "#FFE66D"},
+    {"name": "Utilities", "icon": "💡", "color": "#95E1D3"},
+    {"name": "Entertainment", "icon": "🎮", "color": "#F38181"},
+    {"name": "Healthcare", "icon": "🏥", "color": "#AA96DA"},
+    {"name": "Shopping", "icon": "🛍️", "color": "#FCBAD3"},
+    {"name": "Education", "icon": "📚", "color": "#A8E6CF"},
+    {"name": "Travel", "icon": "✈️", "color": "#FFD3B6"},
+    {"name": "Subscriptions", "icon": "📱", "color": "#9896DA"},
+]
+
+# Recurring expense templates
+RECURRING_EXPENSES = [
+    {"category": "Rent/Mortgage", "description": "Monthly Rent", "amount_range": (1200, 1500), "day": 1},
+    {"category": "Subscriptions", "description": "Netflix Subscription", "amount_range": (15, 15), "day": 5},
+    {"category": "Subscriptions", "description": "Spotify Premium", "amount_range": (10, 10), "day": 8},
+    {"category": "Utilities", "description": "Electricity Bill", "amount_range": (80, 120), "day": 15},
+    {"category": "Utilities", "description": "Internet Bill", "amount_range": (50, 70), "day": 20},
+]
+
+# Random expense templates
+RANDOM_EXPENSES = [
+    {"category": "Food & Groceries", "descriptions": ["Grocery Shopping", "Supermarket", "Farmers Market"], "amount_range": (50, 150)},
+    {"category": "Transportation", "descriptions": ["Gas Station", "Uber Ride", "Public Transit"], "amount_range": (10, 60)},
+    {"category": "Entertainment", "descriptions": ["Movie Tickets", "Concert", "Gaming"], "amount_range": (15, 100)},
+    {"category": "Shopping", "descriptions": ["Clothing", "Electronics", "Home Goods"], "amount_range": (30, 200)},
+    {"category": "Healthcare", "descriptions": ["Pharmacy", "Doctor Visit", "Gym Membership"], "amount_range": (20, 150)},
+    {"category": "Food & Groceries", "descriptions": ["Restaurant", "Coffee Shop", "Fast Food"], "amount_range": (10, 50)},
+]
+
+
+class Colors:
+    """ANSI color codes for terminal output"""
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    RED = '\033[91m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+
+
+def log(message: str, color: str = Colors.RESET, verbose: bool = True):
+    """Print colored log message"""
+    if verbose:
+        print(f"{color}{message}{Colors.RESET}")
+
+
+def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list[User]:
+    """Create demo users if they don't exist"""
+    log(f"\n{Colors.BOLD}📥 Seeding Users{Colors.RESET}", verbose=verbose)
+    
+    users = []
+    created_count = 0
+    
+    for user_data in DEMO_USERS:
+        existing = db.query(User).filter(User.email == user_data["email"]).first()
+        
+        if existing:
+            log(f"  ⏭️  User '{user_data['email']}' already exists (ID: {existing.id})", Colors.YELLOW, verbose)
+            users.append(existing)
+        else:
+            if dry_run:
+                log(f"  [DRY RUN] Would create user: {user_data['email']}", Colors.CYAN, verbose)
+            else:
+                user = User(
+                    email=user_data["email"],
+                    hashed_password=get_password_hash(user_data["password"]),
+                    name=user_data["name"]
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                users.append(user)
+                created_count += 1
+                log(f"  ✅ Created user: {user.email} (ID: {user.id})", Colors.GREEN, verbose)
+    
+    if not dry_run and created_count > 0:
+        log(f"  {Colors.BOLD}Created {created_count} new user(s){Colors.RESET}", Colors.GREEN, verbose)
+    
+    return users
+
+
+def seed_categories(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> dict[int, list[Category]]:
+    """Create categories for each user if they don't exist"""
+    log(f"\n{Colors.BOLD}🏷️  Seeding Categories{Colors.RESET}", verbose=verbose)
+    
+    user_categories = {}
+    total_created = 0
+    
+    for user in users:
+        user_categories[user.id] = []
+        created_count = 0
+        
+        for cat_data in CATEGORIES:
+            existing = db.query(Category).filter(
+                Category.user_id == user.id,
+                Category.name == cat_data["name"]
+            ).first()
+            
+            if existing:
+                user_categories[user.id].append(existing)
+            else:
+                if dry_run:
+                    log(f"  [DRY RUN] Would create category '{cat_data['name']}' for {user.email}", Colors.CYAN, verbose)
+                else:
+                    category = Category(
+                        name=cat_data["name"],
+                        icon=cat_data["icon"],
+                        color=cat_data["color"],
+                        user_id=user.id
+                    )
+                    db.add(category)
+                    db.commit()
+                    db.refresh(category)
+                    user_categories[user.id].append(category)
+                    created_count += 1
+        
+        if not dry_run and created_count > 0:
+            log(f"  ✅ Created {created_count} categories for {user.email}", Colors.GREEN, verbose)
+            total_created += created_count
+        elif not dry_run:
+            log(f"  ⏭️  All categories exist for {user.email}", Colors.YELLOW, verbose)
+    
+    if not dry_run and total_created > 0:
+        log(f"  {Colors.BOLD}Created {total_created} new category(ies){Colors.RESET}", Colors.GREEN, verbose)
+    
+    return user_categories
+
+
+def seed_expenses(
+    db: Session,
+    users: list[User],
+    user_categories: dict[int, list[Category]],
+    months: int = 3,
+    verbose: bool = True,
+    dry_run: bool = False
+):
+    """Generate realistic expenses for users"""
+    log(f"\n{Colors.BOLD}💰 Seeding Expenses ({months} months){Colors.RESET}", verbose=verbose)
+    
+    total_created = 0
+    end_date = date.today()
+    start_date = end_date - timedelta(days=months * 30)
+    
+    for user in users:
+        categories = user_categories[user.id]
+        if not categories:
+            log(f"  ⚠️  No categories found for {user.email}, skipping", Colors.RED, verbose)
+            continue
+        
+        # Category name to object mapping
+        cat_map = {cat.name: cat for cat in categories}
+        created_count = 0
+        
+        # Check if user already has expenses
+        existing_count = db.query(Expense).filter(Expense.user_id == user.id).count()
+        if existing_count > 0:
+            log(f"  ⏭️  User {user.email} already has {existing_count} expenses, skipping", Colors.YELLOW, verbose)
+            continue
+        
+        expenses_to_create = []
+        
+        # Generate recurring monthly expenses
+        current = start_date
+        while current <= end_date:
+            for recurring in RECURRING_EXPENSES:
+                if recurring["category"] in cat_map:
+                    expense_date = date(current.year, current.month, recurring["day"])
+                    if start_date <= expense_date <= end_date:
+                        amount = Decimal(str(random.randint(recurring["amount_range"][0], recurring["amount_range"][1])))
+                        expenses_to_create.append({
+                            "amount": amount,
+                            "description": recurring["description"],
+                            "date": expense_date,
+                            "category_id": cat_map[recurring["category"]].id,
+                            "user_id": user.id
+                        })
+            
+            # Next month
+            if current.month == 12:
+                current = date(current.year + 1, 1, 1)
+            else:
+                current = date(current.year, current.month + 1, 1)
+        
+        # Generate weekly groceries (every Sunday)
+        current = start_date
+        while current <= end_date:
+            if current.weekday() == 6 and "Food & Groceries" in cat_map:  # Sunday
+                amount = Decimal(str(random.randint(80, 150)))
+                expenses_to_create.append({
+                    "amount": amount,
+                    "description": random.choice(["Weekly Groceries", "Grocery Shopping", "Supermarket Run"]),
+                    "date": current,
+                    "category_id": cat_map["Food & Groceries"].id,
+                    "user_id": user.id
+                })
+            current += timedelta(days=1)
+        
+        # Generate random expenses
+        num_random = random.randint(20, 40)
+        for _ in range(num_random):
+            template = random.choice(RANDOM_EXPENSES)
+            if template["category"] in cat_map:
+                random_date = start_date + timedelta(days=random.randint(0, (end_date - start_date).days))
+                amount = Decimal(str(round(random.uniform(template["amount_range"][0], template["amount_range"][1]), 2)))
+                expenses_to_create.append({
+                    "amount": amount,
+                    "description": random.choice(template["descriptions"]),
+                    "date": random_date,
+                    "category_id": cat_map[template["category"]].id,
+                    "user_id": user.id
+                })
+        
+        # Create expenses in database
+        if dry_run:
+            log(f"  [DRY RUN] Would create {len(expenses_to_create)} expenses for {user.email}", Colors.CYAN, verbose)
+        else:
+            for exp_data in expenses_to_create:
+                expense = Expense(**exp_data)
+                db.add(expense)
+            db.commit()
+            created_count = len(expenses_to_create)
+            total_created += created_count
+            log(f"  ✅ Created {created_count} expenses for {user.email}", Colors.GREEN, verbose)
+    
+    if not dry_run and total_created > 0:
+        log(f"  {Colors.BOLD}Created {total_created} new expense(s){Colors.RESET}", Colors.GREEN, verbose)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Seed expense tracker database with test data")
+    parser.add_argument("--users", type=int, default=2, help="Number of demo users (max 2)")
+    parser.add_argument("--months", type=int, default=3, help="Months of expense history to generate")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed progress")
+    parser.add_argument("--dry-run", action="store_true", help="Preview changes without applying")
+    
+    args = parser.parse_args()
+    
+    # Limit users to available demo accounts
+    num_users = min(args.users, len(DEMO_USERS))
+    
+    log(f"\n{Colors.BOLD}{Colors.BLUE}{'='*60}", verbose=True)
+    log(f"  💰 Expense Tracker Database Seeder", verbose=True)
+    log(f"{'='*60}{Colors.RESET}", verbose=True)
+    
+    if args.dry_run:
+        log(f"\n{Colors.YELLOW}{Colors.BOLD}🔍 DRY RUN MODE - No changes will be made{Colors.RESET}\n", verbose=True)
+    
+    log(f"Configuration:", verbose=True)
+    log(f"  Users: {num_users}", verbose=True)
+    log(f"  Months: {args.months}", verbose=True)
+    log(f"  Verbose: {args.verbose}", verbose=True)
+    
+    db = SessionLocal()
+    
+    try:
+        # Seed users
+        users_to_seed = DEMO_USERS[:num_users]
+        users = seed_users(db, verbose=args.verbose or True, dry_run=args.dry_run)
+        
+        # Seed categories
+        user_categories = seed_categories(db, users, verbose=args.verbose or True, dry_run=args.dry_run)
+        
+        # Seed expenses
+        seed_expenses(db, users, user_categories, months=args.months, verbose=args.verbose or True, dry_run=args.dry_run)
+        
+        # Summary
+        log(f"\n{Colors.BOLD}{Colors.GREEN}{'='*60}", verbose=True)
+        log(f"  ✅ Seeding Complete!", verbose=True)
+        log(f"{'='*60}{Colors.RESET}", verbose=True)
+        
+        if not args.dry_run:
+            log(f"\n{Colors.BOLD}Demo Credentials:{Colors.RESET}", verbose=True)
+            for user_data in users_to_seed:
+                log(f"  📧 Email: {user_data['email']}", verbose=True)
+                log(f"  🔑 Password: {user_data['password']}\n", verbose=True)
+        
+    except Exception as e:
+        log(f"\n{Colors.RED}❌ Error during seeding: {e}{Colors.RESET}", verbose=True)
+        db.rollback()
+        sys.exit(1)
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()
