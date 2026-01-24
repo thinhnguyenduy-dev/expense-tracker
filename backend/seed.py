@@ -15,6 +15,7 @@ from app.core.security import get_password_hash
 from app.models.user import User
 from app.models.category import Category
 from app.models.expense import Expense
+from app.models.goal import Goal
 
 
 # Demo users
@@ -54,6 +55,34 @@ RANDOM_EXPENSES = [
     {"category": "Shopping", "descriptions": ["Clothing", "Electronics", "Home Goods"], "amount_range": (30, 200)},
     {"category": "Healthcare", "descriptions": ["Pharmacy", "Doctor Visit", "Gym Membership"], "amount_range": (20, 150)},
     {"category": "Food & Groceries", "descriptions": ["Restaurant", "Coffee Shop", "Fast Food"], "amount_range": (10, 50)},
+]
+
+# Demo Goals
+GOALS = [
+    {
+        "name": "New Trip to Japan",
+        "description": "Saving for a 2-week vacation in Tokyo and Kyoto",
+        "target_amount": 50000000,
+        "current_amount": 15000000,
+        "deadline_months": 12,  # 1 year from now
+        "color": "#FF6B6B"
+    },
+    {
+        "name": "Emergency Fund",
+        "description": "3 months of living expenses",
+        "target_amount": 60000000,
+        "current_amount": 25000000,
+        "deadline_months": 24,  # 2 years from now
+        "color": "#4ECDC4"
+    },
+    {
+        "name": "New Laptop",
+        "description": "Upgrade to latest MacBook Pro",
+        "target_amount": 45000000,
+        "current_amount": 5000000,
+        "deadline_months": 6,
+        "color": "#FFE66D"
+    }
 ]
 
 
@@ -256,6 +285,52 @@ def seed_expenses(
         log(f"  {Colors.BOLD}Created {total_created} new expense(s){Colors.RESET}", Colors.GREEN, verbose)
 
 
+def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> None:
+    """Create demo goals for users"""
+    log(f"\n{Colors.BOLD}🎯 Seeding Goals{Colors.RESET}", verbose=verbose)
+    
+    total_created = 0
+    today = date.today()
+    
+    for user in users:
+        created_count = 0
+        
+        for goal_data in GOALS:
+            existing = db.query(Goal).filter(
+                Goal.user_id == user.id,
+                Goal.name == goal_data["name"]
+            ).first()
+            
+            if existing:
+                log(f"  ⏭️  Goal '{goal_data['name']}' already exists for {user.email}", Colors.YELLOW, verbose)
+                continue
+            
+            if dry_run:
+                log(f"  [DRY RUN] Would create goal '{goal_data['name']}' for {user.email}", Colors.CYAN, verbose)
+            else:
+                deadline = today + timedelta(days=goal_data["deadline_months"] * 30)
+                
+                goal = Goal(
+                    name=goal_data["name"],
+                    description=goal_data["description"],
+                    target_amount=Decimal(str(goal_data["target_amount"])),
+                    current_amount=Decimal(str(goal_data["current_amount"])),
+                    deadline=deadline,
+                    color=goal_data["color"],
+                    user_id=user.id
+                )
+                db.add(goal)
+                created_count += 1
+        
+        if not dry_run and created_count > 0:
+            db.commit()
+            total_created += created_count
+            log(f"  ✅ Created {created_count} goals for {user.email}", Colors.GREEN, verbose)
+            
+    if not dry_run and total_created > 0:
+        log(f"  {Colors.BOLD}Created {total_created} new goal(s){Colors.RESET}", Colors.GREEN, verbose)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Seed expense tracker database with test data")
     parser.add_argument("--users", type=int, default=2, help="Number of demo users (max 2)")
@@ -292,6 +367,9 @@ def main():
         
         # Seed expenses
         seed_expenses(db, users, user_categories, months=args.months, verbose=args.verbose or True, dry_run=args.dry_run)
+        
+        # Seed goals
+        seed_goals(db, users, verbose=args.verbose or True, dry_run=args.dry_run)
         
         # Summary
         log(f"\n{Colors.BOLD}{Colors.GREEN}{'='*60}", verbose=True)
