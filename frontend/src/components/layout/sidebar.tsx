@@ -11,7 +11,8 @@ import {
   Menu, 
   X,
   Wallet,
-  Repeat
+  Repeat,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: Receipt },
   { href: '/categories', label: 'Categories', icon: Tags },
   { href: '/recurring-expenses', label: 'Recurring', icon: Repeat },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {

@@ -153,3 +153,14 @@ export const recurringExpensesApi = {
   createExpense: (id: number) => 
     api.post(`/recurring-expenses/${id}/create-expense`),
 };
+
+// Users API
+export const usersApi = {
+  updateProfile: (data: { name?: string; email?: string }) =>
+    api.put('/users/profile', data),
+  
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.put('/users/password', data),
+  
+  deleteAccount: () => api.delete('/users/account'),
+};
