@@ -10,18 +10,20 @@ class CategoryBase(BaseModel):
 
 
 class CategoryCreate(CategoryBase):
-    pass
+    jar_id: Optional[int] = None
 
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    jar_id: Optional[int] = None
 
 
 class CategoryResponse(CategoryBase):
     id: int
     user_id: int
+    jar_id: Optional[int] = None
     created_at: datetime
     
     class Config:

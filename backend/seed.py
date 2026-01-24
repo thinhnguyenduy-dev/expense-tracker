@@ -138,6 +138,58 @@ def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list
     return users
 
 
+from app.models.jar import Jar
+
+
+JARS_DATA = [
+    {"name": "Necessity (NEC)", "percentage": 55.0},
+    {"name": "Financial Freedom (FFA)", "percentage": 10.0},
+    {"name": "Education (EDU)", "percentage": 10.0},
+    {"name": "Long Term Savings (LTSS)", "percentage": 10.0},
+    {"name": "Play (PLAY)", "percentage": 10.0},
+    {"name": "Give (GIVE)", "percentage": 5.0},
+]
+
+
+def seed_jars(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> None:
+    """Create default jars for users"""
+    log(f"\n{Colors.BOLD}🏺 Seeding Jars{Colors.RESET}", verbose=verbose)
+    
+    total_created = 0
+    
+    for user in users:
+        created_count = 0
+        
+        for jar_data in JARS_DATA:
+            existing = db.query(Jar).filter(
+                Jar.user_id == user.id,
+                Jar.name == jar_data["name"]
+            ).first()
+            
+            if existing:
+                log(f"  ⏭️  Jar '{jar_data['name']}' already exists for {user.email}", Colors.YELLOW, verbose)
+                continue
+            
+            if dry_run:
+                log(f"  [DRY RUN] Would create jar '{jar_data['name']}' for {user.email}", Colors.CYAN, verbose)
+            else:
+                jar = Jar(
+                    name=jar_data["name"],
+                    percentage=jar_data["percentage"],
+                    user_id=user.id
+                )
+                db.add(jar)
+                created_count += 1
+        
+        if not dry_run and created_count > 0:
+            db.commit()
+            total_created += created_count
+            log(f"  ✅ Created {created_count} jars for {user.email}", Colors.GREEN, verbose)
+            
+    if not dry_run and total_created > 0:
+        log(f"  {Colors.BOLD}Created {total_created} new jar(s){Colors.RESET}", Colors.GREEN, verbose)
+
+
 def seed_categories(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> dict[int, list[Category]]:
     """Create categories for each user if they don't exist"""
     log(f"\n{Colors.BOLD}🏷️  Seeding Categories{Colors.RESET}", verbose=verbose)
@@ -361,6 +413,9 @@ def main():
         # Seed users
         users_to_seed = DEMO_USERS[:num_users]
         users = seed_users(db, verbose=args.verbose or True, dry_run=args.dry_run)
+        
+        # Seed jars
+        seed_jars(db, users, verbose=args.verbose or True, dry_run=args.dry_run)
         
         # Seed categories
         user_categories = seed_categories(db, users, verbose=args.verbose or True, dry_run=args.dry_run)

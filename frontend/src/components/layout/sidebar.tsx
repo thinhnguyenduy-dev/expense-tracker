@@ -13,7 +13,8 @@ import {
   Wallet,
   Repeat,
   Target,
-  Settings
+  Settings,
+  PiggyBank
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/jars', label: '6 Jars', icon: PiggyBank },
   { href: '/expenses', label: 'Expenses', icon: Receipt },
   { href: '/categories', label: 'Categories', icon: Tags },
   { href: '/recurring-expenses', label: 'Recurring', icon: Repeat },

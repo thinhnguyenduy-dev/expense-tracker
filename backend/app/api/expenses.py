@@ -141,6 +141,14 @@ def create_expense(
         user_id=current_user.id
     )
     db.add(expense)
+    
+    # Deduct from Jar if linked
+    if category.jar_id:
+        from ..models.jar import Jar
+        jar = db.query(Jar).filter(Jar.id == category.jar_id).first()
+        if jar:
+            jar.balance -= expense.amount
+            
     db.commit()
     db.refresh(expense)
     
@@ -243,6 +251,13 @@ def delete_expense(
             detail="Expense not found"
         )
     
+    # Refund to Jar if linked
+    if expense.category.jar_id:
+        from ..models.jar import Jar
+        jar = db.query(Jar).filter(Jar.id == expense.category.jar_id).first()
+        if jar:
+            jar.balance += expense.amount
+
     db.delete(expense)
     db.commit()
     

@@ -17,3 +17,5 @@ class Category(Base):
     # Relationships
     user = relationship("User", back_populates="categories")
     expenses = relationship("Expense", back_populates="category", cascade="all, delete-orphan")
+    jar_id = Column(Integer, ForeignKey("jars.id", ondelete="SET NULL"), nullable=True)
+    jar = relationship("Jar", back_populates="categories")

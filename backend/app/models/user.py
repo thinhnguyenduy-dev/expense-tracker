@@ -18,3 +18,5 @@ class User(Base):
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
     recurring_expenses = relationship("RecurringExpense", back_populates="user", cascade="all, delete-orphan")
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
+    jars = relationship("Jar", back_populates="user", cascade="all, delete-orphan")
+    incomes = relationship("Income", back_populates="user", cascade="all, delete-orphan")

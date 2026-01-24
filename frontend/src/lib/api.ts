@@ -206,3 +206,49 @@ export const goalsApi = {
   
   delete: (id: number) => api.delete(`/goals/${id}`),
 };
+// Jars API
+export interface Jar {
+  id: number;
+  name: string;
+  percentage: number;
+  balance: number;
+  user_id: number;
+  created_at: string;
+}
+
+export interface JarCreate {
+  name: string;
+  percentage: number;
+}
+
+export interface JarUpdate {
+  name?: string;
+  percentage?: number;
+}
+
+export const jarsApi = {
+  getAll: () => api.get<Jar[]>('/jars'),
+  create: (data: JarCreate) => api.post<Jar>('/jars', data),
+  update: (id: number, data: JarUpdate) => api.put<Jar>(`/jars/${id}`, data),
+};
+
+// Incomes API
+export interface Income {
+  id: number;
+  amount: number;
+  source: string;
+  date: string;
+  user_id: number;
+  created_at: string;
+}
+
+export interface IncomeCreate {
+  amount: number;
+  source: string;
+  date: string;
+}
+
+export const incomesApi = {
+  getAll: () => api.get<Income[]>('/incomes'),
+  create: (data: IncomeCreate) => api.post<Income>('/incomes', data),
+};
