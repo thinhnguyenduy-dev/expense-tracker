@@ -164,3 +164,45 @@ export const usersApi = {
   
   deleteAccount: () => api.delete('/users/account'),
 };
+
+// Goals API
+export interface Goal {
+  id: number;
+  name: string;
+  description?: string;
+  target_amount: number;
+  current_amount: number;
+  deadline?: string;
+  color: string;
+  created_at: string;
+}
+
+export interface GoalCreate {
+  name: string;
+  description?: string;
+  target_amount: number;
+  current_amount?: number;
+  deadline?: string;
+  color?: string;
+}
+
+export interface GoalUpdate {
+  name?: string;
+  description?: string;
+  target_amount?: number;
+  current_amount?: number;
+  deadline?: string;
+  color?: string;
+}
+
+export const goalsApi = {
+  getAll: () => api.get<Goal[]>('/goals'),
+  
+  getOne: (id: number) => api.get<Goal>(`/goals/${id}`),
+  
+  create: (data: GoalCreate) => api.post<Goal>('/goals', data),
+  
+  update: (id: number, data: GoalUpdate) => api.put<Goal>(`/goals/${id}`, data),
+  
+  delete: (id: number) => api.delete(`/goals/${id}`),
+};

@@ -5,3 +5,4 @@ from .expenses import router as expenses_router
 from .dashboard import router as dashboard_router
 from .recurring_expenses import router as recurring_expenses_router
 from .users import router as users_router
+from .goals import router as goals_router

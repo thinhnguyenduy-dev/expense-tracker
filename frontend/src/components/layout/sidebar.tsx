@@ -12,6 +12,7 @@ import {
   X,
   Wallet,
   Repeat,
+  Target,
   Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: Receipt },
   { href: '/categories', label: 'Categories', icon: Tags },
   { href: '/recurring-expenses', label: 'Recurring', icon: Repeat },
+  { href: '/goals', label: 'Goals', icon: Target },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
