@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,6 +19,24 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
+    
+    # Redis (optional - if not set, caching is disabled)
+    REDIS_URL: Optional[str] = None
+    CACHE_TTL_SECONDS: int = 300  # 5 minutes
+    
+    # Sentry (optional - if not set, monitoring is disabled)
+    SENTRY_DSN: Optional[str] = None
+    
+    # Email notifications (optional)
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: str = "noreply@expense-tracker.local"
+    
+    # Budget alert thresholds (percentages)
+    BUDGET_ALERT_THRESHOLD_WARNING: int = 80
+    BUDGET_ALERT_THRESHOLD_CRITICAL: int = 100
     
     class Config:
         env_file = ".env"

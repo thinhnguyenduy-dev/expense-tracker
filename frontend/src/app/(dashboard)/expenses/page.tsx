@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
-import { Plus, Pencil, Trash2, Loader2, Filter, CalendarIcon } from 'lucide-react';
+import { format, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
+import { Plus, Pencil, Trash2, Loader2, Filter, CalendarIcon, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -38,7 +39,7 @@ import {
 } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { expensesApi, categoriesApi, ExpenseFilter } from '@/lib/api';
+import { expensesApi, categoriesApi, ExpenseFilter, PaginatedResponse, Expense } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface Category {
@@ -46,16 +47,6 @@ interface Category {
   name: string;
   icon: string;
   color: string;
-}
-
-interface Expense {
-  id: number;
-  amount: number;
-  description: string;
-  date: string;
-  category_id: number;
-  category: Category;
-  created_at: string;
 }
 
 const expenseSchema = z.object({
@@ -74,6 +65,40 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+// Date range presets
+type DatePreset = 'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'this_year';
+
+const getDateRange = (preset: DatePreset): { start?: Date; end?: Date } => {
+  const today = new Date();
+  switch (preset) {
+    case 'today':
+      return { start: today, end: today };
+    case 'this_week':
+      return { start: startOfWeek(today, { weekStartsOn: 1 }), end: today };
+    case 'this_month':
+      return { start: startOfMonth(today), end: today };
+    case 'last_month':
+      const lastMonth = subMonths(today, 1);
+      return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+    case 'last_3_months':
+      return { start: startOfMonth(subMonths(today, 2)), end: today };
+    case 'this_year':
+      return { start: startOfYear(today), end: today };
+    default:
+      return {};
+  }
+};
+
+const datePresetLabels: Record<DatePreset, string> = {
+  all: 'All Time',
+  today: 'Today',
+  this_week: 'This Week',
+  this_month: 'This Month',
+  last_month: 'Last Month',
+  last_3_months: 'Last 3 Months',
+  this_year: 'This Year',
+};
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -81,8 +106,24 @@ export default function ExpensesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [filters, setFilters] = useState<ExpenseFilter>({});
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  // Filter state
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [datePreset, setDatePreset] = useState<DatePreset>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [bulkCategoryDialogOpen, setBulkCategoryDialogOpen] = useState(false);
 
   const {
     register,
@@ -100,32 +141,71 @@ export default function ExpensesPage() {
 
   const selectedDate = watch('date');
 
-  const fetchData = async () => {
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset to first page on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchData = useCallback(async () => {
     try {
+      setIsLoading(true);
+      
+      // Build filters
+      const filters: ExpenseFilter = {
+        page,
+        page_size: pageSize,
+      };
+      
+      if (filterCategory !== 'all') {
+        filters.category_id = parseInt(filterCategory);
+      }
+      
+      if (debouncedSearch) {
+        filters.search = debouncedSearch;
+      }
+      
+      const dateRange = getDateRange(datePreset);
+      if (dateRange.start) {
+        filters.start_date = format(dateRange.start, 'yyyy-MM-dd');
+      }
+      if (dateRange.end) {
+        filters.end_date = format(dateRange.end, 'yyyy-MM-dd');
+      }
+      
       const [expensesRes, categoriesRes] = await Promise.all([
         expensesApi.getAll(filters),
         categoriesApi.getAll(),
       ]);
-      setExpenses(expensesRes.data);
+      
+      const paginatedData = expensesRes.data as PaginatedResponse<Expense>;
+      setExpenses(paginatedData.items);
+      setTotal(paginatedData.total);
+      setTotalPages(paginatedData.total_pages);
       setCategories(categoriesRes.data);
+      setSelectedIds(new Set()); // Clear selection on data change
     } catch {
       toast.error('Failed to load data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize, filterCategory, debouncedSearch, datePreset]);
 
   useEffect(() => {
     fetchData();
-  }, [filters]);
+  }, [fetchData]);
 
   const handleFilterChange = (categoryId: string) => {
     setFilterCategory(categoryId);
-    if (categoryId === 'all') {
-      setFilters({});
-    } else {
-      setFilters({ category_id: parseInt(categoryId) });
-    }
+    setPage(1);
+  };
+
+  const handleDatePresetChange = (preset: DatePreset) => {
+    setDatePreset(preset);
+    setPage(1);
   };
 
   const openEditDialog = (expense: Expense) => {
@@ -188,7 +268,59 @@ export default function ExpensesPage() {
     }
   };
 
-  if (isLoading) {
+  // Bulk selection handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === expenses.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(expenses.map(e => e.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} expenses?`)) return;
+    
+    setIsBulkDeleting(true);
+    try {
+      await expensesApi.bulkDelete(Array.from(selectedIds));
+      toast.success(`${selectedIds.size} expenses deleted`);
+      setSelectedIds(new Set());
+      fetchData();
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      toast.error(axiosError.response?.data?.detail || 'Failed to delete expenses');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleBulkCategoryChange = async (categoryId: string) => {
+    setIsBulkUpdating(true);
+    try {
+      await expensesApi.bulkUpdate(Array.from(selectedIds), parseInt(categoryId));
+      toast.success(`${selectedIds.size} expenses updated`);
+      setSelectedIds(new Set());
+      setBulkCategoryDialogOpen(false);
+      fetchData();
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      toast.error(axiosError.response?.data?.detail || 'Failed to update expenses');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  if (isLoading && expenses.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
@@ -196,7 +328,7 @@ export default function ExpensesPage() {
     );
   }
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const visibleTotal = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
   return (
     <div className="space-y-6">
@@ -338,43 +470,155 @@ export default function ExpensesPage() {
         </Dialog>
       </div>
 
-      {/* Summary and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Card className="flex-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30">
-          <CardContent className="pt-6">
-            <p className="text-sm text-slate-400">Total Expenses</p>
-            <p className="text-2xl font-bold text-white">{formatCurrency(totalExpenses)}</p>
-          </CardContent>
-        </Card>
+      {/* Search and Filters */}
+      <div className="flex flex-col gap-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Search expenses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-slate-800 border-slate-700 text-white"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-slate-400"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardContent className="pt-6 flex items-center gap-3">
-            <Filter className="h-5 w-5 text-slate-400" />
-            <Select value={filterCategory} onValueChange={handleFilterChange}>
-              <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-white">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="all" className="text-white hover:bg-slate-700">
-                  All Categories
-                </SelectItem>
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={category.id.toString()}
-                    className="text-white hover:bg-slate-700"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span>{category.icon}</span>
-                      <span>{category.name}</span>
-                    </span>
+        {/* Date Presets */}
+        <div className="flex flex-wrap gap-2">
+          {(Object.keys(datePresetLabels) as DatePreset[]).map((preset) => (
+            <Button
+              key={preset}
+              variant={datePreset === preset ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleDatePresetChange(preset)}
+              className={cn(
+                datePreset === preset
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              )}
+            >
+              {datePresetLabels[preset]}
+            </Button>
+          ))}
+        </div>
+
+        {/* Summary and Category Filter */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Card className="flex-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30">
+            <CardContent className="pt-6">
+              <p className="text-sm text-slate-400">
+                {datePreset === 'all' ? 'Total' : datePresetLabels[datePreset]} ({total} items)
+              </p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(visibleTotal)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="pt-6 flex items-center gap-3">
+              <Filter className="h-5 w-5 text-slate-400" />
+              <Select value={filterCategory} onValueChange={handleFilterChange}>
+                <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-white">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="all" className="text-white hover:bg-slate-700">
+                    All Categories
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                      className="text-white hover:bg-slate-700"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>{category.icon}</span>
+                        <span>{category.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <Card className="bg-emerald-900/30 border-emerald-500/50">
+          <CardContent className="py-3 flex items-center justify-between">
+            <span className="text-emerald-300 font-medium">
+              {selectedIds.size} item{selectedIds.size > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex gap-2">
+              <Dialog open={bulkCategoryDialogOpen} onOpenChange={setBulkCategoryDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-emerald-500 text-emerald-300 hover:bg-emerald-900/50">
+                    Change Category
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-900 border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Change Category</DialogTitle>
+                    <DialogDescription className="text-slate-400">
+                      Select a new category for {selectedIds.size} expense{selectedIds.size > 1 ? 's' : ''}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Select onValueChange={handleBulkCategoryChange} disabled={isBulkUpdating}>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {categories.map((category) => (
+                          <SelectItem
+                            key={category.id}
+                            value={category.id.toString()}
+                            className="text-white hover:bg-slate-700"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>{category.icon}</span>
+                              <span>{category.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+              >
+                {isBulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                Delete Selected
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-slate-400"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
       {/* Expenses Table */}
       {expenses.length === 0 ? (
@@ -383,82 +627,139 @@ export default function ExpensesPage() {
             <div className="h-16 w-16 rounded-full bg-slate-700 flex items-center justify-center mb-4">
               <Plus className="h-8 w-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">No expenses yet</h3>
+            <h3 className="text-lg font-medium text-white mb-2">
+              {debouncedSearch ? 'No results found' : 'No expenses yet'}
+            </h3>
             <p className="text-slate-400 text-center mb-4">
-              Start tracking your spending by adding your first expense
+              {debouncedSearch
+                ? `No expenses matching "${debouncedSearch}"`
+                : 'Start tracking your spending by adding your first expense'}
             </p>
-            <Button
-              onClick={openCreateDialog}
-              className="bg-gradient-to-r from-emerald-500 to-teal-500"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Expense
-            </Button>
+            {!debouncedSearch && (
+              <Button
+                onClick={openCreateDialog}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Expense
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-slate-800/50 border-slate-700 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-700 hover:bg-slate-800">
-                <TableHead className="text-slate-400">Date</TableHead>
-                <TableHead className="text-slate-400">Category</TableHead>
-                <TableHead className="text-slate-400">Description</TableHead>
-                <TableHead className="text-slate-400 text-right">Amount</TableHead>
-                <TableHead className="text-slate-400 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.map((expense) => (
-                <TableRow
-                  key={expense.id}
-                  className="border-slate-700 hover:bg-slate-800/50"
-                >
-                  <TableCell className="text-slate-300">
-                    {format(new Date(expense.date), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-sm"
-                        style={{ backgroundColor: `${expense.category?.color}20` }}
-                      >
-                        {expense.category?.icon}
-                      </span>
-                      <span className="text-slate-300">{expense.category?.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-white max-w-xs truncate">
-                    {expense.description}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-white">
-                    {formatCurrency(Number(expense.amount))}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(expense)}
-                        className="h-8 w-8 text-slate-400 hover:text-white"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteExpense(expense.id)}
-                        className="h-8 w-8 text-slate-400 hover:text-red-400"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <>
+          <Card className="bg-slate-800/50 border-slate-700 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700 hover:bg-slate-800">
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === expenses.length && expenses.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead className="text-slate-400">Date</TableHead>
+                  <TableHead className="text-slate-400">Category</TableHead>
+                  <TableHead className="text-slate-400">Description</TableHead>
+                  <TableHead className="text-slate-400 text-right">Amount</TableHead>
+                  <TableHead className="text-slate-400 text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+              </TableHeader>
+              <TableBody>
+                {expenses.map((expense) => (
+                  <TableRow
+                    key={expense.id}
+                    className={cn(
+                      'border-slate-700 hover:bg-slate-800/50',
+                      selectedIds.has(expense.id) && 'bg-emerald-900/20'
+                    )}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(expense.id)}
+                        onCheckedChange={() => toggleSelect(expense.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-slate-300">
+                      {format(new Date(expense.date), 'MMM dd, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm"
+                          style={{ backgroundColor: `${expense.category?.color}20` }}
+                        >
+                          {expense.category?.icon}
+                        </span>
+                        <span className="text-slate-300">{expense.category?.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-white max-w-xs truncate">
+                      {expense.description}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-white">
+                      {formatCurrency(Number(expense.amount))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(expense)}
+                          className="h-8 w-8 text-slate-400 hover:text-white"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteExpense(expense.id)}
+                          className="h-8 w-8 text-slate-400 hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-400">
+                Showing {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, total)} of {total}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="bg-slate-800 border-slate-700 text-white disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-slate-400">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="bg-slate-800 border-slate-700 text-white disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

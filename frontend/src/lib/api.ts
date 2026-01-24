@@ -37,6 +37,15 @@ api.interceptors.response.use(
   }
 );
 
+// Generic paginated response type
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 // Auth API
 export const authApi = {
   register: (data: { email: string; password: string; name: string }) =>
@@ -70,21 +79,45 @@ export interface ExpenseFilter {
   category_id?: number;
   min_amount?: number;
   max_amount?: number;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface Expense {
+  id: number;
+  amount: number;
+  description: string;
+  date: string;
+  category_id: number;
+  category: {
+    id: number;
+    name: string;
+    icon: string;
+    color: string;
+  };
+  created_at: string;
 }
 
 export const expensesApi = {
   getAll: (filters?: ExpenseFilter) =>
-    api.get('/expenses', { params: filters }),
+    api.get<PaginatedResponse<Expense>>('/expenses', { params: filters }),
   
-  getOne: (id: number) => api.get(`/expenses/${id}`),
+  getOne: (id: number) => api.get<Expense>(`/expenses/${id}`),
   
   create: (data: { amount: number; description: string; date: string; category_id: number }) =>
-    api.post('/expenses', data),
+    api.post<Expense>('/expenses', data),
   
   update: (id: number, data: { amount?: number; description?: string; date?: string; category_id?: number }) =>
-    api.put(`/expenses/${id}`, data),
+    api.put<Expense>(`/expenses/${id}`, data),
   
   delete: (id: number) => api.delete(`/expenses/${id}`),
+  
+  bulkDelete: (expenseIds: number[]) =>
+    api.post('/expenses/bulk-delete', { expense_ids: expenseIds }),
+  
+  bulkUpdate: (expenseIds: number[], categoryId: number) =>
+    api.patch<Expense[]>('/expenses/bulk-update', { expense_ids: expenseIds, category_id: categoryId }),
 };
 
 // Dashboard API
@@ -120,4 +153,3 @@ export const recurringExpensesApi = {
   createExpense: (id: number) => 
     api.post(`/recurring-expenses/${id}/create-expense`),
 };
-
