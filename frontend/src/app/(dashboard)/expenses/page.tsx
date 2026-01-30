@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -58,10 +59,10 @@ const expenseSchema = z.object({
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('vi-VN', {
+const formatCurrency = (value: number, locale: string) => {
+  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
     style: 'currency',
-    currency: 'VND',
+    currency: locale === 'vi' ? 'VND' : 'USD',
   }).format(value);
 };
 
@@ -89,15 +90,7 @@ const getDateRange = (preset: DatePreset): { start?: Date; end?: Date } => {
   }
 };
 
-const datePresetLabels: Record<DatePreset, string> = {
-  all: 'All Time',
-  today: 'Today',
-  this_week: 'This Week',
-  this_month: 'This Month',
-  last_month: 'Last Month',
-  last_3_months: 'Last 3 Months',
-  this_year: 'This Year',
-};
+
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -106,6 +99,19 @@ export default function ExpensesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = useTranslations('Expenses');
+  const tCommon = useTranslations('Common');
+  const locale = useLocale();
+  
+  const datePresetLabels: Record<DatePreset, string> = {
+    all: t('DatePresets.all'),
+    today: t('DatePresets.today'),
+    this_week: t('DatePresets.this_week'),
+    this_month: t('DatePresets.this_month'),
+    last_month: t('DatePresets.last_month'),
+    last_3_months: t('DatePresets.last_3_months'),
+    this_year: t('DatePresets.this_year'),
+  };
   
   // Pagination state
   const [page, setPage] = useState(1);
@@ -188,11 +194,11 @@ export default function ExpensesPage() {
       setCategories(categoriesRes.data);
       setSelectedIds(new Set()); // Clear selection on data change
     } catch {
-      toast.error('Failed to load data');
+      toast.error(t('failedToLoad'));
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, filterCategory, debouncedSearch, datePreset]);
+  }, [page, pageSize, filterCategory, debouncedSearch, datePreset, t]);
 
   useEffect(() => {
     fetchData();
@@ -240,31 +246,31 @@ export default function ExpensesPage() {
 
       if (editingExpense) {
         await expensesApi.update(editingExpense.id, payload);
-        toast.success('Expense updated successfully');
+        toast.success(t('successUpdate'));
       } else {
         await expensesApi.create(payload);
-        toast.success('Expense added successfully');
+        toast.success(t('successAdd'));
       }
       setIsDialogOpen(false);
       fetchData();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || 'Failed to save expense');
+      toast.error(axiosError.response?.data?.detail || t('failedSave'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const deleteExpense = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this expense?')) return;
+    if (!confirm(t('confirmDelete'))) return;
 
     try {
       await expensesApi.delete(id);
-      toast.success('Expense deleted successfully');
+      toast.success(t('successDelete'));
       fetchData();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || 'Failed to delete expense');
+      toast.error(axiosError.response?.data?.detail || t('failedDelete'));
     }
   };
 
@@ -288,17 +294,17 @@ export default function ExpensesPage() {
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} expenses?`)) return;
+    if (!confirm(t('confirmBulkDelete', { count: selectedIds.size }))) return;
     
     setIsBulkDeleting(true);
     try {
       await expensesApi.bulkDelete(Array.from(selectedIds));
-      toast.success(`${selectedIds.size} expenses deleted`);
+      toast.success(t('successBulkDelete', { count: selectedIds.size }));
       setSelectedIds(new Set());
       fetchData();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || 'Failed to delete expenses');
+      toast.error(axiosError.response?.data?.detail || t('failedBulkDelete'));
     } finally {
       setIsBulkDeleting(false);
     }
@@ -308,13 +314,13 @@ export default function ExpensesPage() {
     setIsBulkUpdating(true);
     try {
       await expensesApi.bulkUpdate(Array.from(selectedIds), parseInt(categoryId));
-      toast.success(`${selectedIds.size} expenses updated`);
+      toast.success(t('successBulkUpdate', { count: selectedIds.size }));
       setSelectedIds(new Set());
       setBulkCategoryDialogOpen(false);
       fetchData();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || 'Failed to update expenses');
+      toast.error(axiosError.response?.data?.detail || t('failedBulkUpdate'));
     } finally {
       setIsBulkUpdating(false);
     }
@@ -335,8 +341,8 @@ export default function ExpensesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Expenses</h1>
-          <p className="text-slate-400 mt-1">Track and manage your spending</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -345,22 +351,22 @@ export default function ExpensesPage() {
               className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Expense
+              {t('addExpense')}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle className="text-white">
-                {editingExpense ? 'Edit Expense' : 'Add Expense'}
+                {editingExpense ? t('editExpense') : t('addExpense')}
               </DialogTitle>
               <DialogDescription className="text-slate-400">
-                {editingExpense ? 'Update expense details' : 'Record a new expense'}
+                {editingExpense ? t('editExpenseDesc') : t('addExpenseDesc')}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Amount (VND)</Label>
+                  <Label className="text-slate-200">{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
                   <Input
                     type="number"
                     placeholder="0"
@@ -373,9 +379,9 @@ export default function ExpensesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Description</Label>
+                  <Label className="text-slate-200">{tCommon('description')}</Label>
                   <Input
-                    placeholder="What did you spend on?"
+                    placeholder={t('descriptionPlaceholder')}
                     className="bg-slate-800 border-slate-700 text-white"
                     {...register('description')}
                   />
@@ -385,13 +391,13 @@ export default function ExpensesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Category</Label>
+                  <Label className="text-slate-200">{tCommon('category')}</Label>
                   <Select
                     value={watch('category_id')}
                     onValueChange={(value) => setValue('category_id', value)}
                   >
                     <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder={t('selectCategory')} />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
                       {categories.map((category) => (
@@ -414,7 +420,7 @@ export default function ExpensesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Date</Label>
+                  <Label className="text-slate-200">{tCommon('date')}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -425,7 +431,7 @@ export default function ExpensesPage() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
+                        {selectedDate ? format(selectedDate, 'PPP') : <span>{t('pickDate')}</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700">
@@ -449,7 +455,7 @@ export default function ExpensesPage() {
                   onClick={() => setIsDialogOpen(false)}
                   className="text-slate-400"
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -459,9 +465,9 @@ export default function ExpensesPage() {
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : editingExpense ? (
-                    'Update'
+                    tCommon('update')
                   ) : (
-                    'Add'
+                    tCommon('add')
                   )}
                 </Button>
               </DialogFooter>
@@ -476,7 +482,7 @@ export default function ExpensesPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Search expenses..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-slate-800 border-slate-700 text-white"
@@ -517,9 +523,9 @@ export default function ExpensesPage() {
           <Card className="flex-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30">
             <CardContent className="pt-6">
               <p className="text-sm text-slate-400">
-                {datePreset === 'all' ? 'Total' : datePresetLabels[datePreset]} ({total} items)
+                {datePreset === 'all' ? tCommon('total') : datePresetLabels[datePreset]} ({total} items)
               </p>
-              <p className="text-2xl font-bold text-white">{formatCurrency(visibleTotal)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(visibleTotal, locale)}</p>
             </CardContent>
           </Card>
 
@@ -528,11 +534,11 @@ export default function ExpensesPage() {
               <Filter className="h-5 w-5 text-slate-400" />
               <Select value={filterCategory} onValueChange={handleFilterChange}>
                 <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-white">
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder={t('allCategories')} />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="all" className="text-white hover:bg-slate-700">
-                    All Categories
+                    {t('allCategories')}
                   </SelectItem>
                   {categories.map((category) => (
                     <SelectItem
@@ -558,26 +564,26 @@ export default function ExpensesPage() {
         <Card className="bg-emerald-900/30 border-emerald-500/50">
           <CardContent className="py-3 flex items-center justify-between">
             <span className="text-emerald-300 font-medium">
-              {selectedIds.size} item{selectedIds.size > 1 ? 's' : ''} selected
+              {t('itemsSelected', { count: selectedIds.size })}
             </span>
             <div className="flex gap-2">
               <Dialog open={bulkCategoryDialogOpen} onOpenChange={setBulkCategoryDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="border-emerald-500 text-emerald-300 hover:bg-emerald-900/50">
-                    Change Category
+                    {t('changeCategory')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-slate-900 border-slate-700">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Change Category</DialogTitle>
+                    <DialogTitle className="text-white">{t('changeCategory')}</DialogTitle>
                     <DialogDescription className="text-slate-400">
-                      Select a new category for {selectedIds.size} expense{selectedIds.size > 1 ? 's' : ''}
+                      {t('changeCategoryDesc', { count: selectedIds.size })}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="py-4">
                     <Select onValueChange={handleBulkCategoryChange} disabled={isBulkUpdating}>
                       <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue placeholder={t('selectCategory')} />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-700">
                         {categories.map((category) => (
@@ -604,7 +610,7 @@ export default function ExpensesPage() {
                 disabled={isBulkDeleting}
               >
                 {isBulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
-                Delete Selected
+                {t('deleteSelected')}
               </Button>
               <Button
                 variant="ghost"
@@ -613,7 +619,7 @@ export default function ExpensesPage() {
                 className="text-slate-400"
               >
                 <X className="h-4 w-4 mr-1" />
-                Clear
+                {tCommon('clear')}
               </Button>
             </div>
           </CardContent>
@@ -628,12 +634,12 @@ export default function ExpensesPage() {
               <Plus className="h-8 w-8 text-slate-400" />
             </div>
             <h3 className="text-lg font-medium text-white mb-2">
-              {debouncedSearch ? 'No results found' : 'No expenses yet'}
+              {debouncedSearch ? tCommon('noResults') : t('noExpenses')}
             </h3>
             <p className="text-slate-400 text-center mb-4">
               {debouncedSearch
-                ? `No expenses matching "${debouncedSearch}"`
-                : 'Start tracking your spending by adding your first expense'}
+                ? t('noExpensesMatching', { query: debouncedSearch })
+                : t('startTracking')}
             </p>
             {!debouncedSearch && (
               <Button
@@ -641,7 +647,7 @@ export default function ExpensesPage() {
                 className="bg-gradient-to-r from-emerald-500 to-teal-500"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Expense
+                {t('addExpense')}
               </Button>
             )}
           </CardContent>
@@ -658,11 +664,11 @@ export default function ExpensesPage() {
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="text-slate-400">Date</TableHead>
-                  <TableHead className="text-slate-400">Category</TableHead>
-                  <TableHead className="text-slate-400">Description</TableHead>
-                  <TableHead className="text-slate-400 text-right">Amount</TableHead>
-                  <TableHead className="text-slate-400 text-right">Actions</TableHead>
+                  <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
+                  <TableHead className="text-slate-400">{tCommon('category')}</TableHead>
+                  <TableHead className="text-slate-400">{tCommon('description')}</TableHead>
+                  <TableHead className="text-slate-400 text-right">{tCommon('amount')}</TableHead>
+                  <TableHead className="text-slate-400 text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -698,7 +704,7 @@ export default function ExpensesPage() {
                       {expense.description}
                     </TableCell>
                     <TableCell className="text-right font-medium text-white">
-                      {formatCurrency(Number(expense.amount))}
+                      {formatCurrency(Number(expense.amount), locale)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

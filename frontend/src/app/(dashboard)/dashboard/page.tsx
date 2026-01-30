@@ -24,6 +24,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboardApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface CategoryStat {
   category_id: number;
@@ -46,16 +47,18 @@ interface DashboardStats {
   monthly_trend: MonthlyTrend[];
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('vi-VN', {
+const formatCurrency = (value: number, locale: string) => {
+  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
     style: 'currency',
-    currency: 'VND',
+    currency: locale === 'vi' ? 'VND' : 'USD',
   }).format(value);
 };
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const t = useTranslations('Dashboard');
+  const locale = useLocale();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -63,14 +66,14 @@ export default function DashboardPage() {
         const response = await dashboardApi.getStats();
         setStats(response.data);
       } catch {
-        toast.error('Failed to load dashboard stats');
+        toast.error(t('failedToLoad'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+  }, [t]);
 
   if (isLoading) {
     return (
@@ -95,51 +98,51 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-slate-400 mt-1">Track your spending and financial health</p>
+        <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+        <p className="text-slate-400 mt-1">{t('subtitle')}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-400">{t('totalExpenses')}</CardTitle>
             <DollarSign className="h-5 w-5 text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(Number(stats?.total_expenses) || 0)}
+              {formatCurrency(Number(stats?.total_expenses) || 0, locale)}
             </div>
-            <p className="text-xs text-slate-400 mt-1">All time spending</p>
+            <p className="text-xs text-slate-400 mt-1">{t('allTimeSpending')}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">This Month</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-400">{t('thisMonth')}</CardTitle>
             <Calendar className="h-5 w-5 text-pink-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(Number(stats?.total_this_month) || 0)}
+              {formatCurrency(Number(stats?.total_this_month) || 0, locale)}
             </div>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-green-400" />
-              <p className="text-xs text-slate-400">Monthly spending</p>
+              <p className="text-xs text-slate-400">{t('monthlySpending')}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">This Week</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-400">{t('thisWeek')}</CardTitle>
             <TrendingDown className="h-5 w-5 text-cyan-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(Number(stats?.total_this_week) || 0)}
+              {formatCurrency(Number(stats?.total_this_week) || 0, locale)}
             </div>
-            <p className="text-xs text-slate-400 mt-1">Weekly spending</p>
+            <p className="text-xs text-slate-400 mt-1">{t('weeklySpending')}</p>
           </CardContent>
         </Card>
       </div>
@@ -151,10 +154,10 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-400" />
-              Monthly Trend
+              {t('monthlyTrend')}
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Your spending over the last 6 months
+              {t('monthlyTrendDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -164,14 +167,14 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
                   <YAxis stroke="#9ca3af" fontSize={12} tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`} />
-                  <Tooltip
+                    <Tooltip
                     contentStyle={{
                       backgroundColor: '#1e293b',
                       border: '1px solid #475569',
                       borderRadius: '8px',
                     }}
                     labelStyle={{ color: '#fff' }}
-                    formatter={(value) => [formatCurrency(Number(value) || 0), 'Total']}
+                    formatter={(value) => [formatCurrency(Number(value) || 0, locale), t('monthlyTrend')]}
                   />
                   <Bar
                     dataKey="total"
@@ -195,10 +198,10 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <PieChartIcon className="h-5 w-5 text-pink-400" />
-              Expenses by Category
+              {t('expensesByCategory')}
             </CardTitle>
             <CardDescription className="text-slate-400">
-              How your money is distributed
+              {t('expensesByCategoryDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -225,7 +228,7 @@ export default function DashboardPage() {
                         border: '1px solid #475569',
                         borderRadius: '8px',
                       }}
-                      formatter={(value) => formatCurrency(Number(value) || 0)}
+                      formatter={(value) => formatCurrency(Number(value) || 0, locale)}
                     />
                     <Legend
                       wrapperStyle={{ color: '#9ca3af' }}
@@ -235,7 +238,7 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-slate-400">
-                  <p>No expense data yet. Start adding expenses!</p>
+                  <p>{t('noData')}</p>
                 </div>
               )}
             </div>

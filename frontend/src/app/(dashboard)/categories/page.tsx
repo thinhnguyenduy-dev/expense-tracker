@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,8 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = useTranslations('Categories');
+  const tCommon = useTranslations('Common');
 
   const {
     register,
@@ -75,7 +78,7 @@ export default function CategoriesPage() {
       const response = await categoriesApi.getAll();
       setCategories(response.data);
     } catch {
-      toast.error('Failed to load categories');
+      toast.error(t('failedToLoad'));
     } finally {
       setIsLoading(false);
     }
@@ -104,31 +107,31 @@ export default function CategoriesPage() {
     try {
       if (editingCategory) {
         await categoriesApi.update(editingCategory.id, data);
-        toast.success('Category updated successfully');
+        toast.success(t('successUpdate'));
       } else {
         await categoriesApi.create(data);
-        toast.success('Category created successfully');
+        toast.success(t('successCreate'));
       }
       setIsDialogOpen(false);
       fetchCategories();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || 'Failed to save category');
+      toast.error(axiosError.response?.data?.detail || t('failedSave'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const deleteCategory = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    if (!confirm(t('confirmDelete'))) return;
     
     try {
       await categoriesApi.delete(id);
-      toast.success('Category deleted successfully');
+      toast.success(t('successDelete'));
       fetchCategories();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || 'Failed to delete category');
+      toast.error(axiosError.response?.data?.detail || t('failedDelete'));
     }
   };
 
@@ -145,8 +148,8 @@ export default function CategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Categories</h1>
-          <p className="text-slate-400 mt-1">Organize your expenses with custom categories</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -155,24 +158,24 @@ export default function CategoriesPage() {
               className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Category
+              {t('addCategory')}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle className="text-white">
-                {editingCategory ? 'Edit Category' : 'Create Category'}
+                {editingCategory ? t('editCategory') : t('createCategory')}
               </DialogTitle>
               <DialogDescription className="text-slate-400">
-                {editingCategory ? 'Update your category details' : 'Add a new category to organize your expenses'}
+                {editingCategory ? t('editDesc') : t('createDesc')}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Name</Label>
+                  <Label className="text-slate-200">{t('name')}</Label>
                   <Input
-                    placeholder="Category name"
+                    placeholder={t('categoryName')}
                     className="bg-slate-800 border-slate-700 text-white"
                     {...register('name')}
                   />
@@ -182,7 +185,7 @@ export default function CategoriesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Icon</Label>
+                  <Label className="text-slate-200">{t('icon')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {defaultIcons.map((icon) => (
                       <button
@@ -203,7 +206,7 @@ export default function CategoriesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Color</Label>
+                  <Label className="text-slate-200">{t('color')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {defaultColors.map((color) => (
                       <button
@@ -224,14 +227,14 @@ export default function CategoriesPage() {
 
                 {/* Preview */}
                 <div className="pt-4 border-t border-slate-700">
-                  <Label className="text-slate-200 mb-2 block">Preview</Label>
+                  <Label className="text-slate-200 mb-2 block">{t('preview')}</Label>
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
                     style={{ backgroundColor: `${selectedColor}20` }}
                   >
                     <span className="text-xl">{selectedIcon}</span>
                     <span className="font-medium" style={{ color: selectedColor }}>
-                      {watch('name') || 'Category Name'}
+                      {watch('name') || t('categoryName')}
                     </span>
                   </div>
                 </div>
@@ -243,7 +246,7 @@ export default function CategoriesPage() {
                   onClick={() => setIsDialogOpen(false)}
                   className="text-slate-400"
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -253,9 +256,9 @@ export default function CategoriesPage() {
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : editingCategory ? (
-                    'Update'
+                    tCommon('update')
                   ) : (
-                    'Create'
+                    tCommon('create')
                   )}
                 </Button>
               </DialogFooter>
@@ -271,16 +274,16 @@ export default function CategoriesPage() {
             <div className="h-16 w-16 rounded-full bg-slate-700 flex items-center justify-center mb-4">
               <Plus className="h-8 w-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">No categories yet</h3>
+            <h3 className="text-lg font-medium text-white mb-2">{t('noCategories')}</h3>
             <p className="text-slate-400 text-center mb-4">
-              Create your first category to start organizing expenses
+              {t('startOrganizing')}
             </p>
             <Button
               onClick={openCreateDialog}
               className="bg-gradient-to-r from-emerald-500 to-teal-500"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Category
+              {t('createCategory')}
             </Button>
           </CardContent>
         </Card>

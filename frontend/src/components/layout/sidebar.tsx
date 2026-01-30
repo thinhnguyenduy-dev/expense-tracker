@@ -28,6 +28,7 @@ import { useTranslations } from 'next-intl';
 
 export function Sidebar() {
   const t = useTranslations('Sidebar');
+  const tCommon = useTranslations('Common');
   
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -119,7 +120,7 @@ export function Sidebar() {
               onClick={logout}
             >
               <LogOut className="h-5 w-5" />
-              Logout
+              {tCommon('logout')}
             </Button>
           </div>
         </div>

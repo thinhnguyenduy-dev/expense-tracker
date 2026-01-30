@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { recurringExpensesApi, categoriesApi } from "@/lib/api"
+import { useTranslations, useLocale } from 'next-intl';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -37,17 +38,20 @@ interface Category {
   color: string
 }
 
-const WEEKDAYS = [
-  { value: 0, label: "Monday" },
-  { value: 1, label: "Tuesday" },
-  { value: 2, label: "Wednesday" },
-  { value: 3, label: "Thursday" },
-  { value: 4, label: "Friday" },
-  { value: 5, label: "Saturday" },
-  { value: 6, label: "Sunday" },
-]
-
 export default function RecurringExpensesPage() {
+  const t = useTranslations('RecurringExpenses');
+  const tCommon = useTranslations('Common');
+  const locale = useLocale();
+
+  const WEEKDAYS = [
+    { value: 0, label: tCommon('days.monday') },
+    { value: 1, label: tCommon('days.tuesday') },
+    { value: 2, label: tCommon('days.wednesday') },
+    { value: 3, label: tCommon('days.thursday') },
+    { value: 4, label: tCommon('days.friday') },
+    { value: 5, label: tCommon('days.saturday') },
+    { value: 6, label: tCommon('days.sunday') },
+  ];
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -79,7 +83,7 @@ export default function RecurringExpensesPage() {
       setRecurringExpenses(recurringResponse.data)
       setCategories(categoriesResponse.data)
     } catch (error) {
-      toast.error("Failed to load data")
+      toast.error(t('failedToLoad'));
     } finally {
       setLoading(false)
     }
@@ -110,39 +114,39 @@ export default function RecurringExpensesPage() {
 
       if (editingId) {
         await recurringExpensesApi.update(editingId, data)
-        toast.success("Recurring expense updated")
+        toast.success(t('successUpdate'))
       } else {
         await recurringExpensesApi.create(data)
-        toast.success("Recurring expense created")
+        toast.success(t('successCreate'))
       }
 
       setDialogOpen(false)
       resetForm()
       fetchData()
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Failed to save")
+      toast.error(error?.response?.data?.detail || t('failedSave'))
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this recurring expense?")) return
+    if (!confirm(t('confirmDelete'))) return
     
     try {
       await recurringExpensesApi.delete(id)
-      toast.success("Recurring expense deleted")
+      toast.success(t('successDelete'))
       fetchData()
     } catch (error) {
-      toast.error("Failed to delete")
+      toast.error(t('failedDelete'))
     }
   }
 
   const handleCreateExpense = async (id: number) => {
     try {
       const response = await recurringExpensesApi.createExpense(id)
-      toast.success(`Expense created for ${response.data.date}`)
+      toast.success(t('successExpenseCreated', { date: response.data.date }))
       fetchData()
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Failed to create expense")
+      toast.error(error?.response?.data?.detail || t('failedCreateExpense'))
     }
   }
 
@@ -185,7 +189,7 @@ export default function RecurringExpensesPage() {
     }
     return (
       <Badge className={`${colors[frequency]} text-white`}>
-        {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
+        {t(frequency)}
       </Badge>
     )
   }
@@ -198,8 +202,8 @@ export default function RecurringExpensesPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Recurring Expenses</h1>
-          <p className="text-muted-foreground">Manage expense templates and create scheduled expenses</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         
         <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -209,28 +213,28 @@ export default function RecurringExpensesPage() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Template
+              {t('newTemplate')}
             </Button>
           </DialogTrigger>
           
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingId ? "Edit" : "Create"} Recurring Expense</DialogTitle>
+              <DialogTitle>{editingId ? t('editTemplate') : t('createTemplate')}</DialogTitle>
               <DialogDescription>
-                Set up a template for recurring expenses
+                {t('templateDesc')}
               </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label>Category</Label>
+                <Label>{tCommon('category')}</Label>
                 <Select
                   value={formData.category_id}
                   onValueChange={(value) => setFormData({ ...formData, category_id: value })}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={tCommon('category')} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
@@ -243,7 +247,7 @@ export default function RecurringExpensesPage() {
               </div>
 
               <div>
-                <Label>Description</Label>
+                <Label>{tCommon('description')}</Label>
                 <Input
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -252,7 +256,7 @@ export default function RecurringExpensesPage() {
               </div>
 
               <div>
-                <Label>Amount</Label>
+                <Label>{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -263,7 +267,7 @@ export default function RecurringExpensesPage() {
               </div>
 
               <div>
-                <Label>Frequency</Label>
+                <Label>{t('frequency')}</Label>
                 <Select
                   value={formData.frequency}
                   onValueChange={(value) => setFormData({ ...formData, frequency: value })}
@@ -272,16 +276,16 @@ export default function RecurringExpensesPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
+                    <SelectItem value="monthly">{t('monthly')}</SelectItem>
+                    <SelectItem value="weekly">{t('weekly')}</SelectItem>
+                    <SelectItem value="yearly">{t('yearly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {formData.frequency === "monthly" && (
                 <div>
-                  <Label>Day of Month</Label>
+                  <Label>{t('dayOfMonth')}</Label>
                   <Input
                     type="number"
                     min="1"
@@ -295,14 +299,14 @@ export default function RecurringExpensesPage() {
 
               {formData.frequency === "weekly" && (
                 <div>
-                  <Label>Day of Week</Label>
+                  <Label>{t('dayOfWeek')}</Label>
                   <Select
                     value={formData.day_of_week}
                     onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select day" />
+                      <SelectValue placeholder={t('selectDay')} />
                     </SelectTrigger>
                     <SelectContent>
                       {WEEKDAYS.map((day) => (
@@ -317,7 +321,7 @@ export default function RecurringExpensesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Start Date</Label>
+                  <Label>{t('startDate')}</Label>
                   <Input
                     type="date"
                     value={formData.start_date}
@@ -326,7 +330,7 @@ export default function RecurringExpensesPage() {
                   />
                 </div>
                 <div>
-                  <Label>End Date (Optional)</Label>
+                  <Label>{t('endDate')}</Label>
                   <Input
                     type="date"
                     value={formData.end_date}
@@ -336,7 +340,7 @@ export default function RecurringExpensesPage() {
               </div>
 
               <Button type="submit" className="w-full">
-                {editingId ? "Update" : "Create"} Template
+                {editingId ? t('update') : t('create')}
               </Button>
             </form>
           </DialogContent>
@@ -346,10 +350,10 @@ export default function RecurringExpensesPage() {
       {recurringExpenses.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <p className="text-muted-foreground mb-4">No recurring expenses yet</p>
+            <p className="text-muted-foreground mb-4">{t('noRecurring')}</p>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Your First Template
+              {t('createFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -386,13 +390,18 @@ export default function RecurringExpensesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="text-2xl font-bold">${recurring.amount}</div>
+                  <div className="text-2xl font-bold">
+                    {new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+                      style: 'currency',
+                      currency: locale === 'vi' ? 'VND' : 'USD',
+                    }).format(recurring.amount)}
+                  </div>
                   
                   {getFrequencyBadge(recurring.frequency)}
 
                   {recurring.next_due_date && (
                     <div className="text-sm text-muted-foreground">
-                      Next due: {new Date(recurring.next_due_date).toLocaleDateString()}
+                      {t('nextDue')} {new Date(recurring.next_due_date).toLocaleDateString()}
                     </div>
                   )}
 
@@ -402,12 +411,12 @@ export default function RecurringExpensesPage() {
                       onClick={() => handleCreateExpense(recurring.id)}
                     >
                       <Play className="mr-2 h-4 w-4" />
-                      Create Expense
+                      {t('createExpense')}
                     </Button>
                   )}
 
                   {!recurring.is_active && (
-                    <Badge variant="secondary">Inactive</Badge>
+                    <Badge variant="secondary">{t('inactive')}</Badge>
                   )}
                 </div>
               </CardContent>

@@ -16,7 +16,10 @@ Neon offers a serverless PostgreSQL database with a generous free tier.
    *   *Note: Select the "Pooled" connection string if available, but "Direct" works for Alembic migrations.*
    *   **Save this as `DATABASE_URL` for later.**
 
-### B. Caching: Upstash (Redis)
+### B. Caching: Upstash (Redis) - *Optional*
+> **Note:** If you use **Render Blueprint** (Method A below), a native Redis instance will be created automatically on Render. You can SKIP this step.
+> Follow this step ONLY if you plan to use Manual Setup (Method B) or prefer an external Redis provider.
+
 Upstash provides serverless Redis compatible caching.
 1. Go to [Upstash.com](https://upstash.com) and sign up.
 2. Create a new Redis database.
@@ -25,7 +28,24 @@ Upstash provides serverless Redis compatible caching.
 
 ## 3. Backend Deployment (Render)
 
-Render will host the Python FastAPI backend.
+### Option A: Use Render Blueprint (Recommended)
+This method automates the backend and Redis setup using the `render.yaml` file included in the repository.
+
+1. Go to [Render.com](https://render.com) and create an account.
+2. Click **New +** -> **Blueprint**.
+3. Connect your GitHub repository.
+4. Give your blueprint a name (e.g., `expense-tracker-stack`).
+5. Render will automatically detect the `render.yaml` configuration.
+   - It will identify the **Web Service** (`expense-tracker-api`) and the **Redis Service** (`expense-tracker-redis`).
+6. You will be prompted to provide the `DATABASE_URL` environment variable.
+   - Paste your **Neon Connection String**.
+7. Click **Apply**.
+   - Render will deploy the backend and provision a private Redis instance.
+   - The `REDIS_URL` will be automatically injected into your backend service.
+8. Once "Live", copy the **Service URL** of the Web Service.
+
+### Option B: Manual Setup
+Follow these steps if you prefer to configure services manually or don't want to use the Blueprint.
 
 1. Go to [Render.com](https://render.com) and create an account.
 2. Click **New +** -> **Web Service**.

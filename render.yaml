@@ -1,0 +1,32 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: expense-tracker-api
+    runtime: python
+    repo: https://github.com/thinhnguyenduy-dev/expense-tracker # Placeholder, Render usually uses the connected repo in the Blueprint
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false # User must provide this in dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LOG_LEVEL
+        value: INFO
+      - key: BACKEND_CORS_ORIGINS
+        value: '["*"]' # Update this after frontend deploy
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: expense-tracker-redis
+          property: connectionString
+
+  # Native Redis Service
+  - type: redis
+    name: expense-tracker-redis
+    region: singapore # Standard region, or let Render decide (optional)
+    plan: free # Use free tier if available, otherwise starter
+    ipAllowList: [] # Only internal access by default

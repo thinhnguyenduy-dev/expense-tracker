@@ -45,7 +45,7 @@ export default function SettingsPage() {
       toast.success(t('save'));
     } catch (error) {
       console.error(error);
-      toast.error('Failed to update language');
+      toast.error(t('failedUpdate'));
     }
   };
 

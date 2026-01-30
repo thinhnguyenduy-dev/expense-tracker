@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { z } from 'zod';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslations, useLocale } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -69,13 +70,15 @@ export default function GoalsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [savingGoal, setSavingGoal] = useState<Goal | null>(null);
+  const t = useTranslations('Goals');
+  const tCommon = useTranslations('Common');
 
   const fetchGoals = async () => {
     try {
       const response = await goalsApi.getAll();
       setGoals(response.data);
     } catch (error) {
-      toast.error('Failed to load goals');
+      toast.error(t('failedToLoad'));
     } finally {
       setIsLoading(false);
     }
@@ -89,9 +92,9 @@ export default function GoalsPage() {
     try {
       await goalsApi.delete(id);
       setGoals(goals.filter((g) => g.id !== id));
-      toast.success('Goal deleted successfully');
+      toast.success(t('successDelete'));
     } catch (error) {
-      toast.error('Failed to delete goal');
+      toast.error(t('failedDelete'));
     }
   };
 
@@ -107,12 +110,12 @@ export default function GoalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Savings Goals</h1>
-          <p className="text-slate-400 mt-1">Track your savings and reach your financial targets</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="bg-emerald-500 hover:bg-emerald-600">
           <Plus className="h-4 w-4 mr-2" />
-          New Goal
+          {t('newGoal')}
         </Button>
       </div>
 
@@ -130,8 +133,8 @@ export default function GoalsPage() {
         {goals.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-900/50 rounded-lg border border-slate-800 border-dashed">
             <Target className="h-12 w-12 mb-4 opacity-50" />
-            <p className="text-lg font-medium">No goals yet</p>
-            <p className="text-sm">Create a goal to start saving!</p>
+            <p className="text-lg font-medium">{t('noGoals')}</p>
+            <p className="text-sm">{t('startSaving')}</p>
           </div>
         )}
       </div>
@@ -197,8 +200,12 @@ function GoalCard({
     monthlySuggestion = remaining / months;
   }
 
+  const locale = useLocale();
+  const t = useTranslations('Goals');
+  const tCommon = useTranslations('Common');
+
   const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: locale === 'vi' ? 'VND' : 'USD' }).format(val);
 
   return (
     <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
@@ -215,20 +222,20 @@ function GoalCard({
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-            <DropdownMenuItem onClick={onEdit} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
-              <Pencil className="h-4 w-4 mr-2" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-red-400 hover:bg-slate-700 cursor-pointer">
-              <Trash2 className="h-4 w-4 mr-2" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+              <DropdownMenuItem onClick={onEdit} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
+                <Pencil className="h-4 w-4 mr-2" /> {tCommon('edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-red-400 hover:bg-slate-700 cursor-pointer">
+                <Trash2 className="h-4 w-4 mr-2" /> {tCommon('delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Progress</span>
+            <span className="text-slate-400">{t('progress')}</span>
             <span className="text-white font-medium">{percentage.toFixed(1)}%</span>
           </div>
           <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -239,14 +246,14 @@ function GoalCard({
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-emerald-400 font-medium">{formatCurrency(goal.current_amount)}</span>
-            <span className="text-slate-500">of {formatCurrency(goal.target_amount)}</span>
+            <span className="text-slate-500">{t('of')} {formatCurrency(goal.target_amount)}</span>
           </div>
         </div>
 
         {goal.deadline && (
           <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 p-2 rounded">
             <CalendarIcon className="h-4 w-4 text-slate-500" />
-            <span>Target: {format(new Date(goal.deadline), 'MMM d, yyyy')}</span>
+            <span>{t('target')} {format(new Date(goal.deadline), 'MMM d, yyyy')}</span>
           </div>
         )}
 
@@ -254,7 +261,7 @@ function GoalCard({
           <div className="flex items-start gap-2 text-sm text-slate-400 bg-slate-800/50 p-2 rounded">
             <TrendingUp className="h-4 w-4 text-emerald-500 mt-0.5" />
             <span>
-              Save <span className="text-white font-medium">{formatCurrency(monthlySuggestion)}</span>/mo to reach target
+              {t('save')} <span className="text-white font-medium">{formatCurrency(monthlySuggestion)}</span>{t('toReachTarget')}
             </span>
           </div>
         )}
@@ -262,7 +269,7 @@ function GoalCard({
       <CardFooter>
         <Button onClick={onAddSavings} className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700">
           <PiggyBank className="h-4 w-4 mr-2 text-emerald-400" />
-          Add Savings
+          {t('addSavings')}
         </Button>
       </CardFooter>
     </Card>
@@ -280,6 +287,9 @@ function GoalDialog({
   onSuccess: (goal: Goal) => void; 
   goal?: Goal;
 }) {
+  const t = useTranslations('Goals');
+  const tCommon = useTranslations('Common');
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -318,14 +328,14 @@ function GoalDialog({
       let result;
       if (goal) {
         result = await goalsApi.update(goal.id, data);
-        toast.success('Goal updated successfully');
+        toast.success(t('successUpdate'));
       } else {
         result = await goalsApi.create(data);
-        toast.success('Goal created successfully');
+        toast.success(t('successCreate'));
       }
       onSuccess(result.data);
     } catch (error) {
-      toast.error(goal ? 'Failed to update goal' : 'Failed to create goal');
+      toast.error(goal ? t('failedSave') : t('failedSave'));
     }
   };
 
@@ -333,9 +343,9 @@ function GoalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-800 text-white">
         <DialogHeader>
-          <DialogTitle>{goal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
+          <DialogTitle>{goal ? t('editGoal') : t('createGoal')}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            {goal ? 'Update your savings goal details.' : 'Set a new financial target for yourself.'}
+            {goal ? t('editDesc') : t('createDesc')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -345,7 +355,7 @@ function GoalDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>{t('name')}</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., New Car" {...field} className="bg-slate-800 border-slate-700" />
                   </FormControl>
@@ -360,7 +370,7 @@ function GoalDialog({
                 name="target_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Target Amount</FormLabel>
+                    <FormLabel>{t('targetAmount')}</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="50000000" {...field} className="bg-slate-800 border-slate-700" />
                     </FormControl>
@@ -373,7 +383,7 @@ function GoalDialog({
                 name="current_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Amount</FormLabel>
+                    <FormLabel>{t('currentAmount')}</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="0" {...field} className="bg-slate-800 border-slate-700" />
                     </FormControl>
@@ -388,7 +398,7 @@ function GoalDialog({
               name="deadline"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Target Date (Optional)</FormLabel>
+                  <FormLabel>{t('targetDate')}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -402,7 +412,7 @@ function GoalDialog({
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{tCommon('date')}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -431,7 +441,7 @@ function GoalDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>{t('description')}</FormLabel>
                   <FormControl>
                     <Input placeholder="Details about this goal..." {...field} className="bg-slate-800 border-slate-700" />
                   </FormControl>
@@ -442,7 +452,7 @@ function GoalDialog({
 
             <DialogFooter>
               <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto">
-                {goal ? 'Update Goal' : 'Create Goal'}
+                {goal ? t('editGoal') : t('createGoal')}
               </Button>
             </DialogFooter>
           </form>
@@ -464,6 +474,8 @@ function AddSavingsDialog({
   goal: Goal;
 }) {
   const [amount, setAmount] = useState('');
+  const t = useTranslations('Goals');
+  const locale = useLocale();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -476,10 +488,10 @@ function AddSavingsDialog({
     try {
       const newAmount = Number(goal.current_amount) + addAmount;
       const result = await goalsApi.update(goal.id, { current_amount: newAmount });
-      toast.success(`Added ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(addAmount)} to ${goal.name}`);
+      toast.success(t('successAddSavings', { amount: new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: locale === 'vi' ? 'VND' : 'USD' }).format(addAmount), name: goal.name }));
       onSuccess(result.data);
     } catch (error) {
-      toast.error('Failed to add savings');
+      toast.error(t('failedAddSavings'));
     }
   };
 
@@ -487,17 +499,17 @@ function AddSavingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-800 text-white">
         <DialogHeader>
-          <DialogTitle>Add Savings to {goal.name}</DialogTitle>
+          <DialogTitle>{t('addSavingsTo', { name: goal.name })}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            How much would you like to contribute to this goal?
+            {t('howMuch')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Amount</label>
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('amountToAdd')}</label>
             <Input 
               type="number" 
-              placeholder="Amount to add" 
+              placeholder={t('amountToAdd')} 
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="bg-slate-800 border-slate-700"
@@ -506,7 +518,7 @@ function AddSavingsDialog({
           </div>
           <DialogFooter>
             <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 w-full">
-              Confirm Add
+              {t('confirmAdd')}
             </Button>
           </DialogFooter>
         </form>

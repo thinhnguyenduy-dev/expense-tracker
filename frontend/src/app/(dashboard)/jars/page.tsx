@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslations, useLocale } from 'next-intl';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,10 @@ export default function JarsPage() {
   const [loading, setLoading] = useState(true);
   const [openAddIncome, setOpenAddIncome] = useState(false);
 
+  const t = useTranslations('Jars');
+  const tCommon = useTranslations('Common');
+  const locale = useLocale();
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -52,25 +57,25 @@ export default function JarsPage() {
   }, []);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
       style: "currency",
-      currency: "USD",
+      currency: locale === 'vi' ? 'VND' : 'USD',
     }).format(amount);
   };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">6 Jars Method</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{t('title')}</h2>
         <div className="flex items-center space-x-2">
           <Button onClick={() => setOpenAddIncome(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Income
+            <Plus className="mr-2 h-4 w-4" /> {t('addIncome')}
           </Button>
         </div>
       </div>
       
       {/* Jars Display */}
-      <h3 className="text-xl font-semibold mt-6 mb-4">Your Jars</h3>
+      <h3 className="text-xl font-semibold mt-6 mb-4">{t('yourJars')}</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading
           ? Array(6)
@@ -94,9 +99,9 @@ export default function JarsPage() {
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 mt-8">
         <Card>
           <CardHeader>
-            <CardTitle>Income History</CardTitle>
+            <CardTitle>{t('incomeHistory')}</CardTitle>
             <CardDescription>
-              Recent income sources that were distributed to your jars.
+              {t('incomeHistoryDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -110,16 +115,16 @@ export default function JarsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>{tCommon('date')}</TableHead>
+                      <TableHead>{t('source')}</TableHead>
+                      <TableHead className="text-right">{tCommon('amount')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {incomes.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center">
-                          No income recorded yet.
+                          {t('noIncome')}
                         </TableCell>
                       </TableRow>
                     ) : (
