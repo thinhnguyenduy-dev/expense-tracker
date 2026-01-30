@@ -34,10 +34,10 @@ import { incomesApi } from "@/lib/api";
 import { toast } from "sonner";
 
 const formSchema = z.object({
-  amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  amount: z.number().min(0.01, "Amount must be greater than 0"),
   source: z.string().min(1, "Source is required"),
   date: z.date({
-    required_error: "Date is required",
+    message: "Date is required",
   }),
 });
 
@@ -97,7 +97,16 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0.00" 
+                      {...field}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        field.onChange(isNaN(value) ? 0 : value);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

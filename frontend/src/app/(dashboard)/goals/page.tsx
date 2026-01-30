@@ -54,7 +54,7 @@ const formSchema = z.object({
   target_amount: z.string().min(1, 'Target amount is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: 'Target amount must be a positive number',
   }),
-  current_amount: z.string().default('0').refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+  current_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
     message: 'Current amount must be be non-negative',
   }),
   deadline: z.date().optional(),
