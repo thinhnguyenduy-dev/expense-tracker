@@ -2,6 +2,7 @@ services:
   # Backend Web Service
   - type: web
     name: expense-tracker-api
+    plan: free
     runtime: python
     repo: https://github.com/thinhnguyenduy-dev/expense-tracker # Placeholder, Render usually uses the connected repo in the Blueprint
     rootDir: backend
@@ -9,7 +10,7 @@ services:
     startCommand: alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 10000
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9
       - key: DATABASE_URL
         sync: false # User must provide this in dashboard
       - key: JWT_SECRET
@@ -23,6 +24,9 @@ services:
           type: redis
           name: expense-tracker-redis
           property: connectionString
+      - key: SENTRY_DSN
+        sync: false # User must provide this in dashboard
+
 
   # Native Redis Service
   - type: redis
