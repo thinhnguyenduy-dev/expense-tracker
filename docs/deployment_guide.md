@@ -93,6 +93,19 @@ Vercel is the best place to host Next.js apps.
     - Wait for the build to complete.
     - Once live, you will get a Frontend URL (e.g., `https://expense-tracker-frontend.vercel.app`).
 
+### Alternative: Automatic Deployment (Agent Skill)
+You can also use our custom Agent Skill to deploy automatically with pre-flight checks.
+
+1. **Setup**: Ensure `VERCEL_TOKEN` is in your `.env`.
+2. **Execute**:
+   ```bash
+   # Preview Deployment
+   ./.agent/skills/vercel-deploy/scripts/deploy.sh
+   
+   # Production Deployment
+   ./.agent/skills/vercel-deploy/scripts/deploy.sh --prod
+   ```
+
 ## 5. Final Configuration Steps
 
 1. **Update CORS on Backend**:
