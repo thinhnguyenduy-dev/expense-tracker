@@ -61,7 +61,13 @@ Follow these steps if you prefer to configure services manually or don't want to
     - Add the following keys and values:
         - `PYTHON_VERSION`: `3.11.0` (Recommended)
         - `DATABASE_URL`: *(Paste your Neon Connection String)*
-        - `REDIS_URL`: *(Paste your Upstash Redis URL)*
+        - `REDIS_URL`: *(Paste your Redis Connection String)*
+          *   **For Render Redis:**
+              1. Dashboard -> New + -> New Key Value.
+              2. Name it (e.g., `expense-tracker-redis-manual`).
+              3. Copy the **Internal Connection String** (starts with `redis://...`).
+              4. Paste it here.
+          *   **For Upstash:** Paste the URL you saved earlier.
         - `JWT_SECRET`: *(Generate a random strong string)*
         - `LOG_LEVEL`: `INFO`
         - `BACKEND_CORS_ORIGINS`: `["*"]` *(Start with * to allow Vercel later, or update after Frontend deploy)*
