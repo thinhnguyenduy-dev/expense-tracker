@@ -1,0 +1,25 @@
+{
+  "Settings": {
+    "title": "Cài đặt",
+    "language": "Ngôn ngữ",
+    "selectLanguage": "Chọn ngôn ngữ",
+    "save": "Lưu thay đổi"
+  },
+  "Common": {
+    "loading": "Đang tải...",
+    "error": "Đã có lỗi xảy ra"
+  },
+  "Dashboard": {
+    "title": "Bảng điều khiển",
+    "welcome": "Xin chào, {name}!"
+  },
+  "Sidebar": {
+    "dashboard": "Bảng điều khiển",
+    "jars": "6 Cái hũ",
+    "expenses": "Chi phí",
+    "categories": "Danh mục",
+    "recurring": "Định kỳ",
+    "goals": "Mục tiêu",
+    "settings": "Cài đặt"
+  }
+}

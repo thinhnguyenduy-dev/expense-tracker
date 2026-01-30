@@ -156,8 +156,9 @@ export const recurringExpensesApi = {
 
 // Users API
 export const usersApi = {
-  updateProfile: (data: { name?: string; email?: string }) =>
+  updateProfile: (data: { name?: string; email?: string; language?: string }) =>
     api.put('/users/profile', data),
+  
   
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.put('/users/password', data),

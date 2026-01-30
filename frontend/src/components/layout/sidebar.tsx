@@ -20,17 +20,24 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/jars', label: '6 Jars', icon: PiggyBank },
-  { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/categories', label: 'Categories', icon: Tags },
-  { href: '/recurring-expenses', label: 'Recurring', icon: Repeat },
-  { href: '/goals', label: 'Goals', icon: Target },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
+import { useTranslations } from 'next-intl';
+
+// Move navItems inside component or keep it static? 
+// Static items can't be translated easily if defined outside.
+// We should define them inside or use keys.
 
 export function Sidebar() {
+  const t = useTranslations('Sidebar');
+  
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/jars', label: t('jars'), icon: PiggyBank },
+    { href: '/expenses', label: t('expenses'), icon: Receipt },
+    { href: '/categories', label: t('categories'), icon: Tags },
+    { href: '/recurring-expenses', label: t('recurring'), icon: Repeat },
+    { href: '/goals', label: t('goals'), icon: Target },
+    { href: '/settings', label: t('settings'), icon: Settings },
+  ];
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuthStore();

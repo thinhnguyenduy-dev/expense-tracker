@@ -9,10 +9,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    language: str = "vi"
 
 
 class UserResponse(UserBase):
     id: int
+    language: str
     created_at: datetime
     
     class Config:
@@ -27,6 +29,7 @@ class Token(BaseModel):
 class UserUpdate(BaseModel):
     name: str | None = None
     email: EmailStr | None = None
+    language: str | None = None
 
 
 class PasswordChange(BaseModel):

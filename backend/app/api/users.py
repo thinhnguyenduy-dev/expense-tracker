@@ -30,6 +30,9 @@ def update_profile(
     if user_data.name:
         current_user.name = user_data.name
     
+    if user_data.language:
+        current_user.language = user_data.language
+    
     db.commit()
     db.refresh(current_user)
     

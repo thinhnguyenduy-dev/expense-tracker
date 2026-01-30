@@ -5,6 +5,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  language: string;
   created_at: string;
 }
 

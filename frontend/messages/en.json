@@ -1,0 +1,25 @@
+{
+  "Settings": {
+    "title": "Settings",
+    "language": "Language",
+    "selectLanguage": "Select Language",
+    "save": "Save Changes"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "Something went wrong"
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {name}!"
+  },
+  "Sidebar": {
+    "dashboard": "Dashboard",
+    "jars": "6 Jars",
+    "expenses": "Expenses",
+    "categories": "Categories",
+    "recurring": "Recurring",
+    "goals": "Goals",
+    "settings": "Settings"
+  }
+}
