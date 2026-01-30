@@ -12,6 +12,7 @@
     "cancel": "Cancel",
     "add": "Add",
     "update": "Update",
+    "create": "Create",
     "delete": "Delete",
     "edit": "Edit",
     "save": "Save",
@@ -26,7 +27,16 @@
     "noResults": "No results found",
     "total": "Total",
     "page": "Page {current} of {total}",
-    "logout": "Logout"
+    "logout": "Logout",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
   },
   "Dashboard": {
     "title": "Dashboard",

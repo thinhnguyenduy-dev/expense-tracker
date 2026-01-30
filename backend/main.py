@@ -25,8 +25,23 @@ if settings.SENTRY_DSN:
             ],
             traces_sample_rate=0.1,  # 10% of transactions
             profiles_sample_rate=0.1,
-            environment="production" if not settings.SENTRY_DSN.startswith("http://localhost") else "development",
+            environment=settings.ENVIRONMENT,
         )
+        
+        # Add Loguru sink for Sentry
+        class SentrySink:
+            """Loguru sink that forwards error logs to Sentry."""
+            def write(self, message):
+                record = message.record
+                level = record["level"].name
+                if level == "ERROR":
+                    sentry_sdk.capture_message(record["message"], level="error")
+                elif level == "WARNING":
+                    sentry_sdk.capture_message(record["message"], level="warning")
+        
+        # Add the sink to Loguru
+        logger.add(SentrySink(), level="WARNING")
+        
         logger.info("✅ Sentry monitoring initialized")
     except Exception as e:
         logger.warning(f"Failed to initialize Sentry: {e}")

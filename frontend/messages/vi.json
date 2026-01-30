@@ -12,6 +12,7 @@
     "cancel": "Hủy",
     "add": "Thêm",
     "update": "Cập nhật",
+    "create": "Tạo",
     "delete": "Xóa",
     "edit": "Sửa",
     "save": "Lưu",
@@ -26,7 +27,16 @@
     "noResults": "Không tìm thấy kết quả",
     "total": "Tổng cộng",
     "page": "Trang {current} / {total}",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "days": {
+      "monday": "Thứ 2",
+      "tuesday": "Thứ 3",
+      "wednesday": "Thứ 4",
+      "thursday": "Thứ 5",
+      "friday": "Thứ 6",
+      "saturday": "Thứ 7",
+      "sunday": "Chủ Nhật"
+    }
   },
   "Dashboard": {
     "title": "Bảng điều khiển",

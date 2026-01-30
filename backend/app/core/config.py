@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
+    ENVIRONMENT: str = "production"
     
     # Redis (optional - if not set, caching is disabled)
     REDIS_URL: Optional[str] = None
