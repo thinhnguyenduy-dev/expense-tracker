@@ -22,7 +22,10 @@ router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
 def check_budget_and_notify(db: Session, user: User, category: Category):
     """Check if budget limit is reached and send notification if needed."""
-    if not category.budget or category.budget <= 0:
+    # Safe access to budget (handle missing column case)
+    budget_limit = getattr(category, "budget", 0)
+    
+    if not budget_limit or budget_limit <= 0:
         return  # No budget set
     
     # Get total spent in this category for current month
@@ -36,7 +39,7 @@ def check_budget_and_notify(db: Session, user: User, category: Category):
     ).scalar()
     
     total_spent = float(total_spent)
-    budget = float(category.budget)
+    budget = float(budget_limit)
     percentage = int((total_spent / budget) * 100)
     
     # Check thresholds
