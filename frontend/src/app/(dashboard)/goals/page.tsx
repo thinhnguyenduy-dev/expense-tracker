@@ -316,7 +316,7 @@ function GoalDialog({
     }
   }, [open, goal, form]);
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       const data = {
         ...values,

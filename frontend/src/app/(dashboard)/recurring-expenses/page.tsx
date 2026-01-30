@@ -93,7 +93,8 @@ export default function RecurringExpensesPage() {
     e.preventDefault()
     
     try {
-      const data: any = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: Record<string, any> = {
         category_id: parseInt(formData.category_id),
         amount: parseFloat(formData.amount),
         description: formData.description,
@@ -113,18 +114,21 @@ export default function RecurringExpensesPage() {
       }
 
       if (editingId) {
-        await recurringExpensesApi.update(editingId, data)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await recurringExpensesApi.update(editingId, data as any)
         toast.success(t('successUpdate'))
       } else {
-        await recurringExpensesApi.create(data)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await recurringExpensesApi.create(data as any)
         toast.success(t('successCreate'))
       }
 
       setDialogOpen(false)
       resetForm()
       fetchData()
-    } catch (error: any) {
-      toast.error(error?.response?.data?.detail || t('failedSave'))
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any)?.response?.data?.detail || t('failedSave'))
     }
   }
 
@@ -145,8 +149,9 @@ export default function RecurringExpensesPage() {
       const response = await recurringExpensesApi.createExpense(id)
       toast.success(t('successExpenseCreated', { date: response.data.date }))
       fetchData()
-    } catch (error: any) {
-      toast.error(error?.response?.data?.detail || t('failedCreateExpense'))
+    } catch (error) {
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any)?.response?.data?.detail || t('failedCreateExpense'))
     }
   }
 
