@@ -16,14 +16,16 @@ export function JarCard({ jar }: JarCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{jar.name}</CardTitle>
-        <Badge variant="secondary">{jar.percentage}%</Badge>
+        <CardTitle className="text-sm font-medium text-slate-200">{jar.name}</CardTitle>
+        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-default">
+          {jar.percentage}%
+        </Badge>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatCurrency(jar.balance)}</div>
-        <p className="text-xs text-muted-foreground">
+        <div className="text-2xl font-bold text-white">{formatCurrency(jar.balance)}</div>
+        <p className="text-xs text-slate-400">
           Current Balance
         </p>
       </CardContent>

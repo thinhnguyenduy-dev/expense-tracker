@@ -64,31 +64,31 @@ export default function JarsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">{t('title')}</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h2>
         <div className="flex items-center space-x-2">
-          <Button onClick={() => setOpenAddIncome(true)}>
+          <Button onClick={() => setOpenAddIncome(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
             <Plus className="mr-2 h-4 w-4" /> {t('addIncome')}
           </Button>
         </div>
       </div>
       
       {/* Jars Display */}
-      <h3 className="text-xl font-semibold mt-6 mb-4">{t('yourJars')}</h3>
+      <h3 className="text-xl font-semibold mt-6 mb-4 text-white">{t('yourJars')}</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading
           ? Array(6)
               .fill(0)
               .map((_, i) => (
-                <Card key={i}>
+                <Card key={i} className="bg-slate-800/50 border-slate-700">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <Skeleton className="h-4 w-[100px]" />
-                    <Skeleton className="h-4 w-[40px]" />
+                    <Skeleton className="h-4 w-[100px] bg-slate-700" />
+                    <Skeleton className="h-4 w-[40px] bg-slate-700" />
                   </CardHeader>
                   <CardContent>
-                    <Skeleton className="h-8 w-[100px]" />
-                    <Skeleton className="mt-2 h-3 w-[60px]" />
+                    <Skeleton className="h-8 w-[100px] bg-slate-700" />
+                    <Skeleton className="mt-2 h-3 w-[60px] bg-slate-700" />
                   </CardContent>
                 </Card>
               ))
@@ -97,44 +97,44 @@ export default function JarsPage() {
 
       {/* Income History */}
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 mt-8">
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader>
-            <CardTitle>{t('incomeHistory')}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white">{t('incomeHistory')}</CardTitle>
+            <CardDescription className="text-slate-400">
               {t('incomeHistoryDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
              {loading ? (
                 <div className="space-y-2">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full bg-slate-700" />
+                  <Skeleton className="h-12 w-full bg-slate-700" />
+                  <Skeleton className="h-12 w-full bg-slate-700" />
                 </div>
              ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>{tCommon('date')}</TableHead>
-                      <TableHead>{t('source')}</TableHead>
-                      <TableHead className="text-right">{tCommon('amount')}</TableHead>
+                    <TableRow className="border-slate-700 hover:bg-slate-800">
+                      <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
+                      <TableHead className="text-slate-400">{t('source')}</TableHead>
+                      <TableHead className="text-right text-slate-400">{tCommon('amount')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {incomes.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center">
+                      <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                        <TableCell colSpan={3} className="text-center text-slate-400">
                           {t('noIncome')}
                         </TableCell>
                       </TableRow>
                     ) : (
                       incomes.map((income) => (
-                        <TableRow key={income.id}>
-                          <TableCell>
+                        <TableRow key={income.id} className="border-slate-700 hover:bg-slate-800/50">
+                          <TableCell className="text-slate-300">
                             {format(new Date(income.date), "MMM d, yyyy")}
                           </TableCell>
-                          <TableCell>{income.source}</TableCell>
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-slate-300">{income.source}</TableCell>
+                          <TableCell className="text-right font-medium text-white">
                             {formatCurrency(income.amount)}
                           </TableCell>
                         </TableRow>

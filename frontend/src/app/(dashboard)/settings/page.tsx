@@ -51,27 +51,27 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 space-y-6">
-       <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+       <h1 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h1>
        
-       <Card>
+       <Card className="bg-slate-800/50 border-slate-700">
          <CardHeader>
-           <CardTitle>{t('language')}</CardTitle>
-           <CardDescription>{t('selectLanguage')}</CardDescription>
+           <CardTitle className="text-white">{t('language')}</CardTitle>
+           <CardDescription className="text-slate-400">{t('selectLanguage')}</CardDescription>
          </CardHeader>
          <CardContent>
            <div className="grid w-full max-w-sm items-center gap-1.5">
-             <Label htmlFor="language">{t('language')}</Label>
+             <Label htmlFor="language" className="text-slate-200">{t('language')}</Label>
              <Select 
                 disabled={isPending} 
                 defaultValue={user?.language || 'vi'} 
                 onValueChange={handleLanguageChange}
              >
-               <SelectTrigger id="language">
+               <SelectTrigger id="language" className="bg-slate-800 border-slate-700 text-white">
                  <SelectValue placeholder={t('selectLanguage')} />
                </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="vi">Tiếng Việt</SelectItem>
-                 <SelectItem value="en">English</SelectItem>
+               <SelectContent className="bg-slate-800 border-slate-700">
+                 <SelectItem value="vi" className="text-white hover:bg-slate-700">Tiếng Việt</SelectItem>
+                 <SelectItem value="en" className="text-white hover:bg-slate-700">English</SelectItem>
                </SelectContent>
              </Select>
            </div>

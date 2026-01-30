@@ -161,7 +161,7 @@ export default function RegisterPage() {
                     h-12 px-4
                     bg-white/5 
                     border border-white/10 
-                    text-white placeholder:text-slate-500
+                    text-white placeholder:text-slate-400
                     rounded-xl
                     transition-all duration-300
                     focus:bg-white/10 focus:border-teal-500/50
@@ -194,7 +194,7 @@ export default function RegisterPage() {
                     h-12 px-4
                     bg-white/5 
                     border border-white/10 
-                    text-white placeholder:text-slate-500
+                    text-white placeholder:text-slate-400
                     rounded-xl
                     transition-all duration-300
                     focus:bg-white/10 focus:border-teal-500/50
@@ -227,7 +227,7 @@ export default function RegisterPage() {
                     h-12 px-4 pr-12
                     bg-white/5 
                     border border-white/10 
-                    text-white placeholder:text-slate-500
+                    text-white placeholder:text-slate-400
                     rounded-xl
                     transition-all duration-300
                     focus:bg-white/10 focus:border-teal-500/50
@@ -309,7 +309,7 @@ export default function RegisterPage() {
                     h-12 px-4 pr-12
                     bg-white/5 
                     border border-white/10 
-                    text-white placeholder:text-slate-500
+                    text-white placeholder:text-slate-400
                     rounded-xl
                     transition-all duration-300
                     focus:bg-white/10 focus:border-teal-500/50

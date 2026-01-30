@@ -204,11 +204,11 @@ export default function RecurringExpensesPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
         
         <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -216,81 +216,86 @@ export default function RecurringExpensesPage() {
           if (!open) resetForm()
         }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
               <Plus className="mr-2 h-4 w-4" />
               {t('newTemplate')}
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md bg-slate-900 border-slate-700">
             <DialogHeader>
-              <DialogTitle>{editingId ? t('editTemplate') : t('createTemplate')}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-white">{editingId ? t('editTemplate') : t('createTemplate')}</DialogTitle>
+              <DialogDescription className="text-slate-400">
                 {t('templateDesc')}
               </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>{tCommon('category')}</Label>
+              <div className="space-y-2">
+                <Label className="text-slate-200">{tCommon('category')}</Label>
                 <Select
                   value={formData.category_id}
                   onValueChange={(value) => setFormData({ ...formData, category_id: value })}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                     <SelectValue placeholder={tCommon('category')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-800 border-slate-700">
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id.toString()}>
-                        {cat.icon} {cat.name}
+                      <SelectItem key={cat.id} value={cat.id.toString()} className="text-white hover:bg-slate-700">
+                        <span className="flex items-center gap-2">
+                          <span>{cat.icon}</span>
+                          <span>{cat.name}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label>{tCommon('description')}</Label>
+              <div className="space-y-2">
+                <Label className="text-slate-200">{tCommon('description')}</Label>
                 <Input
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   required
+                  className="bg-slate-800 border-slate-700 text-white"
                 />
               </div>
 
-              <div>
-                <Label>{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
+              <div className="space-y-2">
+                <Label className="text-slate-200">{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   required
+                  className="bg-slate-800 border-slate-700 text-white"
                 />
               </div>
 
-              <div>
-                <Label>{t('frequency')}</Label>
+              <div className="space-y-2">
+                <Label className="text-slate-200">{t('frequency')}</Label>
                 <Select
                   value={formData.frequency}
                   onValueChange={(value) => setFormData({ ...formData, frequency: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">{t('monthly')}</SelectItem>
-                    <SelectItem value="weekly">{t('weekly')}</SelectItem>
-                    <SelectItem value="yearly">{t('yearly')}</SelectItem>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="monthly" className="text-white hover:bg-slate-700">{t('monthly')}</SelectItem>
+                    <SelectItem value="weekly" className="text-white hover:bg-slate-700">{t('weekly')}</SelectItem>
+                    <SelectItem value="yearly" className="text-white hover:bg-slate-700">{t('yearly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {formData.frequency === "monthly" && (
-                <div>
-                  <Label>{t('dayOfMonth')}</Label>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{t('dayOfMonth')}</Label>
                   <Input
                     type="number"
                     min="1"
@@ -298,24 +303,25 @@ export default function RecurringExpensesPage() {
                     value={formData.day_of_month}
                     onChange={(e) => setFormData({ ...formData, day_of_month: e.target.value })}
                     required
+                    className="bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
               )}
 
               {formData.frequency === "weekly" && (
-                <div>
-                  <Label>{t('dayOfWeek')}</Label>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{t('dayOfWeek')}</Label>
                   <Select
                     value={formData.day_of_week}
                     onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
                     required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                       <SelectValue placeholder={t('selectDay')} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-800 border-slate-700">
                       {WEEKDAYS.map((day) => (
-                        <SelectItem key={day.value} value={day.value.toString()}>
+                        <SelectItem key={day.value} value={day.value.toString()} className="text-white hover:bg-slate-700">
                           {day.label}
                         </SelectItem>
                       ))}
@@ -325,26 +331,28 @@ export default function RecurringExpensesPage() {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>{t('startDate')}</Label>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{t('startDate')}</Label>
                   <Input
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                     required
+                    className="bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
-                <div>
-                  <Label>{t('endDate')}</Label>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{t('endDate')}</Label>
                   <Input
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
                 {editingId ? t('update') : t('create')}
               </Button>
             </form>
@@ -353,10 +361,10 @@ export default function RecurringExpensesPage() {
       </div>
 
       {recurringExpenses.length === 0 ? (
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <p className="text-muted-foreground mb-4">{t('noRecurring')}</p>
-            <Button onClick={() => setDialogOpen(true)}>
+            <p className="text-slate-400 mb-4">{t('noRecurring')}</p>
+            <Button onClick={() => setDialogOpen(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
               <Plus className="mr-2 h-4 w-4" />
               {t('createFirst')}
             </Button>
@@ -365,14 +373,19 @@ export default function RecurringExpensesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recurringExpenses.map((recurring) => (
-            <Card key={recurring.id}>
+            <Card key={recurring.id} className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{recurring.category_icon}</span>
+                    <span 
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-sm"
+                      style={{ backgroundColor: `${recurring.category_color}20` }}
+                    >
+                      {recurring.category_icon}
+                    </span>
                     <div>
-                      <CardTitle className="text-lg">{recurring.description}</CardTitle>
-                      <CardDescription>{recurring.category_name}</CardDescription>
+                      <CardTitle className="text-lg text-white">{recurring.description}</CardTitle>
+                      <CardDescription className="text-slate-400">{recurring.category_name}</CardDescription>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -380,6 +393,7 @@ export default function RecurringExpensesPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => openEditDialog(recurring)}
+                      className="text-slate-400 hover:text-white hover:bg-slate-700"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -387,6 +401,7 @@ export default function RecurringExpensesPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(recurring.id)}
+                      className="text-slate-400 hover:text-red-400 hover:bg-slate-700"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -395,7 +410,7 @@ export default function RecurringExpensesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-white">
                     {new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
                       style: 'currency',
                       currency: locale === 'vi' ? 'VND' : 'USD',
@@ -405,14 +420,14 @@ export default function RecurringExpensesPage() {
                   {getFrequencyBadge(recurring.frequency)}
 
                   {recurring.next_due_date && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-slate-400">
                       {t('nextDue')} {new Date(recurring.next_due_date).toLocaleDateString()}
                     </div>
                   )}
 
                   {recurring.is_active && recurring.next_due_date && (
                     <Button
-                      className="w-full"
+                      className="w-full bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30"
                       onClick={() => handleCreateExpense(recurring.id)}
                     >
                       <Play className="mr-2 h-4 w-4" />
@@ -421,7 +436,7 @@ export default function RecurringExpensesPage() {
                   )}
 
                   {!recurring.is_active && (
-                    <Badge variant="secondary">{t('inactive')}</Badge>
+                    <Badge variant="secondary" className="bg-slate-700 text-slate-300">{t('inactive')}</Badge>
                   )}
                 </div>
               </CardContent>
