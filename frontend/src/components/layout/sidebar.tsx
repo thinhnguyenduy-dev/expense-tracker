@@ -14,7 +14,8 @@ import {
   Repeat,
   Target,
   Settings,
-  PiggyBank
+  PiggyBank,
+  CircleDollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ export function Sidebar() {
   
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/incomes', label: t('incomes'), icon: CircleDollarSign },
     { href: '/jars', label: t('jars'), icon: PiggyBank },
     { href: '/expenses', label: t('expenses'), icon: Receipt },
     { href: '/categories', label: t('categories'), icon: Tags },

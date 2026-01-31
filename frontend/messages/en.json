@@ -1,10 +1,29 @@
 {
   "Settings": {
     "title": "Settings",
+    "profile": "Profile",
+    "security": "Security",
+    "preferences": "Preferences",
+    "data": "Data",
+    "save": "Save Changes",
+    "name": "Full Name",
+    "email": "Email Address",
     "language": "Language",
     "selectLanguage": "Select Language",
-    "save": "Save Changes",
-    "failedUpdate": "Failed to update language"
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "changePassword": "Change Password",
+    "exportData": "Export Data",
+    "exportDesc": "Download your data as CSV",
+    "deleteAccount": "Delete Account",
+    "deleteDesc": "Permanently delete your account and all data. This action cannot be undone.",
+    "download": "Download CSV",
+    "delete": "Delete Account",
+    "successProfile": "Profile updated successfully",
+    "successPassword": "Password changed successfully",
+    "failedUpdate": "Failed to update settings",
+    "passwordMismatch": "New passwords do not match"
   },
   "Common": {
     "loading": "Loading...",
@@ -96,6 +115,26 @@
       "this_year": "This Year"
     }
   },
+  "Incomes": {
+    "title": "Incomes",
+    "subtitle": "Track all your income sources",
+    "addIncome": "Add Income",
+    "editIncome": "Edit Income",
+    "addIncomeDesc": "Record a new income source",
+    "editIncomeDesc": "Update income details",
+    "source": "Source",
+    "sourcePlaceholder": "e.g. Salary, Freelance",
+    "searchPlaceholder": "Search incomes...",
+    "noIncomes": "No incomes yet",
+    "noIncomesMatching": "No incomes matching \"{query}\"",
+    "startTracking": "Start tracking your income by adding your first entry",
+    "confirmDelete": "Are you sure you want to delete this income? This will reverse the distribution from your jars.",
+    "successAdd": "Income added successfully",
+    "successUpdate": "Income updated successfully",
+    "successDelete": "Income deleted successfully",
+    "failedSave": "Failed to save income",
+    "failedDelete": "Failed to delete income"
+  },
   "Jars": {
     "title": "6 Jars Method",
     "yourJars": "Your Jars",
@@ -128,6 +167,7 @@
     "categories": "Categories",
     "recurring": "Recurring",
     "goals": "Goals",
+    "incomes": "Incomes",
     "settings": "Settings"
   },
   "Categories": {

@@ -1,10 +1,29 @@
 {
   "Settings": {
     "title": "Cài đặt",
+    "profile": "Hồ sơ",
+    "security": "Bảo mật",
+    "preferences": "Tùy chọn",
+    "data": "Dữ liệu",
+    "save": "Lưu thay đổi",
+    "name": "Họ và tên",
+    "email": "Địa chỉ Email",
     "language": "Ngôn ngữ",
     "selectLanguage": "Chọn ngôn ngữ",
-    "save": "Lưu thay đổi",
-    "failedUpdate": "Cập nhật ngôn ngữ thất bại"
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "confirmPassword": "Xác nhận mật khẩu mới",
+    "changePassword": "Đổi mật khẩu",
+    "exportData": "Xuất dữ liệu",
+    "exportDesc": "Tải xuống dữ liệu của bạn dưới dạng CSV",
+    "deleteAccount": "Xóa tài khoản",
+    "deleteDesc": "Xóa vĩnh viễn tài khoản và tất cả dữ liệu. Hành động này không thể hoàn tác.",
+    "download": "Tải xuống CSV",
+    "delete": "Xóa tài khoản",
+    "successProfile": "Cập nhật hồ sơ thành công",
+    "successPassword": "Đổi mật khẩu thành công",
+    "failedUpdate": "Cập nhật thất bại",
+    "passwordMismatch": "Mật khẩu mới không khớp"
   },
   "Common": {
     "loading": "Đang tải...",
@@ -96,6 +115,25 @@
       "this_year": "Năm nay"
     }
   },
+  "Incomes": {
+    "title": "Thu nhập",
+    "subtitle": "Theo dõi tất cả các nguồn thu nhập của bạn",
+    "addIncome": "Thêm thu nhập",
+    "editIncome": "Sửa thu nhập",
+    "addIncomeDesc": "Ghi lại nguồn thu nhập mới",
+    "editIncomeDesc": "Cập nhật chi tiết thu nhập",
+    "sourcePlaceholder": "ví dụ: Lương, Freelance",
+    "searchPlaceholder": "Tìm kiếm thu nhập...",
+    "noIncomes": "Chưa có thu nhập nào",
+    "noIncomesMatching": "Không có thu nhập nào khớp với \"{query}\"",
+    "startTracking": "Bắt đầu theo dõi thu nhập của bạn bằng cách thêm khoản thu nhập đầu tiên",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa thu nhập này không? Việc này sẽ đảo ngược phân bổ từ các hũ của bạn.",
+    "successAdd": "Thêm thu nhập thành công",
+    "successUpdate": "Cập nhật thu nhập thành công",
+    "successDelete": "Xóa thu nhập thành công",
+    "failedSave": "Lưu thu nhập thất bại",
+    "failedDelete": "Xóa thu nhập thất bại"
+  },
   "Jars": {
     "title": "Phương pháp 6 cái hũ",
     "yourJars": "Các hũ của bạn",
@@ -128,6 +166,7 @@
     "categories": "Danh mục",
     "recurring": "Định kỳ",
     "goals": "Mục tiêu",
+    "incomes": "Thu nhập",
     "settings": "Cài đặt"
   },
   "Categories": {
