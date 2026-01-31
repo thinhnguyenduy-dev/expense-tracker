@@ -43,6 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { expensesApi, categoriesApi, ExpenseFilter, PaginatedResponse, Expense } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { ExpenseCard } from '@/components/expenses/ExpenseCard';
 
 interface Category {
   id: number;
@@ -662,7 +663,18 @@ export default function ExpensesPage() {
         </Card>
       ) : (
         <>
-          <Card className="bg-slate-800/50 border-slate-700 overflow-hidden">
+          <div className="md:hidden">
+            {expenses.map((expense) => (
+              <ExpenseCard 
+                key={expense.id} 
+                expense={expense} 
+                onEdit={(e) => openEditDialog(e)} 
+                onDelete={(id) => deleteExpense(id)} 
+              />
+            ))}
+          </div>
+
+          <Card className="hidden md:block bg-slate-800/50 border-slate-700 overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="border-slate-700 hover:bg-slate-800">

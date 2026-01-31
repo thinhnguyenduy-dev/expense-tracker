@@ -15,7 +15,8 @@ import {
   Target,
   Settings,
   PiggyBank,
-  CircleDollarSign
+  CircleDollarSign,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ export function Sidebar() {
     { href: '/categories', label: t('categories'), icon: Tags },
     { href: '/recurring-expenses', label: t('recurring'), icon: Repeat },
     { href: '/goals', label: t('goals'), icon: Target },
+    { href: '/reports', label: t('reports'), icon: BarChart3 },
     { href: '/settings', label: t('settings'), icon: Settings },
   ];
   const [isMobileOpen, setIsMobileOpen] = useState(false);

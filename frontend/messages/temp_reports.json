@@ -1,0 +1,9 @@
+{
+  "Reports": {
+    "title": "Reports",
+    "spendingTrend": "Spending Trend",
+    "categoryBreakdown": "Category Breakdown",
+    "details": "Details",
+    "noData": "No data for selected period"
+  }
+}

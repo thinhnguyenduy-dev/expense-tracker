@@ -7,7 +7,7 @@ services:
     repo: https://github.com/thinhnguyenduy-dev/expense-tracker # Placeholder, Render usually uses the connected repo in the Blueprint
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 10000
+    startCommand: alembic upgrade head && python seed.py && uvicorn main:app --host 0.0.0.0 --port 10000
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9

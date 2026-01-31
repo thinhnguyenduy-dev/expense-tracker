@@ -25,7 +25,6 @@ import {
 
 export function DataTab() {
   const t = useTranslations('Settings');
-  const tCommon = useTranslations('Common');
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { logout } = useAuthStore();
@@ -40,14 +39,17 @@ export function DataTab() {
         incomesApi.getAll(),
       ]);
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const expenses = (expensesRes.data as any).items || [];
       const incomes = incomesRes.data;
 
       // Create CSV content
       const headers = ['Type', 'Date', 'Amount', 'Category/Source', 'Description'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const expenseRows = expenses.map((e: any) => 
         ['Expense', e.date, -e.amount, e.category?.name || 'Uncategorized', e.description || ''].join(',')
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const incomeRows = incomes.map((i: any) => 
         ['Income', i.date, i.amount, i.source, ''].join(',')
       );

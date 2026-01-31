@@ -140,6 +140,9 @@
     "addIncome": "Thêm thu nhập",
     "incomeHistory": "Lịch sử thu nhập",
     "incomeHistoryDesc": "Các nguồn thu nhập gần đây đã được phân bổ vào các hũ của bạn.",
+    "transferHistory": "Lịch sử chuyển tiền",
+    "transferHistoryDesc": "Lịch sử di chuyển tiền giữa các hũ",
+    "note": "Ghi chú",
     "source": "Nguồn",
     "noIncome": "Chưa có thu nhập nào được ghi lại.",
     "editJar": "Chỉnh sửa hũ",
@@ -166,6 +169,7 @@
     "categories": "Danh mục",
     "recurring": "Định kỳ",
     "goals": "Mục tiêu",
+    "reports": "Báo cáo",
     "incomes": "Thu nhập",
     "settings": "Cài đặt"
   },
@@ -260,4 +264,4 @@
     "confirmDelete": "Bạn có chắc chắn muốn xóa khoản chi định kỳ này không?",
     "selectDay": "Chọn ngày"
   }
-}
+,"Reports": { "title": "Báo cáo", "spendingTrend": "Xu hướng chi tiêu", "categoryBreakdown": "Phân bổ danh mục", "details": "Chi tiết", "noData": "Không có dữ liệu cho giai đoạn này" }}

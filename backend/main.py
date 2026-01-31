@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router
+from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router
 from app.middleware import LoggingMiddleware
 
 # Setup logging first
@@ -103,6 +103,8 @@ app.include_router(users_router, prefix="/api")
 app.include_router(goals_router, prefix="/api")
 app.include_router(jars_router, prefix="/api/jars", tags=["Jars"])
 app.include_router(incomes_router, prefix="/api/incomes", tags=["Incomes"])
+app.include_router(transfers_router, prefix="/api/transfers", tags=["Transfers"])
+app.include_router(reports_router, prefix="/api/reports", tags=["Reports"])
 
 
 @app.get("/")

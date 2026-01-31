@@ -227,11 +227,23 @@ export interface JarUpdate {
   percentage?: number;
 }
 
+export interface Transfer {
+  id: number;
+  from_jar_id: number;
+  to_jar_id: number;
+  amount: number;
+  note?: string;
+  date: string;
+  from_jar_name?: string;
+  to_jar_name?: string;
+}
+
 export const jarsApi = {
   getAll: () => api.get<Jar[]>('/jars'),
   create: (data: JarCreate) => api.post<Jar>('/jars', data),
   update: (id: number, data: JarUpdate) => api.put<Jar>(`/jars/${id}`, data),
-  transfer: (data: { from_jar_id: number; to_jar_id: number; amount: number }) => api.post<Jar>('/jars/transfers', data),
+  transfer: (data: { from_jar_id: number; to_jar_id: number; amount: number; note?: string }) => api.post<Transfer>('/transfers', data),
+  getTransfers: () => api.get<Transfer[]>('/transfers'),
 };
 
 // Incomes API
@@ -256,3 +268,17 @@ export const incomesApi = {
   update: (id: number, data: IncomeCreate) => api.put<Income>(`/incomes/${id}`, data),
   delete: (id: number) => api.delete(`/incomes/${id}`),
 };
+
+export interface ReportResponse {
+  daily_expenses: { date: string; amount: number }[];
+  category_breakdown: { category_id: number; category_name: string; category_color: string; amount: number; percentage: number }[];
+  total_period: number;
+  period_start: string;
+  period_end: string;
+}
+
+export const reportsApi = {
+  get: (startDate?: string, endDate?: string) => 
+    api.get<ReportResponse>('/reports', { params: { start_date: startDate, end_date: endDate } }),
+};
+

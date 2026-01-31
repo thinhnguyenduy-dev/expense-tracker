@@ -20,6 +20,7 @@ import {
 import { incomesApi, Income } from '@/lib/api';
 import { IncomeModal } from '@/components/incomes/IncomeModal';
 import { cn } from '@/lib/utils';
+import { IncomeCard } from '@/components/incomes/IncomeCard';
 
 const formatCurrency = (value: number, locale: string) => {
   return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -175,56 +176,70 @@ export default function IncomesPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-slate-800/50 border-slate-700 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-700 hover:bg-slate-800">
-                <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
-                <TableHead className="text-slate-400">{t('source')}</TableHead>
-                <TableHead className="text-slate-400 text-right">{tCommon('amount')}</TableHead>
-                <TableHead className="text-slate-400 text-right">{tCommon('actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredIncomes.map((income) => (
-                <TableRow
-                  key={income.id}
-                  className="border-slate-700 hover:bg-slate-800/50"
-                >
-                  <TableCell className="text-slate-300">
-                    {format(new Date(income.date), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell className="text-white font-medium">
-                    {income.source}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-emerald-400">
-                    +{formatCurrency(Number(income.amount), locale)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenEdit(income)}
-                        className="h-8 w-8 text-slate-400 hover:text-white"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(income.id)}
-                        className="h-8 w-8 text-slate-400 hover:text-red-400"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+
+        <>
+          <div className="md:hidden">
+            {filteredIncomes.map((income) => (
+              <IncomeCard 
+                key={income.id} 
+                income={income} 
+                onEdit={(i: Income) => handleOpenEdit(i)} 
+                onDelete={(id: number) => handleDelete(id)} 
+              />
+            ))}
+          </div>
+
+          <Card className="hidden md:block bg-slate-800/50 border-slate-700 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700 hover:bg-slate-800">
+                  <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
+                  <TableHead className="text-slate-400">{t('source')}</TableHead>
+                  <TableHead className="text-slate-400 text-right">{tCommon('amount')}</TableHead>
+                  <TableHead className="text-slate-400 text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+              </TableHeader>
+              <TableBody>
+                {filteredIncomes.map((income) => (
+                  <TableRow
+                    key={income.id}
+                    className="border-slate-700 hover:bg-slate-800/50"
+                  >
+                    <TableCell className="text-slate-300">
+                      {format(new Date(income.date), 'MMM dd, yyyy')}
+                    </TableCell>
+                    <TableCell className="text-white font-medium">
+                      {income.source}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-emerald-400">
+                      +{formatCurrency(Number(income.amount), locale)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenEdit(income)}
+                          className="h-8 w-8 text-slate-400 hover:text-white"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(income.id)}
+                          className="h-8 w-8 text-slate-400 hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
       )}
 
       <IncomeModal 

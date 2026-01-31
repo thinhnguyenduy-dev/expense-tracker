@@ -28,3 +28,24 @@ class JarResponse(JarBase):
     
     class Config:
         from_attributes = True
+
+class TransferCreate(BaseModel):
+    from_jar_id: int
+    to_jar_id: int
+    amount: Decimal
+    note: Optional[str] = None
+
+class TransferResponse(BaseModel):
+    id: int
+    from_jar_id: int
+    to_jar_id: int
+    amount: Decimal
+    note: Optional[str] = None
+    date: datetime
+    
+    # We might want to include jar names in response
+    from_jar_name: Optional[str] = None
+    to_jar_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True

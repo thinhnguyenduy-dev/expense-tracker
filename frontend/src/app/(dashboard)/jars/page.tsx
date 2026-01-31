@@ -26,6 +26,8 @@ import { JarCard } from "@/components/jars/JarCard";
 import { IncomeModal } from "@/components/incomes/IncomeModal";
 import { EditJarModal } from "@/components/jars/EditJarModal";
 import { TransferModal } from "@/components/jars/TransferModal";
+import { TransfersHistory } from "@/components/jars/TransfersHistory";
+import { TransferHistoryWrapper } from "@/components/jars/TransferHistoryWrapper";
 import { Jar, Income, jarsApi, incomesApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -119,67 +121,20 @@ export default function JarsPage() {
       </div>
 
       {/* Income History */}
-      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 mt-8">
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">{t('incomeHistory')}</CardTitle>
-            <CardDescription className="text-slate-400">
-              {t('incomeHistoryDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-             {loading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-12 w-full bg-slate-700" />
-                  <Skeleton className="h-12 w-full bg-slate-700" />
-                  <Skeleton className="h-12 w-full bg-slate-700" />
-                </div>
-             ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-700 hover:bg-slate-800">
-                      <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
-                      <TableHead className="text-slate-400">{t('source')}</TableHead>
-                      <TableHead className="text-right text-slate-400">{tCommon('amount')}</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {incomes.length === 0 ? (
-                      <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                        <TableCell colSpan={4} className="text-center text-slate-400">
-                          {t('noIncome')}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      incomes.map((income) => (
-                        <TableRow key={income.id} className="border-slate-700 hover:bg-slate-800/50">
-                          <TableCell className="text-slate-300">
-                            {format(new Date(income.date), "MMM d, yyyy")}
-                          </TableCell>
-                          <TableCell className="text-slate-300">{income.source}</TableCell>
-                          <TableCell className="text-right font-medium text-white">
-                            {formatCurrency(income.amount)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1 justify-end">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white" onClick={() => { setEditingIncome(income); setOpenIncomeModal(true); }}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-400" onClick={() => deleteIncome(income.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-             )}
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-1 mt-8">
+        <TransferHistoryWrapper 
+          incomes={incomes} 
+          loading={loading} 
+          t={t} 
+          tCommon={tCommon} 
+          formatCurrency={formatCurrency}
+          setEditingIncome={setEditingIncome}
+          setOpenIncomeModal={setOpenIncomeModal}
+          deleteIncome={deleteIncome}
+        />
+        <TransfersHistory /> 
       </div>
+
 
       <IncomeModal 
         open={openIncomeModal} 

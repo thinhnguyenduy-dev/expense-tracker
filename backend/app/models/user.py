@@ -21,3 +21,4 @@ class User(Base):
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
     jars = relationship("Jar", back_populates="user", cascade="all, delete-orphan")
     incomes = relationship("Income", back_populates="user", cascade="all, delete-orphan")
+    transfers = relationship("Transfer", back_populates="user", cascade="all, delete-orphan")

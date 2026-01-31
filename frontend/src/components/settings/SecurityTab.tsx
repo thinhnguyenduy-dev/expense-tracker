@@ -45,8 +45,9 @@ export function SecurityTab() {
       });
       toast.success(t('successPassword'));
       reset();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.detail || t('failedUpdate'));
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      toast.error(axiosError.response?.data?.detail || t('failedUpdate'));
     } finally {
       setLoading(false);
     }
