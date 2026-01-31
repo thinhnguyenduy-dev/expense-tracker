@@ -19,6 +19,7 @@ from app.models.goal import Goal
 from app.models.income import Income
 from app.models.recurring_expense import RecurringExpense
 from app.models.jar import Jar
+from app.models.transfer import Transfer
 
 
 # Demo users
