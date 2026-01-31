@@ -103,7 +103,23 @@
     "incomeHistory": "Lịch sử thu nhập",
     "incomeHistoryDesc": "Các nguồn thu nhập gần đây đã được phân bổ vào các hũ của bạn.",
     "source": "Nguồn",
-    "noIncome": "Chưa có thu nhập nào được ghi lại."
+    "noIncome": "Chưa có thu nhập nào được ghi lại.",
+    "editJar": "Chỉnh sửa hũ",
+    "transferFunds": "Chuyển tiền",
+    "editDesc": "Cập nhật phân bổ hũ. Tổng tỷ lệ phần trăm nên là 100%.",
+    "percentage": "Tỷ lệ (%)",
+    "saveChanges": "Lưu thay đổi",
+    "transfer": "Chuyển tiền",
+    "transferDesc": "Chuyển tiền giữa các hũ của bạn.",
+    "from": "Từ",
+    "to": "Đến",
+    "selectJar": "Chọn hũ",
+    "successTransfer": "Chuyển tiền thành công",
+    "failedTransfer": "Chuyển tiền thất bại",
+    "successUpdate": "Cập nhật hũ thành công",
+    "failedUpdate": "Cập nhật hũ thất bại",
+    "successDeleteIncome": "Xóa thu nhập thành công",
+    "failedDeleteIncome": "Xóa thu nhập thất bại"
   },
   "Sidebar": {
     "dashboard": "Bảng điều khiển",
@@ -134,7 +150,11 @@
     "successDelete": "Xóa danh mục thành công",
     "failedSave": "Lưu danh mục thất bại",
     "failedDelete": "Xóa danh mục thất bại",
-    "confirmDelete": "Bạn có chắc chắn muốn xóa danh mục này không?"
+    "confirmDelete": "Bạn có chắc chắn muốn xóa danh mục này không?",
+    "linkToJar": "Liên kết với Hũ",
+    "selectJar": "Chọn hũ",
+    "noJar": "Không liên kết",
+    "linkJarDesc": "Chi tiêu trong danh mục này sẽ tự động trừ vào hũ đã chọn."
   },
   "Goals": {
     "title": "Mục tiêu tiết kiệm",

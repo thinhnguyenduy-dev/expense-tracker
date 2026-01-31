@@ -52,3 +52,72 @@ def create_income(
     db.commit()
     db.refresh(db_income)
     return db_income
+
+
+@router.put("/{income_id}", response_model=IncomeResponse)
+def update_income(
+    income_id: int,
+    income_update: IncomeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update an income and adjust jar balances."""
+    db_income = db.query(Income).filter(Income.id == income_id, Income.user_id == current_user.id).first()
+    if not db_income:
+        raise HTTPException(status_code=404, detail="Income not found")
+
+    # 1. Reverse old distribution
+    jars = db.query(Jar).filter(Jar.user_id == current_user.id).all()
+    if jars:
+        old_amount = db_income.amount
+        for jar in jars:
+            # Skip if jar was created AFTER the income (means this income wasn't distributed to it originally)
+            if jar.created_at and db_income.created_at and jar.created_at > db_income.created_at:
+                continue
+                
+            share = (old_amount * Decimal(str(jar.percentage))) / Decimal('100.0')
+            jar.balance -= share
+
+    # 2. Update income record
+    db_income.amount = income_update.amount
+    db_income.source = income_update.source
+    db_income.date = income_update.date
+    
+    # 3. Apply new distribution
+    if jars:
+        new_amount = income_update.amount
+        for jar in jars:
+            share = (new_amount * Decimal(str(jar.percentage))) / Decimal('100.0')
+            jar.balance += share
+
+    db.commit()
+    db.refresh(db_income)
+    return db_income
+
+
+@router.delete("/{income_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_income(
+    income_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an income and reverse the distribution from jars."""
+    income = db.query(Income).filter(Income.id == income_id, Income.user_id == current_user.id).first()
+    if not income:
+        raise HTTPException(status_code=404, detail="Income not found")
+
+    # Reverse distribution from Jars based on CURRENT percentages
+    # note: This is an approximation if percentages have changed since income was added.
+    jars = db.query(Jar).filter(Jar.user_id == current_user.id).all()
+    if jars:
+        amount = income.amount
+        for jar in jars:
+            # Skip if jar was created AFTER the income
+            if jar.created_at and income.created_at and jar.created_at > income.created_at:
+                continue
+
+            share = (amount * Decimal(str(jar.percentage))) / Decimal('100.0')
+            jar.balance -= share
+
+    db.delete(income)
+    db.commit()

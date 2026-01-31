@@ -16,15 +16,18 @@ from app.models.user import User
 from app.models.category import Category
 from app.models.expense import Expense
 from app.models.goal import Goal
+from app.models.income import Income
+from app.models.recurring_expense import RecurringExpense
+from app.models.jar import Jar
 
 
 # Demo users
 DEMO_USERS = [
-    {"email": "demo@expense-tracker.com", "password": "Demo123!", "name": "Demo User"},
-    {"email": "test@expense-tracker.com", "password": "Test123!", "name": "Test User"},
+    {"email": "demo@expense-tracker.com", "password": "Demo123!", "name": "Demo User", "currency": "USD"},
+    {"email": "test@expense-tracker.com", "password": "Test123!", "name": "Test User", "currency": "USD"},
+    {"email": "demo-vi@gmail.com", "password": "Demo123", "name": "Demo User VN", "currency": "VND"},
 ]
 
-# Categories with icons and colors
 CATEGORIES = [
     {"name": "Rent/Mortgage", "icon": "🏠", "color": "#FF6B6B"},
     {"name": "Food & Groceries", "icon": "🍔", "color": "#4ECDC4"},
@@ -40,11 +43,11 @@ CATEGORIES = [
 
 # Recurring expense templates
 RECURRING_EXPENSES = [
-    {"category": "Rent/Mortgage", "description": "Monthly Rent", "amount_range": (1200, 1500), "day": 1},
-    {"category": "Subscriptions", "description": "Netflix Subscription", "amount_range": (15, 15), "day": 5},
-    {"category": "Subscriptions", "description": "Spotify Premium", "amount_range": (10, 10), "day": 8},
-    {"category": "Utilities", "description": "Electricity Bill", "amount_range": (80, 120), "day": 15},
-    {"category": "Utilities", "description": "Internet Bill", "amount_range": (50, 70), "day": 20},
+    {"category": "Rent/Mortgage", "description": "Monthly Rent", "amount_range": (1200, 1500), "day": 1, "frequency": "monthly"},
+    {"category": "Subscriptions", "description": "Netflix Subscription", "amount_range": (15, 15), "day": 5, "frequency": "monthly"},
+    {"category": "Subscriptions", "description": "Spotify Premium", "amount_range": (10, 10), "day": 8, "frequency": "monthly"},
+    {"category": "Utilities", "description": "Electricity Bill", "amount_range": (80, 120), "day": 15, "frequency": "monthly"},
+    {"category": "Utilities", "description": "Internet Bill", "amount_range": (50, 70), "day": 20, "frequency": "monthly"},
 ]
 
 # Random expense templates
@@ -57,29 +60,36 @@ RANDOM_EXPENSES = [
     {"category": "Food & Groceries", "descriptions": ["Restaurant", "Coffee Shop", "Fast Food"], "amount_range": (10, 50)},
 ]
 
+# Income Sources
+INCOME_SOURCES = [
+    {"source": "Salary", "amount_range": (4000, 5000), "day": 25},
+    {"source": "Freelance Work", "amount_range": (500, 1500), "day": 10},
+    {"source": "Dividends", "amount_range": (100, 300), "day": 15},
+]
+
 # Demo Goals
 GOALS = [
     {
         "name": "New Trip to Japan",
         "description": "Saving for a 2-week vacation in Tokyo and Kyoto",
-        "target_amount": 50000000,
-        "current_amount": 15000000,
+        "target_amount": 2000,
+        "current_amount": 600,
         "deadline_months": 12,  # 1 year from now
         "color": "#FF6B6B"
     },
     {
         "name": "Emergency Fund",
         "description": "3 months of living expenses",
-        "target_amount": 60000000,
-        "current_amount": 25000000,
+        "target_amount": 5000,
+        "current_amount": 1000,
         "deadline_months": 24,  # 2 years from now
         "color": "#4ECDC4"
     },
     {
         "name": "New Laptop",
         "description": "Upgrade to latest MacBook Pro",
-        "target_amount": 45000000,
-        "current_amount": 5000000,
+        "target_amount": 2500,
+        "current_amount": 500,
         "deadline_months": 6,
         "color": "#FFE66D"
     }
@@ -103,6 +113,16 @@ def log(message: str, color: str = Colors.RESET, verbose: bool = True):
         print(f"{color}{message}{Colors.RESET}")
 
 
+
+def get_currency_multiplier(user_email: str) -> int:
+    """Get multiplier for currency conversion based on user"""
+    for user in DEMO_USERS:
+        if user["email"] == user_email:
+            if user.get("currency") == "VND":
+                return 25000
+    return 1
+
+
 def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list[User]:
     """Create demo users if they don't exist"""
     log(f"\n{Colors.BOLD}📥 Seeding Users{Colors.RESET}", verbose=verbose)
@@ -123,7 +143,8 @@ def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list
                 user = User(
                     email=user_data["email"],
                     hashed_password=get_password_hash(user_data["password"]),
-                    name=user_data["name"]
+                    name=user_data["name"],
+                    language="vi" if user_data.get("currency") == "VND" else "en"
                 )
                 db.add(user)
                 db.commit()
@@ -136,9 +157,6 @@ def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list
         log(f"  {Colors.BOLD}Created {created_count} new user(s){Colors.RESET}", Colors.GREEN, verbose)
     
     return users
-
-
-from app.models.jar import Jar
 
 
 JARS_DATA = [
@@ -253,6 +271,7 @@ def seed_expenses(
     start_date = end_date - timedelta(days=months * 30)
     
     for user in users:
+        multiplier = get_currency_multiplier(user.email)
         categories = user_categories[user.id]
         if not categories:
             log(f"  ⚠️  No categories found for {user.email}, skipping", Colors.RED, verbose)
@@ -277,7 +296,7 @@ def seed_expenses(
                 if recurring["category"] in cat_map:
                     expense_date = date(current.year, current.month, recurring["day"])
                     if start_date <= expense_date <= end_date:
-                        amount = Decimal(str(random.randint(recurring["amount_range"][0], recurring["amount_range"][1])))
+                        amount = Decimal(str(random.randint(recurring["amount_range"][0], recurring["amount_range"][1]) * multiplier))
                         expenses_to_create.append({
                             "amount": amount,
                             "description": recurring["description"],
@@ -296,7 +315,7 @@ def seed_expenses(
         current = start_date
         while current <= end_date:
             if current.weekday() == 6 and "Food & Groceries" in cat_map:  # Sunday
-                amount = Decimal(str(random.randint(80, 150)))
+                amount = Decimal(str(random.randint(80, 150) * multiplier))
                 expenses_to_create.append({
                     "amount": amount,
                     "description": random.choice(["Weekly Groceries", "Grocery Shopping", "Supermarket Run"]),
@@ -312,7 +331,7 @@ def seed_expenses(
             template = random.choice(RANDOM_EXPENSES)
             if template["category"] in cat_map:
                 random_date = start_date + timedelta(days=random.randint(0, (end_date - start_date).days))
-                amount = Decimal(str(round(random.uniform(template["amount_range"][0], template["amount_range"][1]), 2)))
+                amount = Decimal(str(round(random.uniform(template["amount_range"][0], template["amount_range"][1]) * multiplier, 2)))
                 expenses_to_create.append({
                     "amount": amount,
                     "description": random.choice(template["descriptions"]),
@@ -335,6 +354,135 @@ def seed_expenses(
     
     if not dry_run and total_created > 0:
         log(f"  {Colors.BOLD}Created {total_created} new expense(s){Colors.RESET}", Colors.GREEN, verbose)
+
+
+def seed_incomes(
+    db: Session,
+    users: list[User],
+    months: int = 3,
+    verbose: bool = True,
+    dry_run: bool = False
+):
+    """Generate realistic incomes for users"""
+    log(f"\n{Colors.BOLD}💵 Seeding Incomes ({months} months){Colors.RESET}", verbose=verbose)
+    
+    total_created = 0
+    end_date = date.today()
+    start_date = end_date - timedelta(days=months * 30)
+    
+    for user in users:
+        # Check if user already has incomes
+        existing_count = db.query(Income).filter(Income.user_id == user.id).count()
+        if existing_count > 0:
+            log(f"  ⏭️  User {user.email} already has {existing_count} incomes, skipping", Colors.YELLOW, verbose)
+            continue
+            
+        # Get user jars for distribution
+        jars = db.query(Jar).filter(Jar.user_id == user.id).all()
+        
+        incomes_to_create = []
+        
+        current = start_date
+        while current <= end_date:
+            for source in INCOME_SOURCES:
+                income_date = date(current.year, current.month, source["day"])
+                if start_date <= income_date <= end_date:
+                    amount = Decimal(str(random.randint(source["amount_range"][0], source["amount_range"][1]) * get_currency_multiplier(user.email)))
+                    incomes_to_create.append({
+                        "amount": amount,
+                        "source": source["source"],
+                        "date": income_date,
+                        "user_id": user.id
+                    })
+            
+            # Next month
+            if current.month == 12:
+                current = date(current.year + 1, 1, 1)
+            else:
+                current = date(current.year, current.month + 1, 1)
+        
+        if dry_run:
+            log(f"  [DRY RUN] Would create {len(incomes_to_create)} incomes for {user.email}", Colors.CYAN, verbose)
+        else:
+            for inc_data in incomes_to_create:
+                # Create income
+                income = Income(**inc_data)
+                db.add(income)
+                
+                # Distribute to jars
+                amount = inc_data["amount"]
+                
+                # First pass - distribute to jars with explicit percentage
+                remaining_percentage = 100.0
+                
+                for jar in jars:
+                    jar_amount = amount * Decimal(str(jar.percentage / 100.0))
+                    jar.balance += jar_amount
+                    db.add(jar)
+                
+            db.commit()
+            created_count = len(incomes_to_create)
+            total_created += created_count
+            log(f"  ✅ Created {created_count} incomes for {user.email}", Colors.GREEN, verbose)
+            
+    if not dry_run and total_created > 0:
+        log(f"  {Colors.BOLD}Created {total_created} new income(s){Colors.RESET}", Colors.GREEN, verbose)
+
+
+def seed_recurring_expenses(
+    db: Session,
+    users: list[User],
+    user_categories: dict[int, list[Category]],
+    verbose: bool = True,
+    dry_run: bool = False
+):
+    """Seed recurring expenses setup"""
+    log(f"\n{Colors.BOLD}🔄 Seeding Recurring Expenses{Colors.RESET}", verbose=verbose)
+    
+    total_created = 0
+    today = date.today()
+    
+    for user in users:
+        categories = user_categories[user.id]
+        if not categories:
+            continue
+            
+        cat_map = {cat.name: cat for cat in categories}
+        created_count = 0
+        
+        # Check existing
+        existing_count = db.query(RecurringExpense).filter(RecurringExpense.user_id == user.id).count()
+        if existing_count > 0:
+            log(f"  ⏭️  User {user.email} already has {existing_count} recurring expenses, skipping", Colors.YELLOW, verbose)
+            continue
+            
+        for template in RECURRING_EXPENSES:
+            if template["category"] in cat_map:
+                if dry_run:
+                    log(f"  [DRY RUN] Would create recurring expense '{template['description']}' for {user.email}", Colors.CYAN, verbose)
+                else:
+                    amount = Decimal(str(template["amount_range"][0] * get_currency_multiplier(user.email))) # use min amount for template
+                    
+                    recurring = RecurringExpense(
+                        user_id=user.id,
+                        category_id=cat_map[template["category"]].id,
+                        amount=amount,
+                        description=template["description"],
+                        frequency=template["frequency"],
+                        day_of_month=template["day"],
+                        start_date=today,
+                        is_active=True
+                    )
+                    db.add(recurring)
+                    created_count += 1
+        
+        if not dry_run and created_count > 0:
+            db.commit()
+            total_created += created_count
+            log(f"  ✅ Created {created_count} recurring expenses for {user.email}", Colors.GREEN, verbose)
+            
+    if not dry_run and total_created > 0:
+        log(f"  {Colors.BOLD}Created {total_created} new recurring expense(s){Colors.RESET}", Colors.GREEN, verbose)
 
 
 def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> None:
@@ -360,13 +508,14 @@ def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bo
             if dry_run:
                 log(f"  [DRY RUN] Would create goal '{goal_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:
+                multiplier = get_currency_multiplier(user.email)
                 deadline = today + timedelta(days=goal_data["deadline_months"] * 30)
                 
                 goal = Goal(
                     name=goal_data["name"],
                     description=goal_data["description"],
-                    target_amount=Decimal(str(goal_data["target_amount"])),
-                    current_amount=Decimal(str(goal_data["current_amount"])),
+                    target_amount=Decimal(str(goal_data["target_amount"] * multiplier)),
+                    current_amount=Decimal(str(goal_data["current_amount"] * multiplier)),
                     deadline=deadline,
                     color=goal_data["color"],
                     user_id=user.id
@@ -385,7 +534,7 @@ def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bo
 
 def main():
     parser = argparse.ArgumentParser(description="Seed expense tracker database with test data")
-    parser.add_argument("--users", type=int, default=2, help="Number of demo users (max 2)")
+    parser.add_argument("--users", type=int, default=3, help="Number of demo users (max 3)")
     parser.add_argument("--months", type=int, default=3, help="Months of expense history to generate")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed progress")
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without applying")
@@ -420,8 +569,14 @@ def main():
         # Seed categories
         user_categories = seed_categories(db, users, verbose=args.verbose or True, dry_run=args.dry_run)
         
+        # Seed incomes - AFTER jars (for distribution)
+        seed_incomes(db, users, months=args.months, verbose=args.verbose or True, dry_run=args.dry_run)
+        
         # Seed expenses
         seed_expenses(db, users, user_categories, months=args.months, verbose=args.verbose or True, dry_run=args.dry_run)
+        
+        # Seed recurring expenses
+        seed_recurring_expenses(db, users, user_categories, verbose=args.verbose or True, dry_run=args.dry_run)
         
         # Seed goals
         seed_goals(db, users, verbose=args.verbose or True, dry_run=args.dry_run)

@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  // Trigger restart for UI update
 };
  
 export default withNextIntl(nextConfig);

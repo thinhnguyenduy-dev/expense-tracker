@@ -103,7 +103,23 @@
     "incomeHistory": "Income History",
     "incomeHistoryDesc": "Recent income sources that were distributed to your jars.",
     "source": "Source",
-    "noIncome": "No income recorded yet."
+    "noIncome": "No income recorded yet.",
+    "editJar": "Edit Jar",
+    "transferFunds": "Transfer Funds",
+    "editDesc": "Update jar allocation. Total percentage across all jars should aim for 100%.",
+    "percentage": "Percentage (%)",
+    "saveChanges": "Save Changes",
+    "transfer": "Transfer",
+    "transferDesc": "Move money between your jars.",
+    "from": "From",
+    "to": "To",
+    "selectJar": "Select Jar",
+    "successTransfer": "Funds transferred successfully",
+    "failedTransfer": "Failed to transfer funds",
+    "successUpdate": "Jar updated successfully",
+    "failedUpdate": "Failed to update jar",
+    "successDeleteIncome": "Income deleted successfully",
+    "failedDeleteIncome": "Failed to delete income"
   },
   "Sidebar": {
     "dashboard": "Dashboard",
@@ -134,7 +150,11 @@
     "successDelete": "Category deleted successfully",
     "failedSave": "Failed to save category",
     "failedDelete": "Failed to delete category",
-    "confirmDelete": "Are you sure you want to delete this category?"
+    "confirmDelete": "Are you sure you want to delete this category?",
+    "linkToJar": "Link to Jar",
+    "selectJar": "Select Jar",
+    "noJar": "No Jar Linked",
+    "linkJarDesc": "Expenses in this category will automatically deduct from the selected Jar."
   },
   "Goals": {
     "title": "Savings Goals",

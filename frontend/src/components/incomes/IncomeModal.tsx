@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,7 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { incomesApi } from "@/lib/api";
+import { incomesApi, Income } from "@/lib/api";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -42,13 +42,14 @@ const formSchema = z.object({
   }),
 });
 
-interface AddIncomeModalProps {
+interface IncomeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  incomeToEdit?: Income | null;
 }
 
-export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModalProps) {
+export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: IncomeModalProps) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,20 +61,44 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
     },
   });
 
+  useEffect(() => {
+    if (incomeToEdit) {
+      form.reset({
+        amount: incomeToEdit.amount,
+        source: incomeToEdit.source,
+        date: new Date(incomeToEdit.date),
+      });
+    } else {
+      form.reset({
+        amount: 0,
+        source: "",
+        date: new Date(),
+      });
+    }
+  }, [incomeToEdit, form, open]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
-      await incomesApi.create({
+      const data = {
         amount: values.amount,
         source: values.source,
         date: format(values.date, "yyyy-MM-dd"),
-      });
-      toast.success("Income added successfully");
+      };
+
+      if (incomeToEdit) {
+        await incomesApi.update(incomeToEdit.id, data);
+        toast.success("Income updated successfully");
+      } else {
+        await incomesApi.create(data);
+        toast.success("Income added successfully");
+      }
+      
       form.reset();
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      toast.error("Failed to add income");
+      toast.error(incomeToEdit ? "Failed to update income" : "Failed to add income");
       console.error(error);
     } finally {
       setLoading(false);
@@ -84,9 +109,11 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700">
         <DialogHeader>
-          <DialogTitle className="text-white">Add Income</DialogTitle>
+          <DialogTitle className="text-white">{incomeToEdit ? "Edit Income" : "Add Income"}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Add new income to distribute across your 6 Jars.
+            {incomeToEdit 
+              ? "Update income details. This will adjust the distribution in your jars." 
+              : "Add new income to distribute across your 6 Jars."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -167,7 +194,7 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Income
+                {incomeToEdit ? "Save Changes" : "Add Income"}
               </Button>
             </DialogFooter>
           </form>

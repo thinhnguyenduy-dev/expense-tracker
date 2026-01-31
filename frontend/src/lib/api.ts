@@ -63,10 +63,10 @@ export const authApi = {
 export const categoriesApi = {
   getAll: () => api.get('/categories'),
   
-  create: (data: { name: string; icon: string; color: string }) =>
+  create: (data: { name: string; icon: string; color: string; jar_id?: number }) =>
     api.post('/categories', data),
   
-  update: (id: number, data: { name?: string; icon?: string; color?: string }) =>
+  update: (id: number, data: { name?: string; icon?: string; color?: string; jar_id?: number }) =>
     api.put(`/categories/${id}`, data),
   
   delete: (id: number) => api.delete(`/categories/${id}`),
@@ -231,6 +231,7 @@ export const jarsApi = {
   getAll: () => api.get<Jar[]>('/jars'),
   create: (data: JarCreate) => api.post<Jar>('/jars', data),
   update: (id: number, data: JarUpdate) => api.put<Jar>(`/jars/${id}`, data),
+  transfer: (data: { from_jar_id: number; to_jar_id: number; amount: number }) => api.post<Jar>('/jars/transfers', data),
 };
 
 // Incomes API
@@ -252,4 +253,6 @@ export interface IncomeCreate {
 export const incomesApi = {
   getAll: () => api.get<Income[]>('/incomes'),
   create: (data: IncomeCreate) => api.post<Income>('/incomes', data),
+  update: (id: number, data: IncomeCreate) => api.put<Income>(`/incomes/${id}`, data),
+  delete: (id: number) => api.delete(`/incomes/${id}`),
 };

@@ -34,6 +34,28 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Create default jars for the 6 Jars Method
+    from ..models.jar import Jar
+    default_jars = [
+        {"name": "Necessities (NEC)", "percentage": 55.0},
+        {"name": "Financial Freedom (FFA)", "percentage": 10.0},
+        {"name": "Long-term Savings (LTSS)", "percentage": 10.0},
+        {"name": "Education (EDU)", "percentage": 10.0},
+        {"name": "Play (PLAY)", "percentage": 10.0},
+        {"name": "Give (GIVE)", "percentage": 5.0},
+    ]
+    
+    for jar_data in default_jars:
+        new_jar = Jar(
+            name=jar_data["name"],
+            percentage=jar_data["percentage"],
+            balance=0.0,
+            user_id=user.id
+        )
+        db.add(new_jar)
+    
+    db.commit()
     
     return user
 

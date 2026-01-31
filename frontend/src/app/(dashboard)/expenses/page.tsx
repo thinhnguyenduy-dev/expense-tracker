@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,7 +52,7 @@ interface Category {
 }
 
 const expenseSchema = z.object({
-  amount: z.string().min(1, 'Amount is required'),
+  amount: z.number().min(0.01, 'Amount must be greater than 0'),
   description: z.string().min(1, 'Description is required'),
   date: z.date({ message: 'Date is required' }),
   category_id: z.string().min(1, 'Category is required'),
@@ -133,6 +134,7 @@ export default function ExpensesPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setValue,
@@ -216,7 +218,7 @@ export default function ExpensesPage() {
 
   const openEditDialog = (expense: Expense) => {
     setEditingExpense(expense);
-    setValue('amount', expense.amount.toString());
+    setValue('amount', expense.amount);
     setValue('description', expense.description);
     setValue('date', new Date(expense.date));
     setValue('category_id', expense.category_id.toString());
@@ -226,7 +228,7 @@ export default function ExpensesPage() {
   const openCreateDialog = () => {
     setEditingExpense(null);
     reset({
-      amount: '',
+      amount: 0,
       description: '',
       date: new Date(),
       category_id: '',
@@ -238,7 +240,7 @@ export default function ExpensesPage() {
     setIsSubmitting(true);
     try {
       const payload = {
-        amount: parseFloat(data.amount),
+        amount: data.amount,
         description: data.description,
         date: format(data.date, 'yyyy-MM-dd'),
         category_id: parseInt(data.category_id),
@@ -367,11 +369,17 @@ export default function ExpensesPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label className="text-slate-200">{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    className="bg-slate-800 border-slate-700 text-white"
-                    {...register('amount')}
+                  <Controller
+                    control={control}
+                    name="amount"
+                    render={({ field }) => (
+                      <AmountInput
+                        placeholder="0"
+                        className="bg-slate-800 border-slate-700 text-white"
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      />
+                    )}
                   />
                   {errors.amount && (
                     <p className="text-sm text-red-400">{errors.amount.message}</p>

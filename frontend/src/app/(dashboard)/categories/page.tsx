@@ -21,20 +21,34 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { categoriesApi } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { categoriesApi, jarsApi } from '@/lib/api';
 
 interface Category {
   id: number;
   name: string;
   icon: string;
   color: string;
+  jar_id?: number | null;
   created_at: string;
+}
+
+interface Jar {
+  id: number;
+  name: string;
 }
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().min(1, 'Color is required'),
+  jar_id: z.number().optional().nullable(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -48,6 +62,7 @@ const defaultColors = [
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [jars, setJars] = useState<Jar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -75,8 +90,12 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await categoriesApi.getAll();
-      setCategories(response.data);
+      const [categoriesRes, jarsRes] = await Promise.all([
+        categoriesApi.getAll(),
+        jarsApi.getAll(),
+      ]);
+      setCategories(categoriesRes.data);
+      setJars(jarsRes.data);
     } catch {
       toast.error(t('failedToLoad'));
     } finally {
@@ -93,23 +112,29 @@ export default function CategoriesPage() {
     setValue('name', category.name);
     setValue('icon', category.icon);
     setValue('color', category.color);
+    setValue('jar_id', category.jar_id);
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    reset({ name: '', icon: '📦', color: '#85929E' });
+    reset({ name: '', icon: '📦', color: '#85929E', jar_id: null });
     setIsDialogOpen(true);
   };
 
   const onSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true);
     try {
+      const apiData = {
+        ...data,
+        jar_id: data.jar_id === null ? undefined : data.jar_id
+      };
+      
       if (editingCategory) {
-        await categoriesApi.update(editingCategory.id, data);
+        await categoriesApi.update(editingCategory.id, apiData);
         toast.success(t('successUpdate'));
       } else {
-        await categoriesApi.create(data);
+        await categoriesApi.create(apiData);
         toast.success(t('successCreate'));
       }
       setIsDialogOpen(false);
@@ -225,6 +250,31 @@ export default function CategoriesPage() {
                   <input type="hidden" {...register('color')} />
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{t('linkToJar')}</Label>
+                  <Select
+                    value={watch('jar_id')?.toString() || "none"}
+                    onValueChange={(value) => setValue('jar_id', value === "none" ? null : parseInt(value))}
+                  >
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectValue placeholder={t('selectJar')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="none" className="text-slate-400">
+                        {t('noJar')}
+                      </SelectItem>
+                      {jars.map((jar) => (
+                        <SelectItem key={jar.id} value={jar.id.toString()} className="text-white">
+                          {jar.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-400">
+                    {t('linkJarDesc')}
+                  </p>
+                </div>
+
                 {/* Preview */}
                 <div className="pt-4 border-t border-slate-700">
                   <Label className="text-slate-200 mb-2 block">{t('preview')}</Label>
@@ -330,6 +380,11 @@ export default function CategoriesPage() {
                     style={{ backgroundColor: category.color }}
                   />
                   {category.color}
+                  {category.jar_id && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
+                      {jars.find(j => j.id === category.jar_id)?.name}
+                    </span>
+                  )}
                 </CardDescription>
               </CardContent>
             </Card>

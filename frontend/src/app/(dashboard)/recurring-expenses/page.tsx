@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { AmountInput } from "@/components/ui/amount-input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
@@ -266,12 +267,9 @@ export default function RecurringExpensesPage() {
 
               <div className="space-y-2">
                 <Label className="text-slate-200">{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  required
+                <AmountInput
+                  value={formData.amount === "" ? 0 : parseFloat(formData.amount)}
+                  onValueChange={(val) => setFormData({ ...formData, amount: val.toString() })}
                   className="bg-slate-800 border-slate-700 text-white"
                 />
               </div>

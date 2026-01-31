@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
 
@@ -37,6 +37,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,12 +52,8 @@ import { toast } from 'sonner';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  target_amount: z.string().min(1, 'Target amount is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: 'Target amount must be a positive number',
-  }),
-  current_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: 'Current amount must be be non-negative',
-  }),
+  target_amount: z.number().min(0.01, 'Target amount must be a positive number'),
+  current_amount: z.number().min(0, 'Current amount must be be non-negative'),
   deadline: z.date().optional(),
   description: z.string().optional(),
   color: z.string().optional(),
@@ -295,8 +292,8 @@ function GoalDialog({
     defaultValues: {
       name: goal?.name || '',
       description: goal?.description || '',
-      target_amount: goal?.target_amount?.toString() || '',
-      current_amount: goal?.current_amount?.toString() || '0',
+      target_amount: goal?.target_amount || 0,
+      current_amount: goal?.current_amount || 0,
       deadline: goal?.deadline ? new Date(goal.deadline) : undefined,
       color: goal?.color || '#10B981',
     },
@@ -308,8 +305,8 @@ function GoalDialog({
       form.reset({
         name: goal?.name || '',
         description: goal?.description || '',
-        target_amount: goal?.target_amount?.toString() || '',
-        current_amount: goal?.current_amount?.toString() || '0',
+        target_amount: goal?.target_amount || 0,
+        current_amount: goal?.current_amount || 0,
         deadline: goal?.deadline ? new Date(goal.deadline) : undefined,
         color: goal?.color || '#10B981',
       });
@@ -320,8 +317,8 @@ function GoalDialog({
     try {
       const data = {
         ...values,
-        target_amount: Number(values.target_amount),
-        current_amount: Number(values.current_amount),
+        target_amount: values.target_amount,
+        current_amount: values.current_amount,
         deadline: values.deadline ? format(values.deadline, 'yyyy-MM-dd') : undefined,
       };
 
@@ -372,7 +369,18 @@ function GoalDialog({
                   <FormItem>
                     <FormLabel>{t('targetAmount')}</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="50000000" {...field} className="bg-slate-800 border-slate-700" />
+                      <Controller
+                        control={form.control}
+                        name="target_amount"
+                        render={({ field }) => (
+                          <AmountInput 
+                            placeholder="50000000" 
+                            className="bg-slate-800 border-slate-700" 
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
+                        )}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -385,7 +393,18 @@ function GoalDialog({
                   <FormItem>
                     <FormLabel>{t('currentAmount')}</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="0" {...field} className="bg-slate-800 border-slate-700" />
+                      <Controller
+                          control={form.control}
+                          name="current_amount"
+                          render={({ field }) => (
+                            <AmountInput 
+                              placeholder="0" 
+                              className="bg-slate-800 border-slate-700" 
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
+                          )}
+                        />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -473,13 +492,13 @@ function AddSavingsDialog({
   onSuccess: (goal: Goal) => void; 
   goal: Goal;
 }) {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState<number>(0);
   const t = useTranslations('Goals');
   const locale = useLocale();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const addAmount = Number(amount);
+    const addAmount = amount;
     if (!addAmount || addAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
@@ -507,11 +526,11 @@ function AddSavingsDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('amountToAdd')}</label>
-            <Input 
+            <AmountInput 
               type="number" 
               placeholder={t('amountToAdd')} 
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={typeof amount === 'number' ? amount : 0}
+              onValueChange={setAmount}
               className="bg-slate-800 border-slate-700"
               autoFocus
             />
