@@ -22,3 +22,4 @@ class DashboardStats(BaseModel):
     total_this_week: Decimal
     expenses_by_category: List[CategoryStat]
     monthly_trend: List[MonthlyTrend]
+    due_recurring_count: int = 0

@@ -77,5 +77,89 @@ async def import_data(
     """
     Import data from CSV. TO BE IMPLEMENTED.
     """
-    # Placeholder for now
-    raise HTTPException(status_code=501, detail="Import functionality not implemented yet")
+    # Parse CSV content
+    content = await file.read()
+    try:
+        rows = parse_csv(content)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
+
+    if not rows:
+        return {"message": "Empty CSV file", "imported_count": 0}
+
+    # Detect type based on headers
+    headers = set(rows[0].keys())
+    
+    imported_count = 0
+    
+    # Check for Expense headers
+    if {"date", "amount", "description", "category"}.issubset(headers):
+        for row in rows:
+            try:
+                # Parse date
+                row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
+                
+                # Find or create category
+                category_name = row.get("category") or "Uncategorized"
+                category = db.query(Category).filter(
+                    Category.user_id == current_user.id,
+                    Category.name == category_name
+                ).first()
+                
+                if not category:
+                    # Create new category
+                    category = Category(
+                        user_id=current_user.id,
+                        name=category_name,
+                        icon="📦", # Default icon
+                        color="#94a3b8" # Default color (slate-400)
+                    )
+                    db.add(category)
+                    db.commit()
+                    db.refresh(category)
+                
+                expense = Expense(
+                    user_id=current_user.id,
+                    amount=float(row["amount"]),
+                    description=row["description"],
+                    date=row_date,
+                    category_id=category.id,
+                    payment_method=row.get("payment_method")
+                )
+                db.add(expense)
+                imported_count += 1
+            except Exception as e:
+                print(f"Skipping row {row}: {e}")
+                continue
+                
+        db.commit()
+        return {"message": "Expenses imported successfully", "imported_count": imported_count, "type": "expense"}
+
+    # Check for Income headers
+    elif {"date", "amount", "description", "source"}.issubset(headers):
+        for row in rows:
+            try:
+                 # Parse date
+                row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
+                
+                income = Income(
+                    user_id=current_user.id,
+                    amount=float(row["amount"]),
+                    description=row["description"],
+                    date=row_date,
+                    source=row["source"]
+                )
+                db.add(income)
+                imported_count += 1
+            except Exception as e:
+                 print(f"Skipping row {row}: {e}")
+                 continue
+                 
+        db.commit()
+        return {"message": "Incomes imported successfully", "imported_count": imported_count, "type": "income"}
+
+    else:
+        raise HTTPException(
+            status_code=400, 
+            detail="Unknown CSV format. Required headers for Expenses: date, amount, description, category. For Incomes: date, amount, description, source."
+        )

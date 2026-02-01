@@ -122,6 +122,55 @@ export function DataTab() {
             </AlertDialog>
         </CardContent>
       </Card>
+
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white">Import Data</CardTitle>
+          <CardDescription className="text-slate-400">
+            Import your expenses or incomes from a CSV file.
+            Required headers:
+            <br />
+            - Expenses: date, amount, description, category
+            <br />
+            - Incomes: date, amount, description, source
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+           <div className="flex items-center gap-4">
+              <input
+                type="file"
+                accept=".csv"
+                id="file-upload"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  const toastId = toast.loading('Importing data...');
+                  try {
+                    const { dataApi } = await import('@/lib/api');
+                    const response = await dataApi.importData(file);
+                    toast.success(response.data.message);
+                    // Reset input
+                    e.target.value = '';
+                  } catch (error) {
+                    console.error(error);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    toast.error((error as any)?.response?.data?.detail || 'Failed to import data');
+                  } finally {
+                    toast.dismiss(toastId);
+                  }
+                }}
+              />
+              <Button asChild variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-700 cursor-pointer">
+                <label htmlFor="file-upload">
+                    <Download className="mr-2 h-4 w-4 rotate-180" />
+                    Select CSV File
+                </label>
+              </Button>
+           </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -212,7 +212,40 @@ export default function RecurringExpensesPage() {
           <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
+        <div className="flex gap-2">
+          {recurringExpenses.some(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date()) && (
+            <Button 
+                onClick={async () => {
+                    const due = recurringExpenses.filter(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date());
+                    let successCount = 0;
+                    const toastId = toast.loading(t('processing', { count: due.length }));
+                    
+                    for (const item of due) {
+                        try {
+                            await recurringExpensesApi.createExpense(item.id);
+                            successCount++;
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                    
+                    toast.dismiss(toastId);
+                    if (successCount > 0) {
+                        toast.success(t('successProcessAll', { count: successCount }));
+                        fetchData();
+                    } else {
+                        toast.error(t('failedProcessAll'));
+                    }
+                }}
+                variant="default"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {t('processAll')}
+            </Button>
+          )}
+
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open)
           if (!open) resetForm()
         }}>
@@ -356,6 +389,7 @@ export default function RecurringExpensesPage() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {recurringExpenses.length === 0 ? (

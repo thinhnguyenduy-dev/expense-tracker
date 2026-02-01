@@ -285,4 +285,11 @@ export const reportsApi = {
 // Data API
 export const dataApi = {
   exportData: () => api.get('/data/export', { responseType: 'blob' }),
+  importData: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/data/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };

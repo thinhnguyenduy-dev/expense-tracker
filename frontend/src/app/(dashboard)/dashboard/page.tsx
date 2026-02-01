@@ -45,6 +45,7 @@ interface DashboardStats {
   total_this_week: number;
   expenses_by_category: CategoryStat[];
   monthly_trend: MonthlyTrend[];
+  due_recurring_count?: number;
 }
 
 const formatCurrency = (value: number, locale: string) => {
@@ -53,6 +54,11 @@ const formatCurrency = (value: number, locale: string) => {
     currency: locale === 'vi' ? 'VND' : 'USD',
   }).format(value);
 };
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Bell, ArrowRight } from "lucide-react"
+import Link from 'next/link'
+import { Button } from "@/components/ui/button"
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -101,6 +107,26 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
         <p className="text-slate-400 mt-1">{t('subtitle')}</p>
       </div>
+
+      {/* Due Recurring Expenses Alert */}
+      {stats?.due_recurring_count && stats.due_recurring_count > 0 && (
+        <Alert className="bg-yellow-500/10 border-yellow-500/50 text-yellow-500">
+          <Bell className="h-4 w-4" />
+          <AlertTitle className="text-yellow-500 font-semibold ml-2">
+            Recurring Expenses Due
+          </AlertTitle>
+          <AlertDescription className="flex items-center justify-between ml-2 mt-2 text-yellow-200/90">
+            <span>
+              You have {stats.due_recurring_count} recurring expenses that are due for processing.
+            </span>
+            <Button size="sm" variant="outline" className="text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20" asChild>
+              <Link href="/recurring-expenses" className="flex items-center gap-2">
+                Process Now <ArrowRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">

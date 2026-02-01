@@ -86,16 +86,31 @@ def compute_dashboard_stats(db: Session, user_id: int) -> dict:
         ).scalar()
         
         monthly_trend.append({
-            "month": month_start.strftime("%b %Y"),
+        "monthly": month_start.strftime("%b %Y"),
             "total": float(month_total)
         })
+
+    # Count due recurring expenses
+    from ..models.recurring_expense import RecurringExpense
+    recurring_expenses = db.query(RecurringExpense).filter(
+        RecurringExpense.user_id == user_id,
+        RecurringExpense.is_active == True
+    ).all()
     
+    due_count = 0
+    today = date.today()
+    for recurring in recurring_expenses:
+        next_due = recurring.next_due_date
+        if next_due and next_due <= today:
+            due_count += 1
+            
     return {
         "total_expenses": float(total_expenses),
         "total_this_month": float(total_this_month),
         "total_this_week": float(total_this_week),
         "expenses_by_category": expenses_by_category,
-        "monthly_trend": monthly_trend
+        "monthly_trend": monthly_trend,
+        "due_recurring_count": due_count
     }
 
 
@@ -134,7 +149,9 @@ def get_dashboard_stats(
                 total=Decimal(str(trend["total"]))
             )
             for trend in stats_dict["monthly_trend"]
-        ]
+            for trend in stats_dict["monthly_trend"]
+        ],
+        due_recurring_count=stats_dict["due_recurring_count"]
     )
 
 
