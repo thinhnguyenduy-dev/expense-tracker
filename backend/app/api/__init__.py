@@ -11,3 +11,4 @@ from .incomes import router as incomes_router
 from .transfers import router as transfers_router
 from .reports import router as reports_router
 from .data import router as data_router
+from .ocr import router as ocr_router

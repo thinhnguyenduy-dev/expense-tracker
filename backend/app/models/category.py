@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
@@ -11,6 +11,7 @@ class Category(Base):
     name = Column(String(100), nullable=False)
     icon = Column(String(50), nullable=False, default="📦")
     color = Column(String(20), nullable=False, default="#85929E")
+    monthly_limit = Column(Numeric(10, 2), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

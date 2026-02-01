@@ -7,6 +7,7 @@ class CategoryBase(BaseModel):
     name: str
     icon: str = "📦"
     color: str = "#85929E"
+    monthly_limit: Optional[float] = None
 
 
 class CategoryCreate(CategoryBase):
@@ -18,6 +19,7 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = None
     color: Optional[str] = None
     jar_id: Optional[int] = None
+    monthly_limit: Optional[float] = None
 
 
 class CategoryResponse(CategoryBase):

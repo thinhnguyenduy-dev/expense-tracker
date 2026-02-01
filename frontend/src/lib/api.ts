@@ -63,10 +63,10 @@ export const authApi = {
 export const categoriesApi = {
   getAll: () => api.get('/categories'),
   
-  create: (data: { name: string; icon: string; color: string; jar_id?: number }) =>
+  create: (data: { name: string; icon: string; color: string; jar_id?: number; monthly_limit?: number }) =>
     api.post('/categories', data),
   
-  update: (id: number, data: { name?: string; icon?: string; color?: string; jar_id?: number }) =>
+  update: (id: number, data: { name?: string; icon?: string; color?: string; jar_id?: number; monthly_limit?: number }) =>
     api.put(`/categories/${id}`, data),
   
   delete: (id: number) => api.delete(`/categories/${id}`),
@@ -289,6 +289,17 @@ export const dataApi = {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/data/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+// OCR API
+export const ocrApi = {
+  scanReceipt: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ amount?: number; date?: string; merchant?: string; text?: string }>('/ocr/scan', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

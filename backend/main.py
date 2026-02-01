@@ -106,6 +106,7 @@ app.include_router(incomes_router, prefix="/api/incomes", tags=["Incomes"])
 app.include_router(transfers_router, prefix="/api/transfers", tags=["Transfers"])
 app.include_router(reports_router, prefix="/api/reports", tags=["Reports"])
 app.include_router(data_router, prefix="/api/data", tags=["Data"])
+app.include_router(ocr_router, prefix="/api", tags=["OCR"])
 
 
 @app.get("/")

@@ -9,6 +9,7 @@ class CategoryStat(BaseModel):
     category_color: str
     total: Decimal
     percentage: float
+    monthly_limit: float | None = None
 
 
 class MonthlyTrend(BaseModel):

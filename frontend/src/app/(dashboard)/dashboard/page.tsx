@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { dashboardApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
+import { Progress } from '@/components/ui/progress';
 
 interface CategoryStat {
   category_id: number;
@@ -32,6 +33,7 @@ interface CategoryStat {
   category_color: string;
   total: number;
   percentage: number;
+  monthly_limit?: number;
 }
 
 interface MonthlyTrend {
@@ -267,6 +269,37 @@ export default function DashboardPage() {
                   <p>{t('noData')}</p>
                 </div>
               )}
+            </div>
+
+            {/* Budget Limits Section */}
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-medium text-white">Budget Limits</h3>
+              <div className="space-y-4">
+                {stats?.expenses_by_category.filter(c => c.monthly_limit).map((category) => {
+                   const percentage = Math.min(100, (category.total / (category.monthly_limit || 1)) * 100);
+                   const isOverBudget = Number(category.total) > (category.monthly_limit || 0);
+                   
+                   return (
+                    <div key={category.category_id} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-300">{category.category_name}</span>
+                        <span className={isOverBudget ? "text-red-400 font-medium" : "text-slate-400"}>
+                          {formatCurrency(Number(category.total), locale)} / {formatCurrency(Number(category.monthly_limit), locale)}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={percentage} 
+                        className="h-2 bg-slate-700" 
+                        indicatorClassName={isOverBudget ? "bg-red-500" : category.category_color ? `bg-[${category.category_color}]` : "bg-emerald-500"}
+                        style={{ backgroundColor: category.category_color }}
+                      />
+                    </div>
+                   );
+                })}
+                {(!stats?.expenses_by_category.some(c => c.monthly_limit)) && (
+                   <p className="text-sm text-slate-500 italic">No budget limits set. Go to Categories to add limits.</p>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

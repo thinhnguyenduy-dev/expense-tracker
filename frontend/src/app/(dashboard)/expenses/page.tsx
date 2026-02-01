@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
-import { Plus, Pencil, Trash2, Loader2, Filter, CalendarIcon, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Filter, CalendarIcon, Search, ChevronLeft, ChevronRight, X, CameraIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -368,6 +368,50 @@ export default function ExpensesPage() {
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4 py-4">
+                {/* Scan Receipt Button (Only for new expenses) */}
+                {!editingExpense && (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="receipt-upload"
+                      onChange={async (e) => {
+                         const file = e.target.files?.[0];
+                         if (!file) return;
+                         
+                         const toastId = toast.loading('Scanning receipt...');
+                         try {
+                           const { data } = await import('@/lib/api').then(m => m.ocrApi.scanReceipt(file));
+                           
+                           if (data.amount) setValue('amount', data.amount);
+                           if (data.date) setValue('date', new Date(data.date));
+                           if (data.merchant) setValue('description', data.merchant);
+                           else setValue('description', 'Receipt scan ' + new Date().toLocaleDateString());
+                           
+                           toast.success('Receipt scanned!', { id: toastId });
+                         } catch (error) {
+                           console.error(error);
+                           toast.error('Failed to scan receipt. Ensure Tesseract is installed on server.', { id: toastId });
+                         }
+                         // Reset input
+                         e.target.value = '';
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-dashed border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-emerald-500 hover:text-emerald-500 transition-all text-slate-400"
+                      onClick={() => document.getElementById('receipt-upload')?.click()}
+                    >
+                      <div className="flex flex-col items-center gap-2 py-2">
+                        <CameraIcon className="h-6 w-6" />
+                        <span>Scan Receipt (Auto-fill)</span>
+                      </div>
+                    </Button>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-slate-200">{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
                   <Controller

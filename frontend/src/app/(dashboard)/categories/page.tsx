@@ -37,6 +37,7 @@ interface Category {
   color: string;
   jar_id?: number | null;
   created_at: string;
+  monthly_limit?: number | null;
 }
 
 interface Jar {
@@ -49,6 +50,7 @@ const categorySchema = z.object({
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().min(1, 'Color is required'),
   jar_id: z.number().optional().nullable(),
+  monthly_limit: z.number().optional().nullable(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -113,12 +115,13 @@ export default function CategoriesPage() {
     setValue('icon', category.icon);
     setValue('color', category.color);
     setValue('jar_id', category.jar_id);
+    setValue('monthly_limit', category.monthly_limit);
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    reset({ name: '', icon: '📦', color: '#85929E', jar_id: null });
+    reset({ name: '', icon: '📦', color: '#85929E', jar_id: null, monthly_limit: null });
     setIsDialogOpen(true);
   };
 
@@ -127,14 +130,17 @@ export default function CategoriesPage() {
     try {
       const apiData = {
         ...data,
-        jar_id: data.jar_id === null ? undefined : data.jar_id
+        jar_id: data.jar_id === null ? undefined : data.jar_id,
+        monthly_limit: data.monthly_limit === null ? undefined : data.monthly_limit
       };
       
       if (editingCategory) {
-        await categoriesApi.update(editingCategory.id, apiData);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await categoriesApi.update(editingCategory.id, apiData as any);
         toast.success(t('successUpdate'));
       } else {
-        await categoriesApi.create(apiData);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await categoriesApi.create(apiData as any);
         toast.success(t('successCreate'));
       }
       setIsDialogOpen(false);
@@ -272,6 +278,19 @@ export default function CategoriesPage() {
                   </Select>
                   <p className="text-xs text-slate-400">
                     {t('linkJarDesc')}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{t('monthlyLimit')} (Optional)</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 500"
+                    className="bg-slate-800 border-slate-700 text-white"
+                    {...register('monthly_limit', { valueAsNumber: true })}
+                  />
+                  <p className="text-xs text-slate-400">
+                    Set a budget limit for this category to get alerts.
                   </p>
                 </div>
 

@@ -45,6 +45,7 @@ def compute_dashboard_stats(db: Session, user_id: int) -> dict:
         Category.id,
         Category.name,
         Category.color,
+        Category.monthly_limit,
         func.coalesce(func.sum(Expense.amount), 0).label('total')
     ).outerjoin(
         Expense, 
@@ -52,11 +53,11 @@ def compute_dashboard_stats(db: Session, user_id: int) -> dict:
     ).filter(
         Category.user_id == user_id
     ).group_by(
-        Category.id, Category.name, Category.color
+        Category.id, Category.name, Category.color, Category.monthly_limit
     ).all()
     
     expenses_by_category = []
-    for cat_id, cat_name, cat_color, cat_total in category_stats_query:
+    for cat_id, cat_name, cat_color, cat_limit, cat_total in category_stats_query:
         percentage = 0.0
         if total_expenses > 0:
             percentage = float(cat_total) / float(total_expenses) * 100
@@ -66,7 +67,8 @@ def compute_dashboard_stats(db: Session, user_id: int) -> dict:
             "category_name": cat_name,
             "category_color": cat_color,
             "total": float(cat_total),
-            "percentage": round(percentage, 2)
+            "percentage": round(percentage, 2),
+            "monthly_limit": float(cat_limit) if cat_limit else None
         })
     
     # Monthly trend (last 6 months)
@@ -139,7 +141,8 @@ def get_dashboard_stats(
                 category_name=cat["category_name"],
                 category_color=cat["category_color"],
                 total=Decimal(str(cat["total"])),
-                percentage=cat["percentage"]
+                percentage=cat["percentage"],
+                monthly_limit=cat["monthly_limit"]
             )
             for cat in stats_dict["expenses_by_category"]
         ],
