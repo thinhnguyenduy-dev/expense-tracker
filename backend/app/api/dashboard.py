@@ -145,7 +145,7 @@ def get_dashboard_stats(
         user_ids = [u.id for u in members]
     
     # Use caching wrapper - the cache key based on scope
-    @cached(prefix=f"dashboard_stats_{cache_suffix}")
+    @cached(prefix=f"dashboard_stats_v2_{cache_suffix}")
     def get_cached_stats():
         return compute_dashboard_stats(db, user_ids)
     
@@ -172,7 +172,6 @@ def get_dashboard_stats(
                 month=trend["month"],
                 total=Decimal(str(trend["total"]))
             )
-            for trend in stats_dict["monthly_trend"]
             for trend in stats_dict["monthly_trend"]
         ],
         due_recurring_count=stats_dict["due_recurring_count"]
