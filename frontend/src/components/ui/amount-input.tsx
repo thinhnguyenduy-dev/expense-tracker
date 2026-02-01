@@ -28,47 +28,77 @@ export function AmountInput({
 
   const [displayValue, setDisplayValue] = React.useState(formatValue(value));
 
+  // Determine separators based on locale
+  const isVi = locale && (locale.startsWith("vi"));
+  const thousandSeparator = isVi ? "." : ",";
+  const decimalSeparator = isVi ? "," : ".";
+
   // Sync with external value changes
   React.useEffect(() => {
-    // Only update if the parsed display value doesn't match the new prop value
-    const numericDisplay = parseFloat(displayValue.replace(/,/g, ""));
+    // Normalize display value to standard float string for comparison
+    // Remove thousands separator, replace decimal separator with dot
+    const normalizedDisplay = displayValue
+      .split(thousandSeparator).join("")
+      .replace(decimalSeparator, ".");
+      
+    const numericDisplay = parseFloat(normalizedDisplay);
+    
     // Use a small epsilon for float comparison if needed, but for simple amounts check exact match or close enough
     if (numericDisplay !== value) {
-        // Prevent clearing if user is typing "0." and value is 0
+        // Prevent clearing if user is typing "0." and value is 0 (handled roughly)
         if(value === 0 && displayValue === "") return;
         // Don't update if it roughly matches (handling parsing diffs)
         if (isNaN(numericDisplay) && value === 0) return;
         
         setDisplayValue(value === 0 ? "" : formatValue(value));
     }
-  }, [value, formatValue, displayValue]);
+  }, [value, formatValue, displayValue, thousandSeparator, decimalSeparator]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     
-    // Allow digits and one decimal point
-    // Remove all non-numeric chars except dot
-    const cleanValue = inputValue.replace(/[^0-9.]/g, "");
+    // Clean input: remove thousand separators first, then everything not digit or decimal separator
+    // For regex: escape special chars if needed (dot is special)
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     
-    // Split by dot to handle decimals
-    const parts = cleanValue.split(".");
+    const decimalRegex = new RegExp(`[^0-9${escapeRegExp(decimalSeparator)}]`, "g");
     
-    // Prevent multiple dots
+    // We strictly assume user inputs digits and the correct decimal separator for the locale.
+    // If they input the *wrong* separator (e.g. dot in VI for decimal), we might want to map it?
+    // ideally normalize: if isVi, map dot to nothing (though thousands) or maybe allow dot as ignored char.
+    // Let's stick to stripping non-allowed chars.
+    
+    // Remove thousand separators explicitly first to avoid confusion if user types them? 
+    // Actually regex [^0-9,.] logic strips them if they are not the decimal separator.
+    // But if thousand separator IS dot (VI), and we want to strip it...
+    // The "decimalRegex" keeps digits and decimalSeparator.
+    // So for VI (decimal=,), it keeps digits and comma. It strips DOT. Correct.
+    // For EN (decimal=.), it keeps digits and dot. It strips COMMA. Correct.
+    
+    const cleanValue = inputValue.replace(decimalRegex, "");
+    
+    // Split by decimal separator
+    const parts = cleanValue.split(decimalSeparator);
+    
+    // Prevent multiple decimal separators
     if (parts.length > 2) return;
 
-    // Integer part with commas
-    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // Integer part with thousands separators
+    // \B lookahead logic needs to place the SPECIFIC thousand separator
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
     
     // Combine
     let formattedValue = integerPart;
     if (parts.length > 1) {
-      formattedValue += "." + parts[1].slice(0, 2); // Limit to 2 decimal places
+      formattedValue += decimalSeparator + parts[1].slice(0, 2); // Limit to 2 decimal places
     }
 
     setDisplayValue(formattedValue);
 
     // Parse to number for parent
-    const numberValue = parseFloat(cleanValue);
+    // Need standard JS float format: 12345.67
+    const standardFloatString = parts[0] + (parts.length > 1 ? "." + parts[1].slice(0, 2) : "");
+    const numberValue = parseFloat(standardFloatString);
     onValueChange(isNaN(numberValue) ? 0 : numberValue);
   };
 

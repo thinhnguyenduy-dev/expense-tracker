@@ -286,6 +286,7 @@ function GoalDialog({
 }) {
   const t = useTranslations('Goals');
   const tCommon = useTranslations('Common');
+  const locale = useLocale();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -378,6 +379,8 @@ function GoalDialog({
                             className="bg-slate-800 border-slate-700" 
                             value={field.value}
                             onValueChange={field.onChange}
+                            locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
+                            currency={locale === 'vi' ? 'VND' : 'USD'}
                           />
                         )}
                       />
@@ -402,6 +405,8 @@ function GoalDialog({
                               className="bg-slate-800 border-slate-700" 
                               value={field.value}
                               onValueChange={field.onChange}
+                              locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
+                              currency={locale === 'vi' ? 'VND' : 'USD'}
                             />
                           )}
                         />
@@ -533,6 +538,8 @@ function AddSavingsDialog({
               onValueChange={setAmount}
               className="bg-slate-800 border-slate-700"
               autoFocus
+              locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
+              currency={locale === 'vi' ? 'VND' : 'USD'}
             />
           </div>
           <DialogFooter>

@@ -72,7 +72,7 @@ def get_expenses(
     max_amount: Optional[Decimal] = Query(None, description="Filter by maximum amount"),
     search: Optional[str] = Query(None, description="Search in description and category name"),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    page_size: int = Query(20, ge=1, le=100000, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> PaginatedResponse[ExpenseResponse]:
