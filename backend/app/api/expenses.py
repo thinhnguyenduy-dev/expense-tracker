@@ -1,4 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from fastapi.responses import StreamingResponse
+import csv
+import io
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func
 from typing import List, Optional
@@ -72,7 +75,7 @@ def get_expenses(
     max_amount: Optional[Decimal] = Query(None, description="Filter by maximum amount"),
     search: Optional[str] = Query(None, description="Search in description and category name"),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100000, description="Items per page"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> PaginatedResponse[ExpenseResponse]:
@@ -117,6 +120,75 @@ def get_expenses(
         page=page,
         page_size=page_size,
         total_pages=total_pages
+    )
+
+
+@router.get("/export")
+def export_expenses(
+    start_date: Optional[date] = Query(None, description="Filter by start date"),
+    end_date: Optional[date] = Query(None, description="Filter by end date"),
+    category_id: Optional[int] = Query(None, description="Filter by category ID"),
+    min_amount: Optional[Decimal] = Query(None, description="Filter by minimum amount"),
+    max_amount: Optional[Decimal] = Query(None, description="Filter by maximum amount"),
+    search: Optional[str] = Query(None, description="Search in description and category name"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Export expenses as CSV."""
+    query = db.query(Expense).options(
+        joinedload(Expense.category)
+    ).filter(Expense.user_id == current_user.id)
+    
+    # Apply filters
+    if start_date:
+        query = query.filter(Expense.date >= start_date)
+    if end_date:
+        query = query.filter(Expense.date <= end_date)
+    if category_id:
+        query = query.filter(Expense.category_id == category_id)
+    if min_amount:
+        query = query.filter(Expense.amount >= min_amount)
+    if max_amount:
+        query = query.filter(Expense.amount <= max_amount)
+    
+    # Apply search filter
+    if search:
+        search_term = f"%{search}%"
+        query = query.join(Category).filter(
+            or_(
+                Expense.description.ilike(search_term),
+                Category.name.ilike(search_term)
+            )
+        )
+    
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(["Date", "Description", "Category", "Amount", "Type"])
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+        
+        # Write data
+        for expense in query.order_by(Expense.date.desc()).yield_per(1000):
+            writer.writerow([
+                expense.date,
+                expense.description,
+                expense.category.name if expense.category else "Unknown",
+                expense.amount,
+                expense.category.type if expense.category else "Unknown"
+            ])
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    filename = f"expenses_export_{date.today()}.csv"
+    return StreamingResponse(
+        iter_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 
