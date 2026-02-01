@@ -38,7 +38,7 @@ async def export_data(
                 "amount": e.amount,
                 "description": e.description,
                 "category": e.category.name if e.category else "Uncategorized",
-                "payment_method": e.payment_method or ""
+
             })
         expenses_csv = generate_csv(expenses_data)
         zip_file.writestr("expenses.csv", expenses_csv)
@@ -123,8 +123,7 @@ async def import_data(
                     amount=float(row["amount"]),
                     description=row["description"],
                     date=row_date,
-                    category_id=category.id,
-                    payment_method=row.get("payment_method")
+                    category_id=category.id
                 )
                 db.add(expense)
                 imported_count += 1

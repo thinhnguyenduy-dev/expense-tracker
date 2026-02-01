@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import List
+from typing import List, Union
 
 from ..core.database import get_db
 from ..core.deps import get_current_user
@@ -15,8 +15,6 @@ from ..schemas.dashboard import DashboardStats, CategoryStat, MonthlyTrend
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
-
-from typing import List, Union
 
 def compute_dashboard_stats(db: Session, user_ids: List[int]) -> dict:
     """Compute dashboard statistics for a list of users."""
@@ -123,8 +121,6 @@ def compute_dashboard_stats(db: Session, user_ids: List[int]) -> dict:
         "due_recurring_count": due_count
     }
 
-
-from fastapi import Query
 
 @router.get("", response_model=DashboardStats)
 def get_dashboard_stats(
