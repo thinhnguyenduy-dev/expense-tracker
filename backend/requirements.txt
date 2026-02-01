@@ -13,6 +13,7 @@ python-dotenv==1.0.0
 email-validator==2.1.0
 python-dateutil==2.8.2
 loguru==0.7.2
+slowapi==0.1.9
 
 # Phase 3: Infrastructure
 redis==5.0.0
