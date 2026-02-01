@@ -122,6 +122,7 @@
     "editIncome": "Sửa thu nhập",
     "addIncomeDesc": "Ghi lại nguồn thu nhập mới",
     "editIncomeDesc": "Cập nhật chi tiết thu nhập",
+    "source": "Nguồn",
     "sourcePlaceholder": "ví dụ: Lương, Freelance",
     "searchPlaceholder": "Tìm kiếm thu nhập...",
     "noIncomes": "Chưa có thu nhập nào",

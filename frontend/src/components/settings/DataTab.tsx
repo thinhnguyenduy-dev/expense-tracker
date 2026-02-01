@@ -33,23 +33,13 @@ export function DataTab() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      // Use the dedicated export endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reports/export`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await import('@/lib/api').then(mod => mod.dataApi.exportData());
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: 'application/zip' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `expenses_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `expense_tracker_export_${new Date().toISOString().split('T')[0]}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

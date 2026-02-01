@@ -282,3 +282,7 @@ export const reportsApi = {
     api.get<ReportResponse>('/reports', { params: { start_date: startDate, end_date: endDate } }),
 };
 
+// Data API
+export const dataApi = {
+  exportData: () => api.get('/data/export', { responseType: 'blob' }),
+};
