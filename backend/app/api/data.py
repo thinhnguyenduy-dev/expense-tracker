@@ -50,7 +50,6 @@ async def export_data(
             incomes_data.append({
                 "date": i.date.isoformat() if i.date else "",
                 "amount": i.amount,
-                "description": i.description,
                 "source": i.source or ""
             })
         incomes_csv = generate_csv(incomes_data)
@@ -135,7 +134,7 @@ async def import_data(
         return {"message": "Expenses imported successfully", "imported_count": imported_count, "type": "expense"}
 
     # Check for Income headers
-    elif {"date", "amount", "description", "source"}.issubset(headers):
+    elif {"date", "amount", "source"}.issubset(headers):
         for row in rows:
             try:
                  # Parse date
@@ -144,7 +143,6 @@ async def import_data(
                 income = Income(
                     user_id=current_user.id,
                     amount=float(row["amount"]),
-                    description=row["description"],
                     date=row_date,
                     source=row["source"]
                 )
@@ -160,5 +158,5 @@ async def import_data(
     else:
         raise HTTPException(
             status_code=400, 
-            detail="Unknown CSV format. Required headers for Expenses: date, amount, description, category. For Incomes: date, amount, description, source."
+            detail="Unknown CSV format. Required headers for Expenses: date, amount, description, category. For Incomes: date, amount, source."
         )
