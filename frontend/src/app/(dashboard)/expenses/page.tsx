@@ -94,6 +94,9 @@ const getDateRange = (preset: DatePreset): { start?: Date; end?: Date } => {
 
 
 
+import { authApi } from '@/lib/api';
+import { Switch } from '@/components/ui/switch';
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -101,9 +104,26 @@ export default function ExpensesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scope, setScope] = useState<'personal' | 'family'>('personal');
+  const [hasFamily, setHasFamily] = useState(false);
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
   const locale = useLocale();
+
+  useEffect(() => {
+    const checkFamilyStatus = async () => {
+      try {
+        const { data } = await authApi.me();
+        // @ts-ignore
+        if (data.family_id) {
+          setHasFamily(true);
+        }
+      } catch (error) {
+        console.error('Failed to check family status', error);
+      }
+    };
+    checkFamilyStatus();
+  }, []);
   
   const datePresetLabels: Record<DatePreset, string> = {
     all: t('DatePresets.all'),
@@ -167,6 +187,7 @@ export default function ExpensesPage() {
       const filters: ExpenseFilter = {
         page,
         page_size: pageSize,
+        scope,
       };
       
       if (filterCategory !== 'all') {
@@ -201,7 +222,7 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, filterCategory, debouncedSearch, datePreset, t]);
+  }, [page, pageSize, filterCategory, debouncedSearch, datePreset, scope, t]);
 
   useEffect(() => {
     fetchData();
@@ -347,6 +368,19 @@ export default function ExpensesPage() {
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
           <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
+        
+        {hasFamily && (
+          <div className="flex items-center space-x-2 bg-slate-800 p-2 rounded-lg border border-slate-700 mr-auto sm:mr-0">
+             <Switch
+              id="family-mode-expenses"
+              checked={scope === 'family'}
+              onCheckedChange={(checked) => setScope(checked ? 'family' : 'personal')}
+            />
+            <Label htmlFor="family-mode-expenses" className="text-white cursor-pointer select-none">
+              Family View
+            </Label>
+          </div>
+        )}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button

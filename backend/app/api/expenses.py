@@ -76,13 +76,25 @@ def get_expenses(
     search: Optional[str] = Query(None, description="Search in description and category name"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    scope: str = Query("personal", description="Scope of expenses: 'personal' or 'family'"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> PaginatedResponse[ExpenseResponse]:
     """Get paginated expenses for the current user with optional filters and search."""
+    
+    # Determine user IDs to query
+    user_ids = [current_user.id]
+    if scope == "family" and current_user.family_id:
+        # Get all family members with lazy loading or explicit query if needed
+        # Assuming family.members is available via relationship
+        # Re-query user with family to ensure relationship loaded if needed, though lazy load works mostly
+        # Safe approach: Query users in family
+        members = db.query(User).filter(User.family_id == current_user.family_id).all()
+        user_ids = [u.id for u in members]
+
     query = db.query(Expense).options(
         joinedload(Expense.category)
-    ).filter(Expense.user_id == current_user.id)
+    ).filter(Expense.user_id.in_(user_ids))
     
     # Apply filters
     if start_date:
@@ -131,13 +143,21 @@ def export_expenses(
     min_amount: Optional[Decimal] = Query(None, description="Filter by minimum amount"),
     max_amount: Optional[Decimal] = Query(None, description="Filter by maximum amount"),
     search: Optional[str] = Query(None, description="Search in description and category name"),
+    scope: str = Query("personal", description="Scope of expenses: 'personal' or 'family'"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Export expenses as CSV."""
+    
+    # Determine user IDs to query
+    user_ids = [current_user.id]
+    if scope == "family" and current_user.family_id:
+        members = db.query(User).filter(User.family_id == current_user.family_id).all()
+        user_ids = [u.id for u in members]
+
     query = db.query(Expense).options(
         joinedload(Expense.category)
-    ).filter(Expense.user_id == current_user.id)
+    ).filter(Expense.user_id.in_(user_ids))
     
     # Apply filters
     if start_date:

@@ -15,6 +15,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     language: str
+    family_id: int | None = None
     created_at: datetime
     
     class Config:

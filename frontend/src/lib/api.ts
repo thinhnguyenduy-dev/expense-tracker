@@ -82,6 +82,7 @@ export interface ExpenseFilter {
   search?: string;
   page?: number;
   page_size?: number;
+  scope?: 'personal' | 'family';
 }
 
 export interface Expense {
@@ -122,7 +123,7 @@ export const expensesApi = {
 
 // Dashboard API
 export const dashboardApi = {
-  getStats: () => api.get('/dashboard'),
+  getStats: (scope?: 'personal' | 'family') => api.get('/dashboard', { params: { scope } }),
 };
 
 // Recurring Expenses API
@@ -303,4 +304,25 @@ export const ocrApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+};
+
+// Family API
+export interface Family {
+  id: number;
+  name: string;
+  invite_code: string;
+  created_at: string;
+  members: Array<{
+    id: number;
+    name: string;
+    email: string;
+    language: string;
+    family_id: number;
+  }>;
+}
+
+export const familiesApi = {
+  create: (name: string) => api.post<Family>('/families', { name }),
+  join: (invite_code: string) => api.post<Family>('/families/join', { invite_code }),
+  getMyFamily: () => api.get<Family>('/families/me'),
 };

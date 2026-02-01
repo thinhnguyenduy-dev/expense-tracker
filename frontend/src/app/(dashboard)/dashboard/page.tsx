@@ -62,16 +62,38 @@ import { Bell, ArrowRight } from "lucide-react"
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 
+import { authApi } from '@/lib/api';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [scope, setScope] = useState<'personal' | 'family'>('personal');
+  const [hasFamily, setHasFamily] = useState(false);
   const t = useTranslations('Dashboard');
   const locale = useLocale();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const checkFamilyStatus = async () => {
       try {
-        const response = await dashboardApi.getStats();
+        const { data } = await authApi.me();
+        // @ts-ignore
+        if (data.family_id) {
+          setHasFamily(true);
+        }
+      } catch (error) {
+        console.error('Failed to check family status', error);
+      }
+    };
+    checkFamilyStatus();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setIsLoading(true);
+      try {
+        const response = await dashboardApi.getStats(scope);
         setStats(response.data);
       } catch {
         toast.error(t('failedToLoad'));
@@ -81,7 +103,7 @@ export default function DashboardPage() {
     };
 
     fetchStats();
-  }, [t]);
+  }, [t, scope]);
 
   if (isLoading) {
     return (
@@ -105,9 +127,24 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-        <p className="text-slate-400 mt-1">{t('subtitle')}</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
+        </div>
+        
+        {hasFamily && (
+          <div className="flex items-center space-x-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
+            <Switch
+              id="family-mode"
+              checked={scope === 'family'}
+              onCheckedChange={(checked) => setScope(checked ? 'family' : 'personal')}
+            />
+            <Label htmlFor="family-mode" className="text-white cursor-pointer select-none">
+              Family View
+            </Label>
+          </div>
+        )}
       </div>
 
       {/* Due Recurring Expenses Alert */}

@@ -6,6 +6,7 @@ import { ProfileTab } from "@/components/settings/ProfileTab";
 import { SecurityTab } from "@/components/settings/SecurityTab";
 import { PreferencesTab } from "@/components/settings/PreferencesTab";
 import { DataTab } from "@/components/settings/DataTab";
+import { FamilyTab } from "@/components/settings/FamilyTab";
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
@@ -19,6 +20,7 @@ export default function SettingsPage() {
            <TabsTrigger value="profile" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('profile')}</TabsTrigger>
            <TabsTrigger value="security" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('security')}</TabsTrigger>
            <TabsTrigger value="preferences" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('preferences')}</TabsTrigger>
+           <TabsTrigger value="family" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">Family</TabsTrigger>
            <TabsTrigger value="data" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('data')}</TabsTrigger>
          </TabsList>
          
@@ -32,6 +34,10 @@ export default function SettingsPage() {
          
          <TabsContent value="preferences">
            <PreferencesTab />
+         </TabsContent>
+
+         <TabsContent value="family">
+           <FamilyTab />
          </TabsContent>
 
          <TabsContent value="data">

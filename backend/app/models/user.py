@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
+from .family import Family # noqa
 
 
 class User(Base):
@@ -22,3 +23,8 @@ class User(Base):
     jars = relationship("Jar", back_populates="user", cascade="all, delete-orphan")
     incomes = relationship("Income", back_populates="user", cascade="all, delete-orphan")
     transfers = relationship("Transfer", back_populates="user", cascade="all, delete-orphan")
+    
+    # Family
+    family_id = Column(Integer, ForeignKey("families.id"), nullable=True)
+    family = relationship("Family", back_populates="members")
+
