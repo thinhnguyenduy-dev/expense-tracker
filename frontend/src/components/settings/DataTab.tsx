@@ -34,7 +34,7 @@ export function DataTab() {
     setExporting(true);
     try {
       // Use the dedicated export endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/expenses/export`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reports/export`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
