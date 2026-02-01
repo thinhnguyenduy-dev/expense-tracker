@@ -33,38 +33,27 @@ export function DataTab() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      // Fetch all expense and income data
-      const [expensesRes, incomesRes] = await Promise.all([
-        expensesApi.getAll({ page_size: 10000 }), // Get all expenses
-        incomesApi.getAll(),
-      ]);
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const expenses = (expensesRes.data as any).items || [];
-      const incomes = incomesRes.data;
+      // Use the dedicated export endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/expenses/export`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
-      // Create CSV content
-      const headers = ['Type', 'Date', 'Amount', 'Category/Source', 'Description'];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const expenseRows = expenses.map((e: any) => 
-        ['Expense', e.date, -e.amount, e.category?.name || 'Uncategorized', e.description || ''].join(',')
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const incomeRows = incomes.map((i: any) => 
-        ['Income', i.date, i.amount, i.source, ''].join(',')
-      );
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
 
-      const csvContent = [headers.join(','), ...expenseRows, ...incomeRows].join('\n');
-      
-      // Download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `expense_tracker_data_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `expenses_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
       toast.success('Data exported successfully');
     } catch (error) {
