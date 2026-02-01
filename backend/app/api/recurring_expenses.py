@@ -75,6 +75,33 @@ def calculate_next_due_date(recurring: RecurringExpense) -> date | None:
     return None
 
 
+def _build_recurring_with_due_date(
+    recurring: RecurringExpense, 
+    db: Session
+) -> RecurringExpenseWithDueDate:
+    """Build a RecurringExpenseWithDueDate response from a RecurringExpense model."""
+    category = db.query(Category).filter(Category.id == recurring.category_id).first()
+    
+    return RecurringExpenseWithDueDate(
+        id=recurring.id,
+        user_id=recurring.user_id,
+        category_id=recurring.category_id,
+        amount=recurring.amount,
+        description=recurring.description,
+        frequency=recurring.frequency,
+        day_of_month=recurring.day_of_month,
+        day_of_week=recurring.day_of_week,
+        start_date=recurring.start_date,
+        end_date=recurring.end_date,
+        is_active=recurring.is_active,
+        last_created=recurring.last_created,
+        next_due_date=calculate_next_due_date(recurring),
+        category_name=category.name if category else "",
+        category_icon=category.icon if category else "",
+        category_color=category.color if category else ""
+    )
+
+
 @router.get("", response_model=List[RecurringExpenseWithDueDate])
 def get_recurring_expenses(
     db: Session = Depends(get_db),
@@ -85,29 +112,7 @@ def get_recurring_expenses(
         RecurringExpense.user_id == current_user.id
     ).all()
     
-    result = []
-    for recurring in recurring_expenses:
-        category = db.query(Category).filter(Category.id == recurring.category_id).first()
-        result.append(RecurringExpenseWithDueDate(
-            id=recurring.id,
-            user_id=recurring.user_id,
-            category_id=recurring.category_id,
-            amount=recurring.amount,
-            description=recurring.description,
-            frequency=recurring.frequency,
-            day_of_month=recurring.day_of_month,
-            day_of_week=recurring.day_of_week,
-            start_date=recurring.start_date,
-            end_date=recurring.end_date,
-            is_active=recurring.is_active,
-            last_created=recurring.last_created,
-            next_due_date=calculate_next_due_date(recurring),
-            category_name=category.name if category else "",
-            category_icon=category.icon if category else "",
-            category_color=category.color if category else ""
-        ))
-    
-    return result
+    return [_build_recurring_with_due_date(r, db) for r in recurring_expenses]
 
 
 @router.post("", response_model=RecurringExpenseResponse, status_code=status.HTTP_201_CREATED)
@@ -158,26 +163,7 @@ def get_recurring_expense(
             detail="Recurring expense not found"
         )
     
-    category = db.query(Category).filter(Category.id == recurring.category_id).first()
-    
-    return RecurringExpenseWithDueDate(
-        id=recurring.id,
-        user_id=recurring.user_id,
-        category_id=recurring.category_id,
-        amount=recurring.amount,
-        description=recurring.description,
-        frequency=recurring.frequency,
-        day_of_month=recurring.day_of_month,
-        day_of_week=recurring.day_of_week,
-        start_date=recurring.start_date,
-        end_date=recurring.end_date,
-        is_active=recurring.is_active,
-        last_created=recurring.last_created,
-        next_due_date=calculate_next_due_date(recurring),
-        category_name=category.name if category else "",
-        category_icon=category.icon if category else "",
-        category_color=category.color if category else ""
-    )
+    return _build_recurring_with_due_date(recurring, db)
 
 
 @router.put("/{recurring_id}", response_model=RecurringExpenseResponse)

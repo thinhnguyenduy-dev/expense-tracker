@@ -148,6 +148,10 @@ expense-tracker/
 | `components/ui/` | shadcn components (button, input, dialog, etc.) |
 | `components/providers/` | AuthProvider, ThemeProvider |
 | `components/layout/` | Sidebar |
+| `components/expenses/` | ExpenseDialog, ExpenseFilters, ExpenseTable, ExpenseBulkActions, ExpenseCard |
+| `components/settings/` | ProfileTab, SecurityTab, PreferencesTab, DataTab, FamilyTab |
+| `components/incomes/` | AddIncomeModal |
+| `components/jars/` | JarCard, TransferModal |
 
 ### Page Structure
 
@@ -210,4 +214,4 @@ When modifying:
 
 ---
 
-*Last updated: 2026-01-23*
+*Last updated: 2026-02-01*

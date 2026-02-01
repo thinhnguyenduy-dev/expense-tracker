@@ -67,7 +67,7 @@ export function ExpenseFilters({
           <Switch
             id="family-mode-expenses"
             checked={scope === 'family'}
-            onCheckedChange={(checked) => onScopeChange(checked ? 'family' : 'personal')}
+            onCheckedChange={(checked: boolean) => onScopeChange(checked ? 'family' : 'personal')}
           />
           <Label htmlFor="family-mode-expenses" className="text-white cursor-pointer select-none">
             Family View
