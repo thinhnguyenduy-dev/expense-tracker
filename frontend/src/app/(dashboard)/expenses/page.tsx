@@ -143,7 +143,7 @@ export default function ExpensesPage() {
 
   const openEditDialog = (expense: Expense) => {
     setEditingExpense(expense);
-    form.setValue('amount', expense.amount);
+    form.setValue('amount', Number(expense.amount));
     form.setValue('description', expense.description);
     form.setValue('date', new Date(expense.date));
     form.setValue('category_id', expense.category_id.toString());

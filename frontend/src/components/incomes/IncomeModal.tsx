@@ -64,7 +64,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
   useEffect(() => {
     if (incomeToEdit) {
       form.reset({
-        amount: incomeToEdit.amount,
+        amount: Number(incomeToEdit.amount),
         source: incomeToEdit.source,
         date: new Date(incomeToEdit.date),
       });
