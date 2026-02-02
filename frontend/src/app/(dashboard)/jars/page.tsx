@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Pencil, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Loader2, ArrowRightLeft } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from "sonner";
@@ -93,8 +93,8 @@ export default function JarsPage() {
           <Button onClick={() => { setEditingIncome(null); setOpenIncomeModal(true); }} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
             <Plus className="mr-2 h-4 w-4" /> {t('addIncome')}
           </Button>
-          <Button onClick={() => setOpenTransfer(true)} variant="outline" className="border-slate-700 hover:bg-slate-800 text-slate-300">
-            {t('transferFunds')}
+          <Button onClick={() => setOpenTransfer(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
+            <ArrowRightLeft className="mr-2 h-4 w-4" /> {t('transferFunds')}
           </Button>
         </div>
       </div>
