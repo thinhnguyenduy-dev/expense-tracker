@@ -156,7 +156,7 @@ export default function IncomesPage() {
                   value={selectedMemberId?.toString() ?? 'all'}
                   onValueChange={(val) => setSelectedMemberId(val === 'all' ? undefined : Number(val))}
                 >
-                  <SelectTrigger className="w-[150px] bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="w-full sm:w-[150px] bg-slate-800 border-slate-700 text-white">
                     <SelectValue placeholder="All Members" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">

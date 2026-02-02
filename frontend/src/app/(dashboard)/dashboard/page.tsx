@@ -190,7 +190,7 @@ export default function DashboardPage() {
       )}
 
       {/* Upcoming Bills and Stats Cards */}
-      <div className={cn("grid gap-6", upcomingBills.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+      <div className={cn("grid gap-6", upcomingBills.length > 0 ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3")}>
         {upcomingBills.length > 0 && (
           <div className="lg:col-span-1">
             <UpcomingBills bills={upcomingBills} />

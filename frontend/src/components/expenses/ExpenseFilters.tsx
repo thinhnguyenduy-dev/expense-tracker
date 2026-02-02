@@ -130,7 +130,7 @@ export function ExpenseFilters({
           <CardContent className="pt-6 flex items-center gap-3">
             <Filter className="h-5 w-5 text-slate-400" />
             <Select value={filterCategory} onValueChange={onFilterCategoryChange}>
-              <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-white">
+              <SelectTrigger className="w-full sm:w-48 bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder={t.allCategories} />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700">
