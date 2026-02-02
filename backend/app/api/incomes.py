@@ -16,6 +16,7 @@ router = APIRouter()
 @router.get("/", response_model=List[IncomeResponse])
 def get_incomes(
     scope: str = "personal",
+    member_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -26,9 +27,15 @@ def get_incomes(
         member_ids = [m.id for m in members]
         member_names = {m.id: m.name for m in members}
         
-        # Query incomes from all family members
+        # If member_id is specified, filter only that member
+        if member_id and member_id in member_ids:
+            query_ids = [member_id]
+        else:
+            query_ids = member_ids
+        
+        # Query incomes from specified members
         incomes = db.query(Income).filter(
-            Income.user_id.in_(member_ids)
+            Income.user_id.in_(query_ids)
         ).order_by(Income.date.desc()).all()
         
         # Add user_name for attribution

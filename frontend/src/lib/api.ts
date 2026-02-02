@@ -266,7 +266,8 @@ export interface IncomeCreate {
 }
 
 export const incomesApi = {
-  getAll: (scope?: 'personal' | 'family') => api.get<Income[]>('/incomes', { params: { scope } }),
+  getAll: (scope?: 'personal' | 'family', memberId?: number) => 
+    api.get<Income[]>('/incomes', { params: { scope, member_id: memberId } }),
   create: (data: IncomeCreate) => api.post<Income>('/incomes', data),
   update: (id: number, data: IncomeCreate) => api.put<Income>(`/incomes/${id}`, data),
   delete: (id: number) => api.delete(`/incomes/${id}`),

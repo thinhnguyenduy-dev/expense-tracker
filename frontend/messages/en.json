@@ -161,7 +161,8 @@
     "successUpdate": "Jar updated successfully",
     "failedUpdate": "Failed to update jar",
     "successDeleteIncome": "Income deleted successfully",
-    "failedDeleteIncome": "Failed to delete income"
+    "failedDeleteIncome": "Failed to delete income",
+    "currentBalance": "Current Balance"
   },
   "Sidebar": {
     "dashboard": "Dashboard",
@@ -270,6 +271,7 @@
   "Family": {
     "viewFamily": "View Family",
     "personalOnly": "Personal Only",
-    "by": "by {name}"
+    "by": "by {name}",
+    "allMembers": "All Members"
   }
 }

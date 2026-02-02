@@ -96,6 +96,79 @@ GOALS = [
     }
 ]
 
+# ===== VIETNAMESE TRANSLATIONS =====
+
+CATEGORIES_VI = [
+    {"name": "Thuê nhà/Vay thế chấp", "icon": "🏠", "color": "#FF6B6B"},
+    {"name": "Thực phẩm & Tạp hóa", "icon": "🍔", "color": "#4ECDC4"},
+    {"name": "Di chuyển", "icon": "🚗", "color": "#FFE66D"},
+    {"name": "Tiện ích", "icon": "💡", "color": "#95E1D3"},
+    {"name": "Giải trí", "icon": "🎮", "color": "#F38181"},
+    {"name": "Y tế", "icon": "🏥", "color": "#AA96DA"},
+    {"name": "Mua sắm", "icon": "🛍️", "color": "#FCBAD3"},
+    {"name": "Giáo dục", "icon": "📚", "color": "#A8E6CF"},
+    {"name": "Du lịch", "icon": "✈️", "color": "#FFD3B6"},
+    {"name": "Đăng ký dịch vụ", "icon": "📱", "color": "#9896DA"},
+]
+
+# Vietnamese recurring expense templates
+RECURRING_EXPENSES_VI = [
+    {"category": "Thuê nhà/Vay thế chấp", "description": "Tiền thuê nhà hàng tháng", "amount_range": (1200, 1500), "day": 1, "frequency": "monthly"},
+    {"category": "Đăng ký dịch vụ", "description": "Đăng ký Netflix", "amount_range": (15, 15), "day": 5, "frequency": "monthly"},
+    {"category": "Đăng ký dịch vụ", "description": "Spotify Premium", "amount_range": (10, 10), "day": 8, "frequency": "monthly"},
+    {"category": "Tiện ích", "description": "Tiền điện", "amount_range": (80, 120), "day": 15, "frequency": "monthly"},
+    {"category": "Tiện ích", "description": "Tiền Internet", "amount_range": (50, 70), "day": 20, "frequency": "monthly"},
+]
+
+# Vietnamese random expense templates
+RANDOM_EXPENSES_VI = [
+    {"category": "Thực phẩm & Tạp hóa", "descriptions": ["Mua sắm thực phẩm", "Siêu thị", "Chợ"], "amount_range": (50, 150)},
+    {"category": "Di chuyển", "descriptions": ["Đổ xăng", "Đi Grab", "Xe buýt"], "amount_range": (10, 60)},
+    {"category": "Giải trí", "descriptions": ["Xem phim", "Hòa nhạc", "Chơi game"], "amount_range": (15, 100)},
+    {"category": "Mua sắm", "descriptions": ["Quần áo", "Đồ điện tử", "Đồ gia dụng"], "amount_range": (30, 200)},
+    {"category": "Y tế", "descriptions": ["Thuốc", "Khám bệnh", "Phòng gym"], "amount_range": (20, 150)},
+    {"category": "Thực phẩm & Tạp hóa", "descriptions": ["Nhà hàng", "Quán cà phê", "Đồ ăn nhanh"], "amount_range": (10, 50)},
+]
+
+# Vietnamese Income Sources
+INCOME_SOURCES_VI = [
+    {"source": "Lương", "amount_range": (4000, 5000), "day": 25},
+    {"source": "Làm thêm", "amount_range": (500, 1500), "day": 10},
+    {"source": "Cổ tức", "amount_range": (100, 300), "day": 15},
+]
+
+# Vietnamese Demo Goals
+GOALS_VI = [
+    {
+        "name": "Du lịch Nhật Bản",
+        "description": "Tiết kiệm cho chuyến du lịch 2 tuần tại Tokyo và Kyoto",
+        "target_amount": 2000,
+        "current_amount": 600,
+        "deadline_months": 12,
+        "color": "#FF6B6B"
+    },
+    {
+        "name": "Quỹ khẩn cấp",
+        "description": "Chi phí sinh hoạt 3 tháng",
+        "target_amount": 5000,
+        "current_amount": 1000,
+        "deadline_months": 24,
+        "color": "#4ECDC4"
+    },
+    {
+        "name": "Laptop mới",
+        "description": "Nâng cấp lên MacBook Pro mới nhất",
+        "target_amount": 2500,
+        "current_amount": 500,
+        "deadline_months": 6,
+        "color": "#FFE66D"
+    }
+]
+
+# Weekly grocery descriptions
+WEEKLY_GROCERY_VI = ["Đi chợ tuần", "Mua thực phẩm", "Siêu thị cuối tuần"]
+WEEKLY_GROCERY_EN = ["Weekly Groceries", "Grocery Shopping", "Supermarket Run"]
+
 
 class Colors:
     """ANSI color codes for terminal output"""
@@ -161,12 +234,21 @@ def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list
 
 
 JARS_DATA = [
-    {"name": "Necessity (NEC)", "percentage": 55.0},
+    {"name": "Necessities (NEC)", "percentage": 55.0},
     {"name": "Financial Freedom (FFA)", "percentage": 10.0},
     {"name": "Education (EDU)", "percentage": 10.0},
-    {"name": "Long Term Savings (LTSS)", "percentage": 10.0},
+    {"name": "Long-term Savings (LTSS)", "percentage": 10.0},
     {"name": "Play (PLAY)", "percentage": 10.0},
     {"name": "Give (GIVE)", "percentage": 5.0},
+]
+
+JARS_DATA_VI = [
+    {"name": "Chi tiêu thiết yếu (NEC)", "percentage": 55.0},
+    {"name": "Tự do tài chính (FFA)", "percentage": 10.0},
+    {"name": "Giáo dục (EDU)", "percentage": 10.0},
+    {"name": "Tiết kiệm dài hạn (LTSS)", "percentage": 10.0},
+    {"name": "Hưởng thụ (PLAY)", "percentage": 10.0},
+    {"name": "Cho đi (GIVE)", "percentage": 5.0},
 ]
 
 
@@ -179,16 +261,17 @@ def seed_jars(db: Session, users: list[User], verbose: bool = True, dry_run: boo
     for user in users:
         created_count = 0
         
-        for jar_data in JARS_DATA:
-            existing = db.query(Jar).filter(
-                Jar.user_id == user.id,
-                Jar.name == jar_data["name"]
-            ).first()
-            
-            if existing:
-                log(f"  ⏭️  Jar '{jar_data['name']}' already exists for {user.email}", Colors.YELLOW, verbose)
-                continue
-            
+        # Use Vietnamese jars for VN users
+        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        jars_data = JARS_DATA_VI if is_vietnamese else JARS_DATA
+        
+        # Check if user already has jars (any jars)
+        existing_jars = db.query(Jar).filter(Jar.user_id == user.id).count()
+        if existing_jars > 0:
+            log(f"  ⏭️  User {user.email} already has {existing_jars} jars, skipping", Colors.YELLOW, verbose)
+            continue
+        
+        for jar_data in jars_data:
             if dry_run:
                 log(f"  [DRY RUN] Would create jar '{jar_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:
@@ -220,35 +303,36 @@ def seed_categories(db: Session, users: list[User], verbose: bool = True, dry_ru
         user_categories[user.id] = []
         created_count = 0
         
-        for cat_data in CATEGORIES:
-            existing = db.query(Category).filter(
-                Category.user_id == user.id,
-                Category.name == cat_data["name"]
-            ).first()
-            
-            if existing:
-                user_categories[user.id].append(existing)
+        # Use Vietnamese categories for VN users
+        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        categories_data = CATEGORIES_VI if is_vietnamese else CATEGORIES
+        
+        # Check if user already has categories
+        existing_cats = db.query(Category).filter(Category.user_id == user.id).all()
+        if existing_cats:
+            user_categories[user.id] = existing_cats
+            log(f"  ⏭️  User {user.email} already has {len(existing_cats)} categories, skipping", Colors.YELLOW, verbose)
+            continue
+        
+        for cat_data in categories_data:
+            if dry_run:
+                log(f"  [DRY RUN] Would create category '{cat_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:
-                if dry_run:
-                    log(f"  [DRY RUN] Would create category '{cat_data['name']}' for {user.email}", Colors.CYAN, verbose)
-                else:
-                    category = Category(
-                        name=cat_data["name"],
-                        icon=cat_data["icon"],
-                        color=cat_data["color"],
-                        user_id=user.id
-                    )
-                    db.add(category)
-                    db.commit()
-                    db.refresh(category)
-                    user_categories[user.id].append(category)
-                    created_count += 1
+                category = Category(
+                    name=cat_data["name"],
+                    icon=cat_data["icon"],
+                    color=cat_data["color"],
+                    user_id=user.id
+                )
+                db.add(category)
+                db.commit()
+                db.refresh(category)
+                user_categories[user.id].append(category)
+                created_count += 1
         
         if not dry_run and created_count > 0:
             log(f"  ✅ Created {created_count} categories for {user.email}", Colors.GREEN, verbose)
             total_created += created_count
-        elif not dry_run:
-            log(f"  ⏭️  All categories exist for {user.email}", Colors.YELLOW, verbose)
     
     if not dry_run and total_created > 0:
         log(f"  {Colors.BOLD}Created {total_created} new category(ies){Colors.RESET}", Colors.GREEN, verbose)
@@ -278,6 +362,13 @@ def seed_expenses(
             log(f"  ⚠️  No categories found for {user.email}, skipping", Colors.RED, verbose)
             continue
         
+        # Use Vietnamese data for VN users
+        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        recurring_expenses = RECURRING_EXPENSES_VI if is_vietnamese else RECURRING_EXPENSES
+        random_expenses = RANDOM_EXPENSES_VI if is_vietnamese else RANDOM_EXPENSES
+        weekly_grocery = WEEKLY_GROCERY_VI if is_vietnamese else WEEKLY_GROCERY_EN
+        grocery_category = "Thực phẩm & Tạp hóa" if is_vietnamese else "Food & Groceries"
+        
         # Category name to object mapping
         cat_map = {cat.name: cat for cat in categories}
         created_count = 0
@@ -293,7 +384,7 @@ def seed_expenses(
         # Generate recurring monthly expenses
         current = start_date
         while current <= end_date:
-            for recurring in RECURRING_EXPENSES:
+            for recurring in recurring_expenses:
                 if recurring["category"] in cat_map:
                     expense_date = date(current.year, current.month, recurring["day"])
                     if start_date <= expense_date <= end_date:
@@ -315,13 +406,13 @@ def seed_expenses(
         # Generate weekly groceries (every Sunday)
         current = start_date
         while current <= end_date:
-            if current.weekday() == 6 and "Food & Groceries" in cat_map:  # Sunday
+            if current.weekday() == 6 and grocery_category in cat_map:  # Sunday
                 amount = Decimal(str(random.randint(80, 150) * multiplier))
                 expenses_to_create.append({
                     "amount": amount,
-                    "description": random.choice(["Weekly Groceries", "Grocery Shopping", "Supermarket Run"]),
+                    "description": random.choice(weekly_grocery),
                     "date": current,
-                    "category_id": cat_map["Food & Groceries"].id,
+                    "category_id": cat_map[grocery_category].id,
                     "user_id": user.id
                 })
             current += timedelta(days=1)
@@ -329,7 +420,7 @@ def seed_expenses(
         # Generate random expenses
         num_random = random.randint(20, 40)
         for _ in range(num_random):
-            template = random.choice(RANDOM_EXPENSES)
+            template = random.choice(random_expenses)
             if template["category"] in cat_map:
                 random_date = start_date + timedelta(days=random.randint(0, (end_date - start_date).days))
                 amount = Decimal(str(round(random.uniform(template["amount_range"][0], template["amount_range"][1]) * multiplier, 2)))
@@ -377,6 +468,10 @@ def seed_incomes(
         if existing_count > 0:
             log(f"  ⏭️  User {user.email} already has {existing_count} incomes, skipping", Colors.YELLOW, verbose)
             continue
+        
+        # Use Vietnamese data for VN users
+        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        income_sources = INCOME_SOURCES_VI if is_vietnamese else INCOME_SOURCES
             
         # Get user jars for distribution
         jars = db.query(Jar).filter(Jar.user_id == user.id).all()
@@ -385,7 +480,7 @@ def seed_incomes(
         
         current = start_date
         while current <= end_date:
-            for source in INCOME_SOURCES:
+            for source in income_sources:
                 income_date = date(current.year, current.month, source["day"])
                 if start_date <= income_date <= end_date:
                     amount = Decimal(str(random.randint(source["amount_range"][0], source["amount_range"][1]) * get_currency_multiplier(user.email)))
@@ -447,6 +542,10 @@ def seed_recurring_expenses(
         categories = user_categories[user.id]
         if not categories:
             continue
+        
+        # Use Vietnamese data for VN users
+        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        recurring_templates = RECURRING_EXPENSES_VI if is_vietnamese else RECURRING_EXPENSES
             
         cat_map = {cat.name: cat for cat in categories}
         created_count = 0
@@ -457,7 +556,7 @@ def seed_recurring_expenses(
             log(f"  ⏭️  User {user.email} already has {existing_count} recurring expenses, skipping", Colors.YELLOW, verbose)
             continue
             
-        for template in RECURRING_EXPENSES:
+        for template in recurring_templates:
             if template["category"] in cat_map:
                 if dry_run:
                     log(f"  [DRY RUN] Would create recurring expense '{template['description']}' for {user.email}", Colors.CYAN, verbose)
@@ -496,16 +595,17 @@ def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bo
     for user in users:
         created_count = 0
         
-        for goal_data in GOALS:
-            existing = db.query(Goal).filter(
-                Goal.user_id == user.id,
-                Goal.name == goal_data["name"]
-            ).first()
-            
-            if existing:
-                log(f"  ⏭️  Goal '{goal_data['name']}' already exists for {user.email}", Colors.YELLOW, verbose)
-                continue
-            
+        # Use Vietnamese data for VN users
+        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        goals_data = GOALS_VI if is_vietnamese else GOALS
+        
+        # Check if user already has goals
+        existing_count = db.query(Goal).filter(Goal.user_id == user.id).count()
+        if existing_count > 0:
+            log(f"  ⏭️  User {user.email} already has {existing_count} goals, skipping", Colors.YELLOW, verbose)
+            continue
+        
+        for goal_data in goals_data:
             if dry_run:
                 log(f"  [DRY RUN] Would create goal '{goal_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:

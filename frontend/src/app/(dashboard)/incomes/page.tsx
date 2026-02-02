@@ -19,7 +19,14 @@ import {
 } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { incomesApi, authApi, Income } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { incomesApi, authApi, familiesApi, Income } from '@/lib/api';
 import { IncomeModal } from '@/components/incomes/IncomeModal';
 import { cn } from '@/lib/utils';
 import { IncomeCard } from '@/components/incomes/IncomeCard';
@@ -31,6 +38,11 @@ const formatCurrency = (value: number, locale: string) => {
   }).format(value);
 };
 
+interface FamilyMember {
+  id: number;
+  name: string;
+}
+
 export default function IncomesPage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,23 +51,32 @@ export default function IncomesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [scope, setScope] = useState<'personal' | 'family'>('personal');
   const [hasFamily, setHasFamily] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | undefined>(undefined);
   
   const t = useTranslations('Incomes');
   const tCommon = useTranslations('Common');
+  const tFamily = useTranslations('Family');
   const locale = useLocale();
 
-  // Check family status
+  // Check family status and fetch members
   useEffect(() => {
     authApi.me().then(({ data }) => {
       // @ts-ignore
-      if (data.family_id) setHasFamily(true);
+      if (data.family_id) {
+        setHasFamily(true);
+        // Fetch family members
+        familiesApi.getMyFamily().then(({ data: family }) => {
+          setFamilyMembers(family.members.map(m => ({ id: m.id, name: m.name })));
+        }).catch(console.error);
+      }
     }).catch(console.error);
   }, []);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const response = await incomesApi.getAll(scope);
+      const response = await incomesApi.getAll(scope, selectedMemberId);
       setIncomes(response.data);
     } catch (error) {
       console.error(error);
@@ -67,7 +88,7 @@ export default function IncomesPage() {
 
   useEffect(() => {
     fetchData();
-  }, [scope]);
+  }, [scope, selectedMemberId]);
 
   const handleOpenCreate = () => {
     setIncomeToEdit(null);
@@ -115,17 +136,42 @@ export default function IncomesPage() {
         </div>
         <div className="flex items-center gap-4">
           {hasFamily && (
-            <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-              <Users className="h-4 w-4 text-slate-400" />
-              <Switch
-                id="family-mode-incomes"
-                checked={scope === 'family'}
-                onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
-              />
-              <Label htmlFor="family-mode-incomes" className="text-white cursor-pointer select-none">
-                View Family
-              </Label>
-            </div>
+            <>
+              <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
+                <Users className="h-4 w-4 text-slate-400" />
+                <Switch
+                  id="family-mode-incomes"
+                  checked={scope === 'family'}
+                  onCheckedChange={(checked: boolean) => {
+                    setScope(checked ? 'family' : 'personal');
+                    if (!checked) setSelectedMemberId(undefined);
+                  }}
+                />
+                <Label htmlFor="family-mode-incomes" className="text-white cursor-pointer select-none">
+                  {tFamily('viewFamily')}
+                </Label>
+              </div>
+              {scope === 'family' && familyMembers.length > 1 && (
+                <Select
+                  value={selectedMemberId?.toString() ?? 'all'}
+                  onValueChange={(val) => setSelectedMemberId(val === 'all' ? undefined : Number(val))}
+                >
+                  <SelectTrigger className="w-[150px] bg-slate-800 border-slate-700 text-white">
+                    <SelectValue placeholder="All Members" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="all" className="text-white hover:bg-slate-700">
+                      All Members
+                    </SelectItem>
+                    {familyMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id.toString()} className="text-white hover:bg-slate-700">
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </>
           )}
           <Button
             onClick={handleOpenCreate}

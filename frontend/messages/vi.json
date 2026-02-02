@@ -161,7 +161,8 @@
     "successUpdate": "Cập nhật hũ thành công",
     "failedUpdate": "Cập nhật hũ thất bại",
     "successDeleteIncome": "Xóa thu nhập thành công",
-    "failedDeleteIncome": "Xóa thu nhập thất bại"
+    "failedDeleteIncome": "Xóa thu nhập thất bại",
+    "currentBalance": "Số dư hiện tại"
   },
   "Sidebar": {
     "dashboard": "Bảng điều khiển",
@@ -270,6 +271,7 @@
   "Family": {
     "viewFamily": "Xem gia đình",
     "personalOnly": "Chỉ cá nhân",
-    "by": "bởi {name}"
+    "by": "bởi {name}",
+    "allMembers": "Tất cả thành viên"
   }
 }

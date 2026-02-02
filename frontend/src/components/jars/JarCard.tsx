@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface JarCardProps {
   jar: Jar;
@@ -12,6 +12,7 @@ interface JarCardProps {
 
 export function JarCard({ jar, onEdit }: JarCardProps) {
   const locale = useLocale();
+  const t = useTranslations('Jars');
   
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -38,7 +39,7 @@ export function JarCard({ jar, onEdit }: JarCardProps) {
       <CardContent>
         <div className="text-2xl font-bold text-white">{formatCurrency(jar.balance)}</div>
         <p className="text-xs text-slate-400">
-          Current Balance
+          {t('currentBalance')}
         </p>
       </CardContent>
     </Card>
