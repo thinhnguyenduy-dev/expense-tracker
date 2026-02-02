@@ -120,19 +120,19 @@ export default function GoalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-4">
           {hasFamily && (
-            <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-              <Users className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
               <Switch
                 id="family-mode-goals"
                 checked={scope === 'family'}
                 onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
               />
-              <Label htmlFor="family-mode-goals" className="text-white cursor-pointer select-none">
+              <Label htmlFor="family-mode-goals" className="text-foreground cursor-pointer select-none">
                 View Family
               </Label>
             </div>
@@ -156,7 +156,7 @@ export default function GoalsPage() {
         ))}
 
         {goals.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-900/50 rounded-lg border border-slate-800 border-dashed">
+          <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/50 rounded-lg border border-border border-dashed">
             <Target className="h-12 w-12 mb-4 opacity-50" />
             <p className="text-lg font-medium">{t('noGoals')}</p>
             <p className="text-sm">{t('startSaving')}</p>
@@ -233,25 +233,25 @@ function GoalCard({
     new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: locale === 'vi' ? 'VND' : 'USD' }).format(val);
 
   return (
-    <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+    <Card className="bg-card border-border hover:border-muted-foreground/30 transition-all duration-200 hover:shadow-md">
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <div>
-          <CardTitle className="text-lg font-semibold text-white">{goal.name}</CardTitle>
-          <CardDescription className="text-slate-400 mt-1 line-clamp-1">
+          <CardTitle className="text-lg font-semibold text-foreground">{goal.name}</CardTitle>
+          <CardDescription className="text-muted-foreground mt-1 line-clamp-1">
             {goal.description || 'No description'}
           </CardDescription>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+            <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-              <DropdownMenuItem onClick={onEdit} className="text-slate-200 hover:bg-slate-700 cursor-pointer">
+            <DropdownMenuContent align="end" className="bg-card border-border">
+              <DropdownMenuItem onClick={onEdit} className="text-foreground hover:bg-muted cursor-pointer">
                 <Pencil className="h-4 w-4 mr-2" /> {tCommon('edit')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDelete} className="text-red-400 hover:bg-slate-700 cursor-pointer">
+              <DropdownMenuItem onClick={onDelete} className="text-red-500 hover:bg-muted cursor-pointer">
                 <Trash2 className="h-4 w-4 mr-2" /> {tCommon('delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -260,40 +260,40 @@ function GoalCard({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-400">{t('progress')}</span>
-            <span className="text-white font-medium">{percentage.toFixed(1)}%</span>
+            <span className="text-muted-foreground">{t('progress')}</span>
+            <span className="text-foreground font-medium">{percentage.toFixed(1)}%</span>
           </div>
-          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div 
               className="h-full rounded-full transition-all duration-500"
               style={{ width: `${percentage}%`, backgroundColor: goal.color || '#10B981' }}
             />
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-emerald-400 font-medium">{formatCurrency(goal.current_amount)}</span>
-            <span className="text-slate-500">{t('of')} {formatCurrency(goal.target_amount)}</span>
+            <span className="text-emerald-500 font-medium">{formatCurrency(goal.current_amount)}</span>
+            <span className="text-muted-foreground">{t('of')} {formatCurrency(goal.target_amount)}</span>
           </div>
         </div>
 
         {goal.deadline && (
-          <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 p-2 rounded">
-            <CalendarIcon className="h-4 w-4 text-slate-500" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
             <span>{t('target')} {format(new Date(goal.deadline), 'MMM d, yyyy')}</span>
           </div>
         )}
 
         {monthlySuggestion > 0 && (
-          <div className="flex items-start gap-2 text-sm text-slate-400 bg-slate-800/50 p-2 rounded">
+          <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
             <TrendingUp className="h-4 w-4 text-emerald-500 mt-0.5" />
             <span>
-              {t('save')} <span className="text-white font-medium">{formatCurrency(monthlySuggestion)}</span>{t('toReachTarget')}
+              {t('save')} <span className="text-foreground font-medium">{formatCurrency(monthlySuggestion)}</span>{t('toReachTarget')}
             </span>
           </div>
         )}
       </CardContent>
       <CardFooter>
-        <Button onClick={onAddSavings} className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700">
-          <PiggyBank className="h-4 w-4 mr-2 text-emerald-400" />
+        <Button onClick={onAddSavings} className="w-full bg-muted hover:bg-muted/80 text-foreground border border-border">
+          <PiggyBank className="h-4 w-4 mr-2 text-emerald-500" />
           {t('addSavings')}
         </Button>
       </CardFooter>
@@ -367,10 +367,10 @@ function GoalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-800 text-white">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
           <DialogTitle>{goal ? t('editGoal') : t('createGoal')}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {goal ? t('editDesc') : t('createDesc')}
           </DialogDescription>
         </DialogHeader>
@@ -383,7 +383,7 @@ function GoalDialog({
                 <FormItem>
                   <FormLabel>{t('name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., New Car" {...field} className="bg-slate-800 border-slate-700" />
+                    <Input placeholder="e.g., New Car" {...field} className="bg-muted border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -404,7 +404,7 @@ function GoalDialog({
                         render={({ field }) => (
                           <AmountInput 
                             placeholder="50000000" 
-                            className="bg-slate-800 border-slate-700" 
+                            className="bg-muted border-border text-foreground" 
                             value={field.value}
                             onValueChange={field.onChange}
                             locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
@@ -430,7 +430,7 @@ function GoalDialog({
                           render={({ field }) => (
                             <AmountInput 
                               placeholder="0" 
-                              className="bg-slate-800 border-slate-700" 
+                              className="bg-muted border-border text-foreground" 
                               value={field.value}
                               onValueChange={field.onChange}
                               locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
@@ -457,8 +457,8 @@ function GoalDialog({
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white",
-                            !field.value && "text-slate-500"
+                            "w-full pl-3 text-left font-normal bg-muted border-border hover:bg-muted/80 hover:text-foreground",
+                            !field.value && "text-muted-foreground"
                           )}
                         >
                           {field.value ? (
@@ -470,7 +470,7 @@ function GoalDialog({
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-slate-900 border-slate-800" align="start">
+                    <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
@@ -479,7 +479,7 @@ function GoalDialog({
                           date < new Date("1900-01-01")
                         }
                         initialFocus
-                        className="bg-slate-900 text-white"
+                        className="bg-card text-foreground"
                       />
                     </PopoverContent>
                   </Popover>
@@ -495,7 +495,7 @@ function GoalDialog({
                 <FormItem>
                   <FormLabel>{t('description')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Details about this goal..." {...field} className="bg-slate-800 border-slate-700" />
+                    <Input placeholder="Details about this goal..." {...field} className="bg-muted border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -549,10 +549,10 @@ function AddSavingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-800 text-white">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
           <DialogTitle>{t('addSavingsTo', { name: goal.name })}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {t('howMuch')}
           </DialogDescription>
         </DialogHeader>
@@ -564,7 +564,7 @@ function AddSavingsDialog({
               placeholder={t('amountToAdd')} 
               value={typeof amount === 'number' ? amount : 0}
               onValueChange={setAmount}
-              className="bg-slate-800 border-slate-700"
+              className="bg-muted border-border text-foreground"
               autoFocus
               locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
               currency={locale === 'vi' ? 'VND' : 'USD'}

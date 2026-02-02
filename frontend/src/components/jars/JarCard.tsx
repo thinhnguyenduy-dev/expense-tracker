@@ -22,7 +22,7 @@ export function JarCard({ jar, onEdit }: JarCardProps) {
   };
 
   return (
-    <Card className="bg-card border-border hover:bg-muted/50 transition-colors">
+    <Card className="bg-card border-border hover:shadow-md transition-all duration-200">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
            <CardTitle className="text-sm font-medium text-foreground">{jar.name}</CardTitle>

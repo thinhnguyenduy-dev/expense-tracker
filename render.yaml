@@ -2,6 +2,7 @@ services:
   # Backend Web Service
   - type: web
     name: expense-tracker-api
+    region: singapore
     plan: free
     runtime: python
     repo: https://github.com/thinhnguyenduy-dev/expense-tracker # Placeholder, Render usually uses the connected repo in the Blueprint
@@ -31,6 +32,8 @@ services:
   # Native Redis Service
   - type: redis
     name: expense-tracker-redis
-    region: singapore # Standard region, or let Render decide (optional)
+    region: singapore
+
+
     plan: free # Use free tier if available, otherwise starter
     ipAllowList: [] # Only internal access by default

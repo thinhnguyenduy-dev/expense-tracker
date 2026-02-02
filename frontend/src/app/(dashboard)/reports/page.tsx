@@ -85,9 +85,9 @@ export default function ReportsPage() {
   const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: any[], label?: string }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-800 border border-slate-700 p-2 rounded shadow-lg">
-          <p className="text-slate-300 text-sm mb-1">{format(new Date(label || ''), 'MMM dd, yyyy')}</p>
-          <p className="text-emerald-400 font-bold">
+        <div className="bg-card border border-border p-2 rounded shadow-lg">
+          <p className="text-muted-foreground text-sm mb-1">{format(new Date(label || ''), 'MMM dd, yyyy')}</p>
+          <p className="text-emerald-500 font-bold">
             {formatCurrency(payload[0].value)}
           </p>
         </div>
@@ -99,18 +99,18 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h2 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">{t('title')}</h2>
         
         <div className="flex items-center gap-4">
           {hasFamily && (
-            <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-              <Users className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
               <Switch
                 id="family-mode-reports"
                 checked={scope === 'family'}
                 onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
               />
-              <Label htmlFor="family-mode-reports" className="text-white cursor-pointer select-none">
+              <Label htmlFor="family-mode-reports" className="text-foreground cursor-pointer select-none">
                 View Family
               </Label>
             </div>
@@ -121,7 +121,7 @@ export default function ReportsPage() {
               id="date"
               variant={"outline"}
               className={cn(
-                "w-[300px] justify-start text-left font-normal border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700",
+                "w-[300px] justify-start text-left font-normal border-border bg-muted text-foreground hover:bg-muted/80",
                 !date && "text-muted-foreground"
               )}
             >
@@ -140,7 +140,7 @@ export default function ReportsPage() {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700" align="end">
+          <PopoverContent className="w-auto p-0 bg-card border-border" align="end">
             <Calendar
               initialFocus
               mode="range"
@@ -148,7 +148,7 @@ export default function ReportsPage() {
               selected={date}
               onSelect={setDate}
               numberOfMonths={2}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </PopoverContent>
         </Popover>
@@ -162,11 +162,11 @@ export default function ReportsPage() {
       ) : data ? (
         <div className="grid gap-6 md:grid-cols-2">
             {/* Spending Trend */}
-            <Card className="col-span-2 bg-slate-800/50 border-slate-700">
+            <Card className="col-span-2 bg-card border-border">
                 <CardHeader>
-                    <CardTitle className="text-white">{t('spendingTrend')}</CardTitle>
-                    <CardDescription className="text-slate-400">
-                        Total: <span className="text-emerald-400 font-medium">{formatCurrency(Number(data.total_period))}</span>
+                    <CardTitle className="text-foreground">{t('spendingTrend')}</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                        Total: <span className="text-emerald-500 font-medium">{formatCurrency(Number(data.total_period))}</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -200,9 +200,9 @@ export default function ReportsPage() {
             </Card>
 
             {/* Category Breakdown */}
-            <Card className="col-span-1 md:col-span-1 bg-slate-800/50 border-slate-700">
+            <Card className="col-span-1 md:col-span-1 bg-card border-border">
                 <CardHeader>
-                    <CardTitle className="text-white">{t('categoryBreakdown')}</CardTitle>
+                    <CardTitle className="text-foreground">{t('categoryBreakdown')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="h-[300px] w-full">
@@ -226,9 +226,9 @@ export default function ReportsPage() {
                                         if (active && payload && payload.length) {
                                             const d = payload[0].payload;
                                             return (
-                                                <div className="bg-slate-800 border border-slate-700 p-2 rounded shadow-lg">
-                                                    <p className="text-white font-medium mb-1" style={{ color: d.category_color }}>{d.category_name}</p>
-                                                    <p className="text-slate-300 text-sm">{formatCurrency(d.amount)} ({d.percentage}%)</p>
+                                                <div className="bg-card border border-border p-2 rounded shadow-lg">
+                                                    <p className="text-foreground font-medium mb-1" style={{ color: d.category_color }}>{d.category_name}</p>
+                                                    <p className="text-muted-foreground text-sm">{formatCurrency(d.amount)} ({d.percentage}%)</p>
                                                 </div>
                                             );
                                         }
@@ -243,25 +243,25 @@ export default function ReportsPage() {
             </Card>
             
             {/* Top Categories List */}
-            <Card className="col-span-1 md:col-span-1 bg-slate-800/50 border-slate-700">
+            <Card className="col-span-1 md:col-span-1 bg-card border-border">
                 <CardHeader>
-                    <CardTitle className="text-white">{t('details')}</CardTitle>
+                    <CardTitle className="text-foreground">{t('details')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      {data.category_breakdown.map((cat) => (
                          <div key={cat.category_id} className="flex items-center justify-between">
                              <div className="flex items-center gap-2">
                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.category_color }}></div>
-                                 <span className="text-slate-200">{cat.category_name}</span>
+                                 <span className="text-foreground">{cat.category_name}</span>
                              </div>
                              <div className="text-right">
-                                 <div className="text-white font-medium">{formatCurrency(Number(cat.amount))}</div>
-                                 <div className="text-xs text-slate-500">{cat.percentage}%</div>
+                                 <div className="text-foreground font-medium">{formatCurrency(Number(cat.amount))}</div>
+                                 <div className="text-xs text-muted-foreground">{cat.percentage}%</div>
                              </div>
                          </div>
                      ))}
                      {data.category_breakdown.length === 0 && (
-                         <p className="text-slate-400 text-center py-4">{t('noData')}</p>
+                         <p className="text-muted-foreground text-center py-4">{t('noData')}</p>
                      )}
                 </CardContent>
             </Card>
