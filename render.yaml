@@ -28,12 +28,9 @@ services:
       - key: SENTRY_DSN
         sync: false # User must provide this in dashboard
 
-
   # Native Redis Service
   - type: redis
     name: expense-tracker-redis
     region: singapore
-
-
     plan: free # Use free tier if available, otherwise starter
     ipAllowList: [] # Only internal access by default
