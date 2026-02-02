@@ -16,7 +16,7 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+
 } from 'recharts';
 
 import { Button } from '@/components/ui/button';
@@ -235,11 +235,7 @@ export default function ReportsPage() {
                                         return null;
                                     }}
                                 />
-                                <Legend 
-                                    verticalAlign="bottom" 
-                                    height={36}
-                                    formatter={(value: any, entry: any) => <span className="text-slate-300 ml-1">{entry.payload.category_name}</span>}
-                                />
+
                             </PieChart>
                          </ResponsiveContainer>
                     </div>
