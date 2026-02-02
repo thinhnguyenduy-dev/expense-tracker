@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { format } from 'date-fns';
 import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ interface ExpenseTableProps {
   };
   searchQuery: string;
   onAddExpense: () => void;
+  isLoading?: boolean;
 }
 
 export function ExpenseTable({
@@ -65,7 +67,25 @@ export function ExpenseTable({
   commonTranslations: tCommon,
   searchQuery,
   onAddExpense,
+  isLoading = false,
 }: ExpenseTableProps) {
+  // State for page input
+  const [pageInput, setPageInput] = React.useState(page.toString());
+
+  React.useEffect(() => {
+    setPageInput(page.toString());
+  }, [page]);
+
+  const handlePageInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newPage = parseInt(pageInput);
+    if (!isNaN(newPage) && newPage >= 1 && newPage <= totalPages) {
+      onPageChange(newPage);
+    } else {
+      setPageInput(page.toString());
+    }
+  };
+
   // Empty state
   if (expenses.length === 0) {
     return (
@@ -111,7 +131,12 @@ export function ExpenseTable({
       </div>
 
       {/* Desktop Table */}
-      <Card className="hidden md:block bg-card border-border overflow-hidden">
+      <Card className="hidden md:block bg-card border-border overflow-hidden relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-muted">
@@ -200,20 +225,32 @@ export function ExpenseTable({
               variant="outline"
               size="sm"
               onClick={() => onPageChange(Math.max(1, page - 1))}
-              disabled={page === 1}
+              disabled={page === 1 || isLoading}
               className="bg-muted border-border text-foreground disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
+            
+            <div className="flex items-center gap-2 mx-1">
+              <span className="text-sm text-muted-foreground">Page</span>
+              <form onSubmit={handlePageInputSubmit} className="flex">
+                <input
+                  type="text"
+                  value={pageInput}
+                  onChange={(e) => setPageInput(e.target.value)}
+                  className="h-8 w-12 rounded-md border border-input bg-background px-2 text-center text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isLoading}
+                />
+              </form>
+              <span className="text-sm text-muted-foreground">of {totalPages}</span>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
+              disabled={page === totalPages || isLoading}
               className="bg-muted border-border text-foreground disabled:opacity-50"
             >
               Next

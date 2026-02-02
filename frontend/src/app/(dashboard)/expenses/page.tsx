@@ -337,6 +337,7 @@ export default function ExpensesPage() {
         onPageChange={setPage}
         searchQuery={debouncedSearch}
         onAddExpense={openCreateDialog}
+        isLoading={isLoading}
         translations={{
           noExpenses: t('noExpenses'),
           startTracking: t('startTracking'),
