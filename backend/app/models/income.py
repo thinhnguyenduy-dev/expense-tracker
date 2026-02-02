@@ -12,6 +12,12 @@ class Income(Base):
     source = Column(String(255), nullable=False)
     date = Column(Date, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    # Multi-currency support
+    original_amount = Column(Numeric(12, 2), nullable=True)
+    original_currency = Column(String(3), nullable=True)
+    exchange_rate = Column(Numeric(10, 6), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

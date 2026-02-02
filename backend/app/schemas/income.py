@@ -11,7 +11,7 @@ class IncomeBase(BaseModel):
 
 
 class IncomeCreate(IncomeBase):
-    pass
+    currency: Optional[str] = None
 
 
 class IncomeResponse(IncomeBase):
@@ -19,6 +19,11 @@ class IncomeResponse(IncomeBase):
     user_id: int
     created_at: datetime
     user_name: Optional[str] = None  # For family mode attribution
+    
+    # Multi-currency fields
+    original_amount: Optional[Decimal] = None
+    original_currency: Optional[str] = None
+    exchange_rate: Optional[Decimal] = None
     
     class Config:
         from_attributes = True

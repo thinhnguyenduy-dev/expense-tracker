@@ -9,6 +9,7 @@ from ..models.user import User
 from ..models.income import Income
 from ..models.jar import Jar
 from ..schemas.income import IncomeResponse, IncomeCreate
+from ..core.exchange_rate import exchange_rate_service
 
 router = APIRouter()
 
@@ -58,14 +59,42 @@ def get_incomes(
 
 
 @router.post("/", response_model=IncomeResponse)
-def create_income(
+async def create_income(
     income: IncomeCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Add income and distribute to jars based on percentages."""
+    """Add income and distribute to jars based on percentages."""
+    
+    income_data = income.model_dump()
+    currency = income_data.pop("currency", None)
+    
+    # Currency Conversion Logic
+    exchange_rate = None
+    original_amount = None
+    original_currency = None
+    user_currency = current_user.currency or "VND"
+    
+    if currency and currency != user_currency:
+        original_amount = income.amount
+        original_currency = currency
+        
+        converted_amount = await exchange_rate_service.convert(income.amount, currency, user_currency)
+        
+        if converted_amount:
+             rate = await exchange_rate_service.get_exchange_rate(currency, user_currency)
+             exchange_rate = rate
+             income_data["amount"] = converted_amount
+    
     # Create Income record
-    db_income = Income(**income.model_dump(), user_id=current_user.id)
+    db_income = Income(
+        **income_data, 
+        user_id=current_user.id,
+        original_amount=original_amount,
+        original_currency=original_currency,
+        exchange_rate=exchange_rate
+    )
     db.add(db_income)
     
     # Distribute to Jars
@@ -90,7 +119,7 @@ def create_income(
 
 
 @router.put("/{income_id}", response_model=IncomeResponse)
-def update_income(
+async def update_income(
     income_id: int,
     income_update: IncomeCreate,
     db: Session = Depends(get_db),
@@ -114,15 +143,42 @@ def update_income(
             jar.balance -= share
 
     # 2. Update income record
-    db_income.amount = income_update.amount
-    db_income.source = income_update.source
-    db_income.date = income_update.date
+    income_data = income_update.model_dump(exclude_unset=True)
+    currency = income_data.pop("currency", None)
+    
+    # Update fields manually to handle currency logic
+    for field, value in income_data.items():
+        setattr(db_income, field, value)
+        
+    # Handle currency update
+    new_amount = income_data.get("amount")
+    
+    if currency or (new_amount and db_income.original_currency):
+        target_currency = currency or db_income.original_currency or current_user.currency or "VND"
+        target_amount = new_amount if new_amount is not None else db_income.original_amount
+        
+        user_currency = current_user.currency or "VND"
+        
+        if target_currency != user_currency:
+             converted_amount = await exchange_rate_service.convert(target_amount, target_currency, user_currency)
+             if converted_amount:
+                 db_income.amount = converted_amount
+                 db_income.original_amount = target_amount
+                 db_income.original_currency = target_currency
+                 db_income.exchange_rate = await exchange_rate_service.get_exchange_rate(target_currency, user_currency)
+        else:
+             if new_amount is not None:
+                 db_income.amount = new_amount
+             db_income.original_amount = None
+             db_income.original_currency = None
+             db_income.exchange_rate = None
     
     # 3. Apply new distribution
     if jars:
-        new_amount = income_update.amount
+        # Use the updated (Base) amount
+        new_amount_base = db_income.amount
         for jar in jars:
-            share = (new_amount * Decimal(str(jar.percentage))) / Decimal('100.0')
+            share = (new_amount_base * Decimal(str(jar.percentage))) / Decimal('100.0')
             jar.balance += share
 
     db.commit()

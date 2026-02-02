@@ -98,6 +98,9 @@ export interface Expense {
     color: string;
   };
   created_at: string;
+  original_amount?: number;
+  original_currency?: string;
+  exchange_rate?: number;
 }
 
 export const expensesApi = {
@@ -106,10 +109,10 @@ export const expensesApi = {
   
   getOne: (id: number) => api.get<Expense>(`/expenses/${id}`),
   
-  create: (data: { amount: number; description: string; date: string; category_id: number }) =>
+  create: (data: { amount: number; description: string; date: string; category_id: number; currency?: string }) =>
     api.post<Expense>('/expenses', data),
   
-  update: (id: number, data: { amount?: number; description?: string; date?: string; category_id?: number }) =>
+  update: (id: number, data: { amount?: number; description?: string; date?: string; category_id?: number; currency?: string }) =>
     api.put<Expense>(`/expenses/${id}`, data),
   
   delete: (id: number) => api.delete(`/expenses/${id}`),
@@ -157,7 +160,7 @@ export const recurringExpensesApi = {
 
 // Users API
 export const usersApi = {
-  updateProfile: (data: { name?: string; email?: string; language?: string }) =>
+  updateProfile: (data: { name?: string; email?: string; language?: string; currency?: string; overall_monthly_limit?: number | null }) =>
     api.put('/users/profile', data),
   
   
@@ -257,12 +260,16 @@ export interface Income {
   user_id: number;
   created_at: string;
   user_name?: string;  // For family mode attribution
+  original_amount?: number;
+  original_currency?: string;
+  exchange_rate?: number;
 }
 
 export interface IncomeCreate {
   amount: number;
   source: string;
   date: string;
+  currency?: string;
 }
 
 export const incomesApi = {
@@ -296,6 +303,14 @@ export const dataApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+};
+
+// Rates API
+export const ratesApi = {
+  convert: (amount: number, from: string, to: string) => 
+    api.get<{ converted_amount: number; rate: number }>('/rates/convert', { 
+      params: { amount, from_currency: from, to_currency: to } 
+    }),
 };
 
 // OCR API

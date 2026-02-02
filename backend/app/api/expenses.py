@@ -17,8 +17,10 @@ from ..models.user import User
 from ..models.expense import Expense
 from ..models.category import Category
 from ..schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse
+from ..schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse
 from ..schemas.pagination import PaginatedResponse
 from .dashboard import invalidate_user_dashboard_cache
+from ..core.exchange_rate import exchange_rate_service
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -213,7 +215,7 @@ def export_expenses(
 
 
 @router.post("", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
-def create_expense(
+async def create_expense(
     expense_data: ExpenseCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -231,9 +233,43 @@ def create_expense(
             detail="Category not found"
         )
     
+    expense_data_dict = expense_data.model_dump()
+    currency = expense_data_dict.pop("currency", None)
+    
+    # Currency Conversion Logic
+    exchange_rate = None
+    original_amount = None
+    original_currency = None
+    
+    # If currency provided and different from user's base currency
+    # Note: For MVP we assume user base currency is 'VND' if not set, or we should fetch from user profile.
+    # Ideally current_user.currency should be used.
+    user_currency = current_user.currency or "VND"
+    
+    if currency and currency != user_currency:
+        original_amount = expense_data.amount
+        original_currency = currency
+        
+        # Convert to base currency
+        # amount (Base) = original_amount * rate
+        # e.g. 10 USD * 25000 = 250,000 VND
+        converted_amount = await exchange_rate_service.convert(expense_data.amount, currency, user_currency)
+        
+        if converted_amount:
+             # Get rate used: rate = converted / original
+             # or just use get_exchange_rate
+             rate = await exchange_rate_service.get_exchange_rate(currency, user_currency)
+             exchange_rate = rate
+             
+             # Update amount to be the BASE currency amount
+             expense_data_dict["amount"] = converted_amount
+    
     expense = Expense(
-        **expense_data.model_dump(),
-        user_id=current_user.id
+        **expense_data_dict,
+        user_id=current_user.id,
+        original_amount=original_amount,
+        original_currency=original_currency,
+        exchange_rate=exchange_rate
     )
     db.add(expense)
     
@@ -283,7 +319,7 @@ def get_expense(
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)
-def update_expense(
+async def update_expense(
     expense_id: int,
     expense_data: ExpenseUpdate,
     db: Session = Depends(get_db),
@@ -317,7 +353,42 @@ def update_expense(
             )
     
     for field, value in update_data.items():
+        if field == "currency":
+            continue # Handle separately
         setattr(expense, field, value)
+
+    # Handle currency update if present or if amount changed
+    new_currency = update_data.get("currency")
+    new_amount = update_data.get("amount")
+    
+    if new_currency or (new_amount and expense.original_currency):
+        # Determine target currency (use new one, or fall back to existing original, or user base)
+        target_currency = new_currency or expense.original_currency or current_user.currency or "VND"
+        
+        # Determine target amount
+        target_amount = new_amount if new_amount is not None else expense.original_amount
+        
+        # If we have a target amount and it's not the base currency (or we explicitly want to set it)
+        # Actually simplest logic:
+        # If currency is specified, we treat the (new or existing) amount as that currency and convert to base.
+        
+        user_currency = current_user.currency or "VND"
+        
+        if target_currency != user_currency:
+             # Convert
+             converted_amount = await exchange_rate_service.convert(target_amount, target_currency, user_currency)
+             if converted_amount:
+                 expense.amount = converted_amount
+                 expense.original_amount = target_amount
+                 expense.original_currency = target_currency
+                 expense.exchange_rate = await exchange_rate_service.get_exchange_rate(target_currency, user_currency)
+        else:
+            # If target is base, clear original fields
+            if new_amount is not None:
+                expense.amount = new_amount
+            expense.original_amount = None
+            expense.original_currency = None
+            expense.exchange_rate = None
     
     db.commit()
     db.refresh(expense, ["category"])

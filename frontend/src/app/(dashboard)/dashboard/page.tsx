@@ -50,21 +50,16 @@ interface DashboardStats {
   due_recurring_count?: number;
 }
 
-const formatCurrency = (value: number, locale: string) => {
-  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
-    style: 'currency',
-    currency: locale === 'vi' ? 'VND' : 'USD',
-  }).format(value);
-};
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Bell, ArrowRight } from "lucide-react"
-import Link from 'next/link'
-import { Button } from "@/components/ui/button"
-
 import { authApi } from '@/lib/api';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { UpcomingBills } from '@/components/dashboard/UpcomingBills';
+import { formatCurrency } from '@/lib/utils';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Bell, ArrowRight } from "lucide-react";
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -73,6 +68,8 @@ export default function DashboardPage() {
   const [hasFamily, setHasFamily] = useState(false);
   const t = useTranslations('Dashboard');
   const locale = useLocale();
+  const { user } = useAuthStore();
+  const currency = user?.currency || 'VND';
 
   useEffect(() => {
     const checkFamilyStatus = async () => {
@@ -167,8 +164,12 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Upcoming Bills and Stats Cards */}
+      <div className="grid gap-6 lg:grid-cols-4">
+        <div className="lg:col-span-1">
+          <UpcomingBills />
+        </div>
+        <div className="lg:col-span-3 grid gap-4 md:grid-cols-3">
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">{t('totalExpenses')}</CardTitle>
@@ -176,7 +177,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(Number(stats?.total_expenses) || 0, locale)}
+              {formatCurrency(Number(stats?.total_expenses) || 0, currency, locale)}
             </div>
             <p className="text-xs text-slate-400 mt-1">{t('allTimeSpending')}</p>
           </CardContent>
@@ -189,7 +190,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(Number(stats?.total_this_month) || 0, locale)}
+              {formatCurrency(Number(stats?.total_this_month) || 0, currency, locale)}
             </div>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-green-400" />
@@ -205,11 +206,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(Number(stats?.total_this_week) || 0, locale)}
+              {formatCurrency(Number(stats?.total_this_week) || 0, currency, locale)}
             </div>
             <p className="text-xs text-slate-400 mt-1">{t('weeklySpending')}</p>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Charts */}
@@ -239,7 +241,7 @@ export default function DashboardPage() {
                       borderRadius: '8px',
                     }}
                     labelStyle={{ color: '#fff' }}
-                    formatter={(value) => [formatCurrency(Number(value) || 0, locale), t('monthlyTrend')]}
+                    formatter={(value) => [formatCurrency(Number(value) || 0, currency, locale), t('monthlyTrend')]}
                   />
                   <Bar
                     dataKey="total"
@@ -293,7 +295,7 @@ export default function DashboardPage() {
                         border: '1px solid #475569',
                         borderRadius: '8px',
                       }}
-                      formatter={(value) => formatCurrency(Number(value) || 0, locale)}
+                      formatter={(value) => formatCurrency(Number(value) || 0, currency, locale)}
                     />
                     <Legend
                       wrapperStyle={{ color: '#9ca3af' }}
@@ -312,7 +314,8 @@ export default function DashboardPage() {
             <div className="mt-8 space-y-4">
               <h3 className="text-lg font-medium text-white">Budget Limits</h3>
               <div className="space-y-4">
-                {stats?.expenses_by_category.filter(c => c.monthly_limit).map((category) => {
+                {stats?.expenses_by_category.filter(c => c.monthly_limit).length ? (
+                  stats.expenses_by_category.filter(c => c.monthly_limit).map((category) => {
                    const percentage = Math.min(100, (category.total / (category.monthly_limit || 1)) * 100);
                    const isOverBudget = Number(category.total) > (category.monthly_limit || 0);
                    
@@ -321,20 +324,24 @@ export default function DashboardPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-300">{category.category_name}</span>
                         <span className={isOverBudget ? "text-red-400 font-medium" : "text-slate-400"}>
-                          {formatCurrency(Number(category.total), locale)} / {formatCurrency(Number(category.monthly_limit), locale)}
+                          {formatCurrency(Number(category.total), currency, locale)} / {formatCurrency(Number(category.monthly_limit), currency, locale)}
                         </span>
                       </div>
                       <Progress 
                         value={percentage} 
                         className="h-2 bg-slate-700" 
-                        indicatorClassName={isOverBudget ? "bg-red-500" : category.category_color ? `bg-[${category.category_color}]` : "bg-emerald-500"}
-                        style={{ backgroundColor: category.category_color }}
+                        indicatorClassName={isOverBudget ? "bg-red-500" : category.category_color ? undefined : "bg-emerald-500"}
+                        style={{ backgroundColor: !isOverBudget && category.category_color ? category.category_color : undefined }}
                       />
                     </div>
                    );
-                })}
-                {(!stats?.expenses_by_category.some(c => c.monthly_limit)) && (
-                   <p className="text-sm text-slate-500 italic">No budget limits set. Go to Categories to add limits.</p>
+                })) : (
+                   <div className="text-center py-4">
+                     <p className="text-sm text-slate-500 italic">No budget limits set.</p>
+                     <Button variant="link" size="sm" className="text-emerald-400 mt-1" asChild>
+                       <Link href="/categories">Set limits in Categories</Link>
+                     </Button>
+                   </div>
                 )}
               </div>
             </div>

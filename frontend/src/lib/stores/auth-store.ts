@@ -6,6 +6,8 @@ export interface User {
   email: string;
   name: string;
   language: string;
+  currency: string;
+  overall_monthly_limit?: number | null;
   created_at: string;
 }
 

@@ -29,6 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { categoriesApi, jarsApi } from '@/lib/api';
+import { formatCurrency } from "@/lib/utils";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { useLocale } from 'next-intl';
 
 interface Category {
   id: number;
@@ -71,6 +74,9 @@ export default function CategoriesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const t = useTranslations('Categories');
   const tCommon = useTranslations('Common');
+  const locale = useLocale();
+  const { user } = useAuthStore();
+  const currency = user?.currency || 'VND';
 
   const {
     register,
@@ -403,6 +409,30 @@ export default function CategoriesPage() {
                     <span className="ml-2 inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
                       {jars.find(j => j.id === category.jar_id)?.name}
                     </span>
+                  )}
+                  {category.monthly_limit && category.monthly_limit > 0 && (
+                    <div className="mt-4 space-y-2">
+                       <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Budget</span>
+                          <span className="text-white font-medium">
+                            {formatCurrency(Number(category.monthly_limit || 0), currency, locale)}
+                          </span>
+                       </div>
+                       {/* Note: In a real implementation we would need to pass 'spent' amount from backend. 
+                           For now, this is a placeholder or we need to fetch stats.
+                           Let's check if we can easily get stats.
+                           Actually, Dashboard API returns stats. Categories API usually just returns definitions.
+                           We might need to fetch stats here or update Categories API to include current month spend.
+                           
+                           Decision: Let's assume for this step we just show the limit. 
+                           To show progress, we would need to fetch expenses or update the API.
+                           Let's update the Categories API response in backend to include 'current_month_expenses' later.
+                           For now, let's visualy indicate the limit is set.
+                       */}
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                           <div className="h-full bg-slate-600 w-0" />
+                        </div>
+                    </div>
                   )}
                 </CardDescription>
               </CardContent>

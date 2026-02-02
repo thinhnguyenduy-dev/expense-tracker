@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     BUDGET_ALERT_THRESHOLD_WARNING: int = 80
     BUDGET_ALERT_THRESHOLD_CRITICAL: int = 100
     
+    # External Services
+    EXCHANGE_RATE_API_KEY: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

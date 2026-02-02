@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { recurringExpensesApi, categoriesApi } from "@/lib/api"
 import { useTranslations, useLocale } from 'next-intl';
+import { isDueSoon } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/utils";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -43,6 +46,8 @@ export default function RecurringExpensesPage() {
   const t = useTranslations('RecurringExpenses');
   const tCommon = useTranslations('Common');
   const locale = useLocale();
+  const { user } = useAuthStore();
+  const currency = user?.currency || 'VND';
 
   const WEEKDAYS = [
     { value: 0, label: tCommon('days.monday') },
@@ -299,7 +304,7 @@ export default function RecurringExpensesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200">{tCommon('amount')} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
+                <Label className="text-slate-200">{tCommon('amount')} ({currency})</Label>
                 <AmountInput
                   value={formData.amount === "" ? 0 : parseFloat(formData.amount)}
                   onValueChange={(val) => setFormData({ ...formData, amount: val.toString() })}
@@ -443,23 +448,25 @@ export default function RecurringExpensesPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="text-2xl font-bold text-white">
-                    {new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
-                      style: 'currency',
-                      currency: locale === 'vi' ? 'VND' : 'USD',
-                    }).format(recurring.amount)}
+                    {formatCurrency(recurring.amount, currency, locale)}
                   </div>
                   
                   {getFrequencyBadge(recurring.frequency)}
 
                   {recurring.next_due_date && (
-                    <div className="text-sm text-slate-400">
+                    <div className={`text-sm ${isDueSoon(recurring.next_due_date) ? 'text-yellow-400 font-bold' : 'text-slate-400'}`}>
                       {t('nextDue')} {new Date(recurring.next_due_date).toLocaleDateString()}
+                      {isDueSoon(recurring.next_due_date) && (
+                        <span className="ml-2 text-xs bg-yellow-400/20 text-yellow-400 px-2 py-0.5 rounded-full">
+                          Due Soon
+                        </span>
+                      )}
                     </div>
                   )}
 
                   {recurring.is_active && recurring.next_due_date && (
                     <Button
-                      className="w-full bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30"
+                      className={`w-full ${isDueSoon(recurring.next_due_date) ? 'bg-yellow-600 hover:bg-yellow-700 ring-1 ring-yellow-500' : 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30'}`}
                       onClick={() => handleCreateExpense(recurring.id)}
                     >
                       <Play className="mr-2 h-4 w-4" />

@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 import { UseFormReturn, Controller } from 'react-hook-form';
 import { format } from 'date-fns';
 import { Loader2, CalendarIcon, CameraIcon } from 'lucide-react';
@@ -28,7 +30,39 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { Expense } from '@/lib/api';
+import { Expense, ratesApi } from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
+// Inline ConversionPreview component
+function ConversionPreview({ amount, from, to }: { amount: number; from: string; to: string }) {
+  const [converted, setConverted] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  // Simple debounce
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (amount <= 0) return;
+      setLoading(true);
+      try {
+        const { data } = await ratesApi.convert(amount, from, to);
+        setConverted(data.converted_amount);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [amount, from, to]);
+
+  if (loading) return <span className="animate-pulse">Calculating...</span>;
+  if (converted === null) return null;
+  
+  return (
+    <span>≈ {formatCurrency(converted, to, 'en-US')}</span> 
+  );
+}
+
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export interface Category {
   id: number;
@@ -42,6 +76,7 @@ export interface ExpenseFormData {
   description: string;
   date: Date;
   category_id: string;
+  currency: string;
 }
 
 interface ExpenseDialogProps {
@@ -84,8 +119,16 @@ export function ExpenseDialog({
   commonTranslations: tCommon,
 }: ExpenseDialogProps) {
   const locale = useLocale();
+  const { user } = useAuthStore();
   const { control, register, watch, setValue, handleSubmit, formState: { errors } } = form;
   const selectedDate = watch('date');
+
+  // Set default currency if not set
+  useEffect(() => {
+    if (!form.getValues('currency') && user?.currency) {
+      form.setValue('currency', user.currency);
+    }
+  }, [user?.currency, form]);
 
   const handleReceiptScan = async (file: File) => {
     const toastId = toast.loading('Scanning receipt...');
@@ -146,23 +189,47 @@ export function ExpenseDialog({
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label className="text-slate-200">{tCommon.amount} ({locale === 'vi' ? 'VND' : 'USD'})</Label>
-              <Controller
-                control={control}
-                name="amount"
-                render={({ field }) => (
-                  <AmountInput
-                    placeholder="0"
-                    className="bg-slate-800 border-slate-700 text-white"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-200">{tCommon.amount}</Label>
+                <Controller
+                  control={control}
+                  name="amount"
+                  render={({ field }) => (
+                    <AmountInput
+                      placeholder="0"
+                      className="bg-slate-800 border-slate-700 text-white"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
+                  )}
+                />
+                {errors.amount && (
+                  <p className="text-sm text-red-400">{errors.amount.message}</p>
                 )}
-              />
-              {errors.amount && (
-                <p className="text-sm text-red-400">{errors.amount.message}</p>
-              )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-slate-200">Currency</Label>
+                <Controller
+                  control={control}
+                  name="currency"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue placeholder="Select Currency" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectItem value="VND" className="text-white hover:bg-slate-700">VND (₫)</SelectItem>
+                        <SelectItem value="USD" className="text-white hover:bg-slate-700">USD ($)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -176,6 +243,17 @@ export function ExpenseDialog({
                 <p className="text-sm text-red-400">{errors.description.message}</p>
               )}
             </div>
+
+            {/* Conversion Preview */}
+            {watch('currency') && user?.currency && watch('currency') !== user.currency && watch('amount') > 0 && (
+              <div className="text-sm text-slate-400 bg-slate-800/50 p-2 rounded border border-slate-700">
+                <ConversionPreview 
+                  amount={watch('amount')} 
+                  from={watch('currency')} 
+                  to={user.currency} 
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-slate-200">{tCommon.category}</Label>

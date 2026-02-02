@@ -13,21 +13,25 @@ class ExpenseBase(BaseModel):
 
 
 class ExpenseCreate(ExpenseBase):
-    pass
-
+    currency: Optional[str] = None
 
 class ExpenseUpdate(BaseModel):
     amount: Optional[Decimal] = None
     description: Optional[str] = None
     date: Optional[date] = None
     category_id: Optional[int] = None
-
+    currency: Optional[str] = None
 
 class ExpenseResponse(ExpenseBase):
     id: int
     user_id: int
     created_at: datetime
     category: Optional[CategoryResponse] = None
+    
+    # Multi-currency fields
+    original_amount: Optional[Decimal] = None
+    original_currency: Optional[str] = None
+    exchange_rate: Optional[Decimal] = None
     
     class Config:
         from_attributes = True
