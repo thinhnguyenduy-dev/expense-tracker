@@ -13,15 +13,15 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-       <h1 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h1>
+       <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('title')}</h1>
        
        <Tabs defaultValue="profile" className="space-y-4">
-         <TabsList className="bg-slate-800 text-slate-400 border border-slate-700 w-full justify-start overflow-x-auto no-scrollbar">
-           <TabsTrigger value="profile" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('profile')}</TabsTrigger>
-           <TabsTrigger value="security" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('security')}</TabsTrigger>
-           <TabsTrigger value="preferences" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('preferences')}</TabsTrigger>
-           <TabsTrigger value="family" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">Family</TabsTrigger>
-           <TabsTrigger value="data" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">{t('data')}</TabsTrigger>
+         <TabsList className="bg-muted text-muted-foreground border border-border w-full justify-start overflow-x-auto no-scrollbar">
+           <TabsTrigger value="profile" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">{t('profile')}</TabsTrigger>
+           <TabsTrigger value="security" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">{t('security')}</TabsTrigger>
+           <TabsTrigger value="preferences" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">{t('preferences')}</TabsTrigger>
+           <TabsTrigger value="family" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Family</TabsTrigger>
+           <TabsTrigger value="data" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">{t('data')}</TabsTrigger>
          </TabsList>
          
          <TabsContent value="profile">

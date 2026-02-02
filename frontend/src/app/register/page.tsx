@@ -27,7 +27,6 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-// Password strength checker
 const getPasswordStrength = (password: string) => {
   const checks = {
     length: password.length >= 6,
@@ -82,22 +81,22 @@ export default function RegisterPage() {
   const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong'];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
       {/* Animated gradient background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-muted to-background dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
       
       {/* Floating orbs for depth */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-600/10 rounded-full blur-3xl animate-pulse delay-500" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 dark:bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-600/5 dark:bg-teal-600/10 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
       {/* Subtle grid pattern */}
       <div 
         className="fixed inset-0 opacity-[0.02]"
         style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
           backgroundSize: '40px 40px'
         }}
       />
@@ -106,9 +105,9 @@ export default function RegisterPage() {
       <Card 
         className={`
           w-full max-w-md relative z-10
-          border border-white/10 
+          border border-border
           shadow-2xl shadow-teal-500/5
-          bg-gradient-to-br from-white/[0.08] to-white/[0.02]
+          bg-card/80 dark:bg-gradient-to-br dark:from-white/[0.08] dark:to-white/[0.02]
           backdrop-blur-xl
           transition-all duration-700 ease-out
           ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
@@ -135,11 +134,11 @@ export default function RegisterPage() {
           </div>
           
           <div className={`space-y-2 transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white via-white to-teal-200 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold text-foreground dark:bg-gradient-to-r dark:from-white dark:via-white dark:to-teal-200 dark:bg-clip-text dark:text-transparent">
               Create Account
             </CardTitle>
-            <CardDescription className="text-slate-400 flex items-center justify-center gap-2">
-              <Sparkles className="h-4 w-4 text-teal-400" />
+            <CardDescription className="text-muted-foreground flex items-center justify-center gap-2">
+              <Sparkles className="h-4 w-4 text-teal-500" />
               Start tracking your expenses today
             </CardDescription>
           </div>
@@ -149,7 +148,7 @@ export default function RegisterPage() {
           <CardContent className={`space-y-4 pt-4 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             {/* Name field */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium text-slate-300">
+              <Label htmlFor="name" className="text-sm font-medium text-foreground">
                 Name
               </Label>
               <div className="relative group">
@@ -159,22 +158,22 @@ export default function RegisterPage() {
                   placeholder="John Doe"
                   className="
                     h-12 px-4
-                    bg-white/5 
-                    border border-white/10 
-                    text-white placeholder:text-slate-400
+                    bg-muted/50 dark:bg-white/5
+                    border border-border dark:border-white/10
+                    text-foreground placeholder:text-muted-foreground
                     rounded-xl
                     transition-all duration-300
-                    focus:bg-white/10 focus:border-teal-500/50
+                    focus:bg-muted dark:focus:bg-white/10 focus:border-teal-500/50
                     focus:ring-2 focus:ring-teal-500/20
-                    hover:border-white/20
+                    hover:border-teal-500/30
                   "
                   {...register('name')}
                 />
                 <div className="absolute inset-0 rounded-xl bg-teal-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity -z-10 blur-xl" />
               </div>
               {errors.name && (
-                <p className="text-sm text-red-400 flex items-center gap-1 animate-in slide-in-from-top-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                <p className="text-sm text-red-500 flex items-center gap-1 animate-in slide-in-from-top-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
                   {errors.name.message}
                 </p>
               )}
@@ -182,7 +181,7 @@ export default function RegisterPage() {
 
             {/* Email field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
               </Label>
               <div className="relative group">
@@ -192,22 +191,22 @@ export default function RegisterPage() {
                   placeholder="you@example.com"
                   className="
                     h-12 px-4
-                    bg-white/5 
-                    border border-white/10 
-                    text-white placeholder:text-slate-400
+                    bg-muted/50 dark:bg-white/5
+                    border border-border dark:border-white/10
+                    text-foreground placeholder:text-muted-foreground
                     rounded-xl
                     transition-all duration-300
-                    focus:bg-white/10 focus:border-teal-500/50
+                    focus:bg-muted dark:focus:bg-white/10 focus:border-teal-500/50
                     focus:ring-2 focus:ring-teal-500/20
-                    hover:border-white/20
+                    hover:border-teal-500/30
                   "
                   {...register('email')}
                 />
                 <div className="absolute inset-0 rounded-xl bg-teal-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity -z-10 blur-xl" />
               </div>
               {errors.email && (
-                <p className="text-sm text-red-400 flex items-center gap-1 animate-in slide-in-from-top-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                <p className="text-sm text-red-500 flex items-center gap-1 animate-in slide-in-from-top-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
                   {errors.email.message}
                 </p>
               )}
@@ -215,7 +214,7 @@ export default function RegisterPage() {
 
             {/* Password field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">
                 Password
               </Label>
               <div className="relative group">
@@ -225,14 +224,14 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   className="
                     h-12 px-4 pr-12
-                    bg-white/5 
-                    border border-white/10 
-                    text-white placeholder:text-slate-400
+                    bg-muted/50 dark:bg-white/5
+                    border border-border dark:border-white/10
+                    text-foreground placeholder:text-muted-foreground
                     rounded-xl
                     transition-all duration-300
-                    focus:bg-white/10 focus:border-teal-500/50
+                    focus:bg-muted dark:focus:bg-white/10 focus:border-teal-500/50
                     focus:ring-2 focus:ring-teal-500/20
-                    hover:border-white/20
+                    hover:border-teal-500/30
                   "
                   {...register('password')}
                 />
@@ -242,8 +241,8 @@ export default function RegisterPage() {
                   className="
                     absolute right-3 top-1/2 -translate-y-1/2
                     p-1.5 rounded-lg
-                    text-slate-400 hover:text-white
-                    hover:bg-white/10
+                    text-muted-foreground hover:text-foreground
+                    hover:bg-muted
                     transition-all duration-200
                   "
                 >
@@ -260,25 +259,25 @@ export default function RegisterPage() {
                       <div
                         key={i}
                         className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                          i < passwordStrength.score ? strengthColors[passwordStrength.score - 1] : 'bg-white/10'
+                          i < passwordStrength.score ? strengthColors[passwordStrength.score - 1] : 'bg-muted'
                         }`}
                       />
                     ))}
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">
+                    <span className="text-muted-foreground">
                       {passwordStrength.score > 0 && strengthLabels[passwordStrength.score - 1]}
                     </span>
-                    <div className="flex gap-2 text-slate-500">
-                      <span className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-emerald-400' : ''}`}>
+                    <div className="flex gap-2 text-muted-foreground">
+                      <span className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-emerald-500' : ''}`}>
                         {passwordStrength.checks.length ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                         6+ chars
                       </span>
-                      <span className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-emerald-400' : ''}`}>
+                      <span className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-emerald-500' : ''}`}>
                         {passwordStrength.checks.uppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                         A-Z
                       </span>
-                      <span className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-emerald-400' : ''}`}>
+                      <span className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-emerald-500' : ''}`}>
                         {passwordStrength.checks.number ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                         0-9
                       </span>
@@ -288,8 +287,8 @@ export default function RegisterPage() {
               )}
               
               {errors.password && (
-                <p className="text-sm text-red-400 flex items-center gap-1 animate-in slide-in-from-top-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                <p className="text-sm text-red-500 flex items-center gap-1 animate-in slide-in-from-top-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
                   {errors.password.message}
                 </p>
               )}
@@ -297,7 +296,7 @@ export default function RegisterPage() {
 
             {/* Confirm Password field */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
                 Confirm Password
               </Label>
               <div className="relative group">
@@ -307,14 +306,14 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   className="
                     h-12 px-4 pr-12
-                    bg-white/5 
-                    border border-white/10 
-                    text-white placeholder:text-slate-400
+                    bg-muted/50 dark:bg-white/5
+                    border border-border dark:border-white/10
+                    text-foreground placeholder:text-muted-foreground
                     rounded-xl
                     transition-all duration-300
-                    focus:bg-white/10 focus:border-teal-500/50
+                    focus:bg-muted dark:focus:bg-white/10 focus:border-teal-500/50
                     focus:ring-2 focus:ring-teal-500/20
-                    hover:border-white/20
+                    hover:border-teal-500/30
                   "
                   {...register('confirmPassword')}
                 />
@@ -324,8 +323,8 @@ export default function RegisterPage() {
                   className="
                     absolute right-3 top-1/2 -translate-y-1/2
                     p-1.5 rounded-lg
-                    text-slate-400 hover:text-white
-                    hover:bg-white/10
+                    text-muted-foreground hover:text-foreground
+                    hover:bg-muted
                     transition-all duration-200
                   "
                 >
@@ -334,8 +333,8 @@ export default function RegisterPage() {
                 <div className="absolute inset-0 rounded-xl bg-teal-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity -z-10 blur-xl" />
               </div>
               {errors.confirmPassword && (
-                <p className="text-sm text-red-400 flex items-center gap-1 animate-in slide-in-from-top-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                <p className="text-sm text-red-500 flex items-center gap-1 animate-in slide-in-from-top-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
                   {errors.confirmPassword.message}
                 </p>
               )}
@@ -379,12 +378,12 @@ export default function RegisterPage() {
             </Button>
 
             {/* Sign in link */}
-            <p className="text-sm text-center text-slate-400">
+            <p className="text-sm text-center text-muted-foreground">
               Already have an account?{' '}
               <Link 
                 href="/login" 
                 className="
-                  text-teal-400 hover:text-teal-300 
+                  text-teal-500 hover:text-teal-400 
                   font-medium
                   underline-offset-4 hover:underline
                   transition-colors

@@ -18,18 +18,32 @@ def get_redis_client():
     if settings.REDIS_URL is None:
         return None
     
+    # If we have a cached client, verify it's still alive
     if _redis_client is not None:
-        return _redis_client
+        try:
+            _redis_client.ping()
+            return _redis_client
+        except Exception:
+            # Connection died, reset and reconnect
+            _redis_client = None
+            logger.info("Redis connection lost, attempting reconnect...")
     
     try:
         import redis
-        _redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        _redis_client = redis.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+            socket_timeout=5,        # 5 second timeout for operations
+            socket_connect_timeout=5, # 5 second timeout for connection
+            retry_on_timeout=True,   # Retry on timeout errors
+        )
         # Test connection
         _redis_client.ping()
         logger.info("Redis connection established")
         return _redis_client
     except Exception as e:
         logger.warning(f"Redis connection failed: {e}. Caching disabled.")
+        _redis_client = None
         return None
 
 

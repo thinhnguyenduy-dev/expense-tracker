@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { usersApi, expensesApi, incomesApi } from '@/lib/api';
+import { usersApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   AlertDialog,
@@ -71,17 +71,17 @@ export function DataTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">{t('exportData')}</CardTitle>
-          <CardDescription className="text-slate-400">{t('exportDesc')}</CardDescription>
+          <CardTitle className="text-foreground">{t('exportData')}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t('exportDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
            <Button 
                 onClick={handleExport} 
                 disabled={exporting}
                 variant="outline"
-                className="border-slate-600 text-slate-200 hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-muted"
             >
                 {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 {t('download')}
@@ -89,13 +89,13 @@ export function DataTab() {
         </CardContent>
       </Card>
 
-      <Card className="bg-red-900/10 border-red-900/30">
+      <Card className="bg-red-500/5 dark:bg-red-900/10 border-red-500/20 dark:border-red-900/30">
         <CardHeader>
-          <CardTitle className="text-red-400 flex items-center gap-2">
+          <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             {t('deleteAccount')}
           </CardTitle>
-          <CardDescription className="text-red-400/70">{t('deleteDesc')}</CardDescription>
+          <CardDescription className="text-red-600/70 dark:text-red-400/70">{t('deleteDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
             <AlertDialog>
@@ -105,15 +105,15 @@ export function DataTab() {
                     {t('delete')}
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-slate-900 border-slate-800">
+              <AlertDialogContent className="bg-card border-border">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-white">Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-slate-400">
+                  <AlertDialogTitle className="text-foreground">Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-muted-foreground">
                     This action cannot be undone. This will permanently delete your account and remove your data from our servers.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700">Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted/80">Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 hover:bg-red-700 text-white">
                     {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Account"}
                   </AlertDialogAction>
@@ -123,10 +123,10 @@ export function DataTab() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Import Data</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Import Data</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Import your expenses or incomes from a CSV file.
             Required headers:
             <br />
@@ -162,7 +162,7 @@ export function DataTab() {
                   }
                 }}
               />
-              <Button asChild variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-700 cursor-pointer">
+              <Button asChild variant="outline" className="border-border text-foreground hover:bg-muted cursor-pointer">
                 <label htmlFor="file-upload">
                     <Download className="mr-2 h-4 w-4 rotate-180" />
                     Select CSV File

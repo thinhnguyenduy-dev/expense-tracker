@@ -23,7 +23,11 @@
     "successProfile": "Cập nhật hồ sơ thành công",
     "successPassword": "Đổi mật khẩu thành công",
     "failedUpdate": "Cập nhật thất bại",
-    "passwordMismatch": "Mật khẩu mới không khớp"
+    "passwordMismatch": "Mật khẩu mới không khớp",
+    "theme": "Giao diện",
+    "themeLight": "Sáng",
+    "themeDark": "Tối",
+    "themeSystem": "Hệ thống"
   },
   "Common": {
     "loading": "Đang tải...",

@@ -58,36 +58,36 @@ export function ExpenseBulkActions({
   if (selectedCount === 0) return null;
 
   return (
-    <Card className="bg-emerald-900/30 border-emerald-500/50">
+    <Card className="bg-emerald-500/10 dark:bg-emerald-900/30 border-emerald-500/50">
       <CardContent className="py-3 flex items-center justify-between">
-        <span className="text-emerald-300 font-medium">
+        <span className="text-emerald-600 dark:text-emerald-300 font-medium">
           {t.itemsSelected.replace('{count}', selectedCount.toString())}
         </span>
         <div className="flex gap-2">
           <Dialog open={bulkCategoryDialogOpen} onOpenChange={onBulkCategoryDialogOpenChange}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="border-emerald-500 text-emerald-300 hover:bg-emerald-900/50">
+              <Button variant="outline" size="sm" className="border-emerald-500 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/10">
                 {t.changeCategory}
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-700">
+            <DialogContent className="bg-card border-border">
               <DialogHeader>
-                <DialogTitle className="text-white">{t.changeCategory}</DialogTitle>
-                <DialogDescription className="text-slate-400">
+                <DialogTitle className="text-foreground">{t.changeCategory}</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
                   {t.changeCategoryDesc.replace('{count}', selectedCount.toString())}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <Select onValueChange={onBulkCategoryChange} disabled={isBulkUpdating}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="bg-muted border-border text-foreground">
                     <SelectValue placeholder={t.selectCategory} />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-card border-border">
                     {categories.map((category) => (
                       <SelectItem
                         key={category.id}
                         value={category.id.toString()}
-                        className="text-white hover:bg-slate-700"
+                        className="text-foreground hover:bg-muted"
                       >
                         <span className="flex items-center gap-2">
                           <span>{category.icon}</span>
@@ -113,7 +113,7 @@ export function ExpenseBulkActions({
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="text-slate-400"
+            className="text-muted-foreground"
           >
             <X className="h-4 w-4 mr-1" />
             {tCommon.clear}

@@ -32,12 +32,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Expense, ratesApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+
 // Inline ConversionPreview component
 function ConversionPreview({ amount, from, to }: { amount: number; from: string; to: string }) {
   const [converted, setConverted] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Simple debounce
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (amount <= 0) return;
@@ -123,7 +123,6 @@ export function ExpenseDialog({
   const { control, register, watch, setValue, handleSubmit, formState: { errors } } = form;
   const selectedDate = watch('date');
 
-  // Set default currency if not set
   useEffect(() => {
     if (!form.getValues('currency') && user?.currency) {
       form.setValue('currency', user.currency);
@@ -150,12 +149,12 @@ export function ExpenseDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700">
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle className="text-foreground">
             {editingExpense ? t.editExpense : t.addExpense}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {editingExpense ? t.editExpenseDesc : t.addExpenseDesc}
           </DialogDescription>
         </DialogHeader>
@@ -163,7 +162,7 @@ export function ExpenseDialog({
           <div className="space-y-4 py-4">
             {/* Scan Receipt Button (Only for new expenses) */}
             {!editingExpense && (
-              <div className="relative">
+              <div className="relative group">
                 <input
                   type="file"
                   accept="image/*"
@@ -175,42 +174,50 @@ export function ExpenseDialog({
                     e.target.value = '';
                   }}
                 />
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  className="w-full border-dashed border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-emerald-500 hover:text-emerald-500 transition-all text-slate-400"
+                  className="w-full min-h-[100px] rounded-xl border-2 border-dashed border-border bg-muted/50 hover:bg-muted hover:border-emerald-500/70 transition-all duration-300 cursor-pointer group-hover:shadow-lg group-hover:shadow-emerald-500/10"
                   onClick={() => document.getElementById('receipt-upload')?.click()}
                 >
-                  <div className="flex flex-col items-center gap-2 py-2">
-                    <CameraIcon className="h-6 w-6" />
-                    <span>Scan Receipt (Auto-fill)</span>
+                  <div className="flex flex-col items-center justify-center gap-3 py-4">
+                    <div className="p-3 rounded-full bg-muted group-hover:bg-emerald-500/20 transition-colors duration-300">
+                      <CameraIcon className="h-8 w-8 text-muted-foreground group-hover:text-emerald-500 transition-colors duration-300" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground group-hover:text-emerald-500 transition-colors duration-300">
+                        Scan Receipt (Auto-fill)
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload an image to auto-extract data
+                      </p>
+                    </div>
                   </div>
-                </Button>
+                </button>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">{tCommon.amount}</Label>
+                <Label className="text-foreground">{tCommon.amount}</Label>
                 <Controller
                   control={control}
                   name="amount"
                   render={({ field }) => (
                     <AmountInput
                       placeholder="0"
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-muted border-border text-foreground"
                       value={field.value}
                       onValueChange={field.onChange}
                     />
                   )}
                 />
                 {errors.amount && (
-                  <p className="text-sm text-red-400">{errors.amount.message}</p>
+                  <p className="text-sm text-red-500">{errors.amount.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200">Currency</Label>
+                <Label className="text-foreground">Currency</Label>
                 <Controller
                   control={control}
                   name="currency"
@@ -219,12 +226,12 @@ export function ExpenseDialog({
                       value={field.value}
                       onValueChange={field.onChange}
                     >
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-muted border-border text-foreground">
                         <SelectValue placeholder="Select Currency" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="VND" className="text-white hover:bg-slate-700">VND (₫)</SelectItem>
-                        <SelectItem value="USD" className="text-white hover:bg-slate-700">USD ($)</SelectItem>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="VND" className="text-foreground hover:bg-muted">VND (₫)</SelectItem>
+                        <SelectItem value="USD" className="text-foreground hover:bg-muted">USD ($)</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -233,20 +240,20 @@ export function ExpenseDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200">{tCommon.description}</Label>
+              <Label className="text-foreground">{tCommon.description}</Label>
               <Input
                 placeholder={t.descriptionPlaceholder}
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-muted border-border text-foreground"
                 {...register('description')}
               />
               {errors.description && (
-                <p className="text-sm text-red-400">{errors.description.message}</p>
+                <p className="text-sm text-red-500">{errors.description.message}</p>
               )}
             </div>
 
             {/* Conversion Preview */}
             {watch('currency') && user?.currency && watch('currency') !== user.currency && watch('amount') > 0 && (
-              <div className="text-sm text-slate-400 bg-slate-800/50 p-2 rounded border border-slate-700">
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded border border-border">
                 <ConversionPreview 
                   amount={watch('amount')} 
                   from={watch('currency') || 'VND'} 
@@ -256,20 +263,20 @@ export function ExpenseDialog({
             )}
 
             <div className="space-y-2">
-              <Label className="text-slate-200">{tCommon.category}</Label>
+              <Label className="text-foreground">{tCommon.category}</Label>
               <Select
                 value={watch('category_id')}
                 onValueChange={(value) => setValue('category_id', value)}
               >
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="bg-muted border-border text-foreground">
                   <SelectValue placeholder={t.selectCategory} />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   {categories.map((category) => (
                     <SelectItem
                       key={category.id}
                       value={category.id.toString()}
-                      className="text-white hover:bg-slate-700"
+                      className="text-foreground hover:bg-muted"
                     >
                       <span className="flex items-center gap-2">
                         <span>{category.icon}</span>
@@ -280,18 +287,18 @@ export function ExpenseDialog({
                 </SelectContent>
               </Select>
               {errors.category_id && (
-                <p className="text-sm text-red-400">{errors.category_id.message}</p>
+                <p className="text-sm text-red-500">{errors.category_id.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200">{tCommon.date}</Label>
+              <Label className="text-foreground">{tCommon.date}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      'w-full justify-start text-left font-normal bg-slate-800 border-slate-700',
+                      'w-full justify-start text-left font-normal bg-muted border-border',
                       !selectedDate && 'text-muted-foreground'
                     )}
                   >
@@ -299,7 +306,7 @@ export function ExpenseDialog({
                     {selectedDate ? format(selectedDate, 'PPP') : <span>{t.pickDate}</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700">
+                <PopoverContent className="w-auto p-0 bg-card border-border">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -309,7 +316,7 @@ export function ExpenseDialog({
                 </PopoverContent>
               </Popover>
               {errors.date && (
-                <p className="text-sm text-red-400">{errors.date.message}</p>
+                <p className="text-sm text-red-500">{errors.date.message}</p>
               )}
             </div>
           </div>
@@ -318,7 +325,7 @@ export function ExpenseDialog({
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               {tCommon.cancel}
             </Button>

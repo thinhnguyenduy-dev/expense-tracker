@@ -16,17 +16,13 @@ import {
   Settings,
   PiggyBank,
   CircleDollarSign,
-  BarChart3
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/stores/auth-store';
-
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useTranslations } from 'next-intl';
-
-// Move navItems inside component or keep it static? 
-// Static items can't be translated easily if defined outside.
-// We should define them inside or use keys.
 
 export function Sidebar() {
   const t = useTranslations('Sidebar');
@@ -54,7 +50,7 @@ export function Sidebar() {
         variant="ghost"
         size="icon"
         className={cn(
-          "fixed top-4 left-4 z-50 md:hidden text-white hover:bg-slate-800 transition-opacity duration-200",
+          "fixed top-4 left-4 z-50 md:hidden text-foreground hover:bg-muted transition-opacity duration-200",
           isMobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"
         )}
         onClick={() => setIsMobileOpen(true)}
@@ -73,25 +69,26 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-slate-900 to-slate-800 border-r border-slate-700 transition-transform duration-300',
+          'fixed left-0 top-0 z-40 h-screen w-64 bg-card border-r border-border transition-transform duration-300',
+          'dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-800',
           'md:translate-x-0',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex items-center justify-between px-6 py-6 border-b border-slate-700">
+          <div className="flex items-center justify-between px-6 py-6 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500">
                 <Wallet className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">ExpenseTracker</span>
+              <span className="text-xl font-bold text-foreground">ExpenseTracker</span>
             </div>
             {/* Mobile Close Button */}
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-slate-400 hover:text-white -mr-2"
+              className="md:hidden text-muted-foreground hover:text-foreground -mr-2"
               onClick={() => setIsMobileOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -110,11 +107,11 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-white border border-emerald-500/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-foreground border border-emerald-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
                 >
-                  <item.icon className={cn('h-5 w-5', isActive && 'text-emerald-400')} />
+                  <item.icon className={cn('h-5 w-5', isActive && 'text-emerald-500')} />
                   {item.label}
                 </Link>
               );
@@ -122,19 +119,20 @@ export function Sidebar() {
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-border">
             <div className="flex items-center gap-3 px-4 py-3 mb-2">
               <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium">
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
+              <ThemeToggle />
             </div>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
               onClick={logout}
             >
               <LogOut className="h-5 w-5" />

@@ -59,13 +59,11 @@ export default function IncomesPage() {
   const tFamily = useTranslations('Family');
   const locale = useLocale();
 
-  // Check family status and fetch members
   useEffect(() => {
     authApi.me().then(({ data }) => {
       // @ts-ignore
       if (data.family_id) {
         setHasFamily(true);
-        // Fetch family members
         familiesApi.getMyFamily().then(({ data: family }) => {
           setFamilyMembers(family.members.map(m => ({ id: m.id, name: m.name })));
         }).catch(console.error);
@@ -131,14 +129,14 @@ export default function IncomesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-4">
           {hasFamily && (
             <>
-              <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-                <Users className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-2 bg-card rounded-lg px-3 py-2 border border-border">
+                <Users className="h-4 w-4 text-muted-foreground" />
                 <Switch
                   id="family-mode-incomes"
                   checked={scope === 'family'}
@@ -147,7 +145,7 @@ export default function IncomesPage() {
                     if (!checked) setSelectedMemberId(undefined);
                   }}
                 />
-                <Label htmlFor="family-mode-incomes" className="text-white cursor-pointer select-none">
+                <Label htmlFor="family-mode-incomes" className="text-foreground cursor-pointer select-none">
                   {tFamily('viewFamily')}
                 </Label>
               </div>
@@ -156,15 +154,15 @@ export default function IncomesPage() {
                   value={selectedMemberId?.toString() ?? 'all'}
                   onValueChange={(val) => setSelectedMemberId(val === 'all' ? undefined : Number(val))}
                 >
-                  <SelectTrigger className="w-full sm:w-[150px] bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="w-full sm:w-[150px] bg-muted border-border text-foreground">
                     <SelectValue placeholder="All Members" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="all" className="text-white hover:bg-slate-700">
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="all" className="text-foreground hover:bg-muted">
                       All Members
                     </SelectItem>
                     {familyMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id.toString()} className="text-white hover:bg-slate-700">
+                      <SelectItem key={member.id} value={member.id.toString()} className="text-foreground hover:bg-muted">
                         {member.name}
                       </SelectItem>
                     ))}
@@ -190,11 +188,11 @@ export default function IncomesPage() {
           <Card className="flex-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30">
             <CardContent className="pt-6 flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">{tCommon('total')}</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(totalIncome, locale)}</p>
+                <p className="text-sm text-muted-foreground">{tCommon('total')}</p>
+                <p className="text-2xl font-bold text-foreground">{formatCurrency(totalIncome, locale)}</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <CircleDollarSign className="h-5 w-5 text-emerald-400" />
+                <CircleDollarSign className="h-5 w-5 text-emerald-500" />
               </div>
             </CardContent>
           </Card>
@@ -202,18 +200,18 @@ export default function IncomesPage() {
           {/* Search */}
           <div className="flex-1">
              <div className="relative h-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-full bg-slate-800 border-slate-700 text-white"
+                className="pl-10 h-full bg-muted border-border text-foreground"
               />
               {searchQuery && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-slate-400"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
                   onClick={() => setSearchQuery('')}
                 >
                   <X className="h-4 w-4" />
@@ -226,15 +224,15 @@ export default function IncomesPage() {
 
       {/* Incomes Table */}
       {filteredIncomes.length === 0 ? (
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="h-16 w-16 rounded-full bg-slate-700 flex items-center justify-center mb-4">
-              <CircleDollarSign className="h-8 w-8 text-slate-400" />
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <CircleDollarSign className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               {searchQuery ? t('noIncomesMatching', { query: searchQuery }) : t('noIncomes')}
             </h3>
-            <p className="text-slate-400 text-center mb-4">
+            <p className="text-muted-foreground text-center mb-4">
               {searchQuery ? '' : t('startTracking')}
             </p>
             {!searchQuery && (
@@ -262,35 +260,35 @@ export default function IncomesPage() {
             ))}
           </div>
 
-          <Card className="hidden md:block bg-slate-800/50 border-slate-700 overflow-hidden">
+          <Card className="hidden md:block bg-card border-border overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-800">
-                  <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
-                  <TableHead className="text-slate-400">{t('source')}</TableHead>
-                  {scope === 'family' && <TableHead className="text-slate-400">By</TableHead>}
-                  <TableHead className="text-slate-400 text-right">{tCommon('amount')}</TableHead>
-                  <TableHead className="text-slate-400 text-right">{tCommon('actions')}</TableHead>
+                <TableRow className="border-border hover:bg-muted">
+                  <TableHead className="text-muted-foreground">{tCommon('date')}</TableHead>
+                  <TableHead className="text-muted-foreground">{t('source')}</TableHead>
+                  {scope === 'family' && <TableHead className="text-muted-foreground">By</TableHead>}
+                  <TableHead className="text-muted-foreground text-right">{tCommon('amount')}</TableHead>
+                  <TableHead className="text-muted-foreground text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredIncomes.map((income) => (
                   <TableRow
                     key={income.id}
-                    className="border-slate-700 hover:bg-slate-800/50"
+                    className="border-border hover:bg-muted/50"
                   >
-                    <TableCell className="text-slate-300">
+                    <TableCell className="text-foreground">
                       {format(new Date(income.date), 'MMM dd, yyyy')}
                     </TableCell>
-                    <TableCell className="text-white font-medium">
+                    <TableCell className="text-foreground font-medium">
                       {income.source}
                     </TableCell>
                     {scope === 'family' && (
-                      <TableCell className="text-slate-300">
+                      <TableCell className="text-foreground">
                         {income.user_name || '—'}
                       </TableCell>
                     )}
-                    <TableCell className="text-right font-medium text-emerald-400">
+                    <TableCell className="text-right font-medium text-emerald-500">
                       +{formatCurrency(Number(income.amount), locale)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -299,7 +297,7 @@ export default function IncomesPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOpenEdit(income)}
-                          className="h-8 w-8 text-slate-400 hover:text-white"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -307,7 +305,7 @@ export default function IncomesPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(income.id)}
-                          className="h-8 w-8 text-slate-400 hover:text-red-400"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-500"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

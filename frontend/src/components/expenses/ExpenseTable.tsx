@@ -69,15 +69,15 @@ export function ExpenseTable({
   // Empty state
   if (expenses.length === 0) {
     return (
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className="h-16 w-16 rounded-full bg-slate-700 flex items-center justify-center mb-4">
-            <Plus className="h-8 w-8 text-slate-400" />
+          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <Plus className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             {searchQuery ? t.noResults : t.noExpenses}
           </h3>
-          <p className="text-slate-400 text-center mb-4">
+          <p className="text-muted-foreground text-center mb-4">
             {searchQuery
               ? t.noExpensesMatching.replace('{query}', searchQuery)
               : t.startTracking}
@@ -111,21 +111,21 @@ export function ExpenseTable({
       </div>
 
       {/* Desktop Table */}
-      <Card className="hidden md:block bg-slate-800/50 border-slate-700 overflow-hidden">
+      <Card className="hidden md:block bg-card border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-700 hover:bg-slate-800">
+            <TableRow className="border-border hover:bg-muted">
               <TableHead className="w-12">
                 <Checkbox
                   checked={selectedIds.size === expenses.length && expenses.length > 0}
                   onCheckedChange={onToggleSelectAll}
                 />
               </TableHead>
-              <TableHead className="text-slate-400">{tCommon.date}</TableHead>
-              <TableHead className="text-slate-400">{tCommon.category}</TableHead>
-              <TableHead className="text-slate-400">{tCommon.description}</TableHead>
-              <TableHead className="text-slate-400 text-right">{tCommon.amount}</TableHead>
-              <TableHead className="text-slate-400 text-right">{tCommon.actions}</TableHead>
+              <TableHead className="text-muted-foreground">{tCommon.date}</TableHead>
+              <TableHead className="text-muted-foreground">{tCommon.category}</TableHead>
+              <TableHead className="text-muted-foreground">{tCommon.description}</TableHead>
+              <TableHead className="text-muted-foreground text-right">{tCommon.amount}</TableHead>
+              <TableHead className="text-muted-foreground text-right">{tCommon.actions}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -133,8 +133,8 @@ export function ExpenseTable({
               <TableRow
                 key={expense.id}
                 className={cn(
-                  'border-slate-700 hover:bg-slate-800/50',
-                  selectedIds.has(expense.id) && 'bg-emerald-900/20'
+                  'border-border hover:bg-muted/50',
+                  selectedIds.has(expense.id) && 'bg-emerald-500/10'
                 )}
               >
                 <TableCell>
@@ -143,7 +143,7 @@ export function ExpenseTable({
                     onCheckedChange={() => onToggleSelect(expense.id)}
                   />
                 </TableCell>
-                <TableCell className="text-slate-300">
+                <TableCell className="text-foreground">
                   {format(new Date(expense.date), 'MMM dd, yyyy')}
                 </TableCell>
                 <TableCell>
@@ -154,13 +154,13 @@ export function ExpenseTable({
                     >
                       {expense.category?.icon}
                     </span>
-                    <span className="text-slate-300">{expense.category?.name}</span>
+                    <span className="text-foreground">{expense.category?.name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-white max-w-xs truncate">
+                <TableCell className="text-foreground max-w-xs truncate">
                   {expense.description}
                 </TableCell>
-                <TableCell className="text-right font-medium text-white">
+                <TableCell className="text-right font-medium text-foreground">
                   {formatCurrency(Number(expense.amount))}
                 </TableCell>
                 <TableCell className="text-right">
@@ -169,7 +169,7 @@ export function ExpenseTable({
                       variant="ghost"
                       size="icon"
                       onClick={() => onEdit(expense)}
-                      className="h-8 w-8 text-slate-400 hover:text-white"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -177,7 +177,7 @@ export function ExpenseTable({
                       variant="ghost"
                       size="icon"
                       onClick={() => onDelete(expense.id)}
-                      className="h-8 w-8 text-slate-400 hover:text-red-400"
+                      className="h-8 w-8 text-muted-foreground hover:text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -192,7 +192,7 @@ export function ExpenseTable({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Showing {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, total)} of {total}
           </p>
           <div className="flex items-center gap-2">
@@ -201,12 +201,12 @@ export function ExpenseTable({
               size="sm"
               onClick={() => onPageChange(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="bg-slate-800 border-slate-700 text-white disabled:opacity-50"
+              className="bg-muted border-border text-foreground disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <Button
@@ -214,7 +214,7 @@ export function ExpenseTable({
               size="sm"
               onClick={() => onPageChange(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="bg-slate-800 border-slate-700 text-white disabled:opacity-50"
+              className="bg-muted border-border text-foreground disabled:opacity-50"
             >
               Next
               <ChevronRight className="h-4 w-4" />

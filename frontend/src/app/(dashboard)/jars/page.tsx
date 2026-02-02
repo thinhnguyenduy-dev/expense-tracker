@@ -87,7 +87,7 @@ export default function JarsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">{t('title')}</h2>
         <div className="flex items-center gap-2">
           {/* Actions: Add Income and Transfer */}
           <Button onClick={() => { setEditingIncome(null); setOpenIncomeModal(true); }} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
@@ -100,20 +100,20 @@ export default function JarsPage() {
       </div>
       
       {/* Jars Display */}
-      <h3 className="text-xl font-semibold mt-6 mb-4 text-white">{t('yourJars')}</h3>
+      <h3 className="text-xl font-semibold mt-6 mb-4 text-foreground">{t('yourJars')}</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading
           ? Array(6)
               .fill(0)
               .map((_, i) => (
-                <Card key={i} className="bg-slate-800/50 border-slate-700">
+                <Card key={i} className="bg-card border-border">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <Skeleton className="h-4 w-[100px] bg-slate-700" />
-                    <Skeleton className="h-4 w-[40px] bg-slate-700" />
+                    <Skeleton className="h-4 w-[100px] bg-muted" />
+                    <Skeleton className="h-4 w-[40px] bg-muted" />
                   </CardHeader>
                   <CardContent>
-                    <Skeleton className="h-8 w-[100px] bg-slate-700" />
-                    <Skeleton className="mt-2 h-3 w-[60px] bg-slate-700" />
+                    <Skeleton className="h-8 w-[100px] bg-muted" />
+                    <Skeleton className="mt-2 h-3 w-[60px] bg-muted" />
                   </CardContent>
                 </Card>
               ))

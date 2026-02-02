@@ -38,7 +38,7 @@ const formSchema = z.object({
   amount: z.number().min(0.01, "Amount must be greater than 0"),
 }).refine(data => data.from_jar_id !== data.to_jar_id, {
   message: "Source and destination jars must be different",
-  path: ["to_jar_id"], // Attach error to to_jar_id
+  path: ["to_jar_id"],
 });
 
 interface TransferModalProps {
@@ -84,13 +84,13 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <ArrowRightLeft className="h-5 w-5" />
             {t("transferFunds")}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {t("transferDesc")}
           </DialogDescription>
         </DialogHeader>
@@ -102,22 +102,22 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
                 name="from_jar_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-200">{t("from")}</FormLabel>
+                    <FormLabel className="text-foreground">{t("from")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectTrigger className="bg-muted border-border text-foreground">
                           <SelectValue placeholder={t("selectJar")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         {jars.map((jar) => (
-                          <SelectItem key={jar.id} value={jar.id.toString()} className="text-white">
+                          <SelectItem key={jar.id} value={jar.id.toString()} className="text-foreground">
                             {jar.name} ({jar.balance})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-red-400" />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -126,22 +126,22 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
                 name="to_jar_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-200">{t("to")}</FormLabel>
+                    <FormLabel className="text-foreground">{t("to")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectTrigger className="bg-muted border-border text-foreground">
                           <SelectValue placeholder={t("selectJar")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         {jars.map((jar) => (
-                          <SelectItem key={jar.id} value={jar.id.toString()} className="text-white">
+                          <SelectItem key={jar.id} value={jar.id.toString()} className="text-foreground">
                             {jar.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-red-400" />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -152,16 +152,16 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">{tCommon("amount")}</FormLabel>
+                  <FormLabel className="text-foreground">{tCommon("amount")}</FormLabel>
                   <FormControl>
                     <AmountInput
                       placeholder="0.00"
                       value={field.value}
                       onValueChange={field.onChange}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </FormControl>
-                  <FormMessage className="text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />

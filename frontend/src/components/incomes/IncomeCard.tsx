@@ -12,24 +12,24 @@ interface IncomeCardProps {
 
 export function IncomeCard({ income, onEdit, onDelete }: IncomeCardProps) {
   return (
-    <div className="bg-slate-800 rounded-lg p-4 mb-4 border border-slate-700 shadow-sm">
+    <div className="bg-card rounded-lg p-4 mb-4 border border-border shadow-sm">
       <div className="flex justify-between items-start mb-2">
         <div>
-          <h4 className="font-medium text-white text-lg">{income.source || "Income"}</h4>
-          <p className="text-slate-400 text-sm">{format(new Date(income.date), "MMM d, yyyy")}</p>
+          <h4 className="font-medium text-foreground text-lg">{income.source || "Income"}</h4>
+          <p className="text-muted-foreground text-sm">{format(new Date(income.date), "MMM d, yyyy")}</p>
         </div>
         <div className="text-right">
-             <span className="text-emerald-400 font-bold block">
+             <span className="text-emerald-500 font-bold block">
                 <FormattedCurrency value={income.amount} />
              </span>
         </div>
       </div>
       
-      <div className="flex justify-end gap-2 mt-4 border-t border-slate-700 pt-3">
-        <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-400 hover:text-white" onClick={() => onEdit(income)}>
+      <div className="flex justify-end gap-2 mt-4 border-t border-border pt-3">
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground" onClick={() => onEdit(income)}>
           <Pencil className="h-4 w-4 mr-1" /> Edit
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-400 hover:text-red-400" onClick={() => onDelete(income.id)}>
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-red-500" onClick={() => onDelete(income.id)}>
           <Trash2 className="h-4 w-4 mr-1" /> Delete
         </Button>
       </div>

@@ -107,10 +107,10 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">{incomeToEdit ? "Edit Income" : "Add Income"}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">{incomeToEdit ? "Edit Income" : "Add Income"}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {incomeToEdit 
               ? "Update income details. This will adjust the distribution in your jars." 
               : "Add new income to distribute across your 6 Jars."}
@@ -123,16 +123,16 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Amount</FormLabel>
+                  <FormLabel className="text-foreground">Amount</FormLabel>
                   <FormControl>
                     <AmountInput
                       placeholder="0.00"
                       value={field.value}
                       onValueChange={field.onChange}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </FormControl>
-                  <FormMessage className="text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
@@ -141,11 +141,11 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
               name="source"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Source</FormLabel>
+                  <FormLabel className="text-foreground">Source</FormLabel>
                   <FormControl>
-                    <Input placeholder="Salary, Bonus, etc." {...field} className="bg-slate-800 border-slate-700 text-white" />
+                    <Input placeholder="Salary, Bonus, etc." {...field} className="bg-muted border-border text-foreground" />
                   </FormControl>
-                  <FormMessage className="text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
@@ -154,14 +154,14 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="text-slate-200">Date</FormLabel>
+                  <FormLabel className="text-foreground">Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal bg-slate-800 border-slate-700 text-white hover:bg-slate-700 hover:text-white",
+                            "w-full pl-3 text-left font-normal bg-muted border-border text-foreground hover:bg-muted/80",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -174,7 +174,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700" align="start">
+                    <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
@@ -183,11 +183,10 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
                           date > new Date() || date < new Date("1900-01-01")
                         }
                         initialFocus
-                        className="bg-slate-800 text-white"
                       />
                     </PopoverContent>
                   </Popover>
-                  <FormMessage className="text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />

@@ -23,7 +23,11 @@
     "successProfile": "Profile updated successfully",
     "successPassword": "Password changed successfully",
     "failedUpdate": "Failed to update settings",
-    "passwordMismatch": "New passwords do not match"
+    "passwordMismatch": "New passwords do not match",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System"
   },
   "Common": {
     "loading": "Loading...",

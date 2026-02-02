@@ -185,8 +185,8 @@ export default function CategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -198,22 +198,22 @@ export default function CategoriesPage() {
               {t('addCategory')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white">
+              <DialogTitle className="text-foreground">
                 {editingCategory ? t('editCategory') : t('createCategory')}
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 {editingCategory ? t('editDesc') : t('createDesc')}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{t('name')}</Label>
+                  <Label className="text-foreground">{t('name')}</Label>
                   <Input
                     placeholder={t('categoryName')}
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className="bg-muted border-border text-foreground"
                     {...register('name')}
                   />
                   {errors.name && (
@@ -222,7 +222,7 @@ export default function CategoriesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{t('icon')}</Label>
+                  <Label className="text-foreground">{t('icon')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {defaultIcons.map((icon) => (
                       <button
@@ -232,7 +232,7 @@ export default function CategoriesPage() {
                         className={`w-10 h-10 text-xl rounded-lg transition-all ${
                           selectedIcon === icon
                             ? 'bg-emerald-500/30 ring-2 ring-emerald-500'
-                            : 'bg-slate-800 hover:bg-slate-700'
+                            : 'bg-muted hover:bg-muted/80'
                         }`}
                       >
                         {icon}
@@ -243,7 +243,7 @@ export default function CategoriesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{t('color')}</Label>
+                  <Label className="text-foreground">{t('color')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {defaultColors.map((color) => (
                       <button
@@ -252,7 +252,7 @@ export default function CategoriesPage() {
                         onClick={() => setValue('color', color)}
                         className={`w-8 h-8 rounded-full transition-all ${
                           selectedColor === color
-                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900'
+                            ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background'
                             : ''
                         }`}
                         style={{ backgroundColor: color }}
@@ -263,46 +263,46 @@ export default function CategoriesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{t('linkToJar')}</Label>
+                  <Label className="text-foreground">{t('linkToJar')}</Label>
                   <Select
                     value={watch('jar_id')?.toString() || "none"}
                     onValueChange={(value) => setValue('jar_id', value === "none" ? null : parseInt(value))}
                   >
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="bg-muted border-border text-foreground">
                       <SelectValue placeholder={t('selectJar')} />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
-                      <SelectItem value="none" className="text-slate-400">
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="none" className="text-muted-foreground">
                         {t('noJar')}
                       </SelectItem>
                       {jars.map((jar) => (
-                        <SelectItem key={jar.id} value={jar.id.toString()} className="text-white">
+                        <SelectItem key={jar.id} value={jar.id.toString()} className="text-foreground">
                           {jar.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     {t('linkJarDesc')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{t('monthlyLimit')} (Optional)</Label>
+                  <Label className="text-foreground">{t('monthlyLimit')} (Optional)</Label>
                   <Input
                     type="number"
                     placeholder="e.g. 500"
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className="bg-muted border-border text-foreground"
                     {...register('monthly_limit', { valueAsNumber: true })}
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Set a budget limit for this category to get alerts.
                   </p>
                 </div>
 
                 {/* Preview */}
-                <div className="pt-4 border-t border-slate-700">
-                  <Label className="text-slate-200 mb-2 block">{t('preview')}</Label>
+                <div className="pt-4 border-t border-border">
+                  <Label className="text-foreground mb-2 block">{t('preview')}</Label>
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
                     style={{ backgroundColor: `${selectedColor}20` }}
@@ -319,7 +319,7 @@ export default function CategoriesPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setIsDialogOpen(false)}
-                  className="text-slate-400"
+                  className="text-muted-foreground"
                 >
                   {tCommon('cancel')}
                 </Button>
@@ -344,13 +344,13 @@ export default function CategoriesPage() {
 
       {/* Categories Grid */}
       {categories.length === 0 ? (
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="h-16 w-16 rounded-full bg-slate-700 flex items-center justify-center mb-4">
-              <Plus className="h-8 w-8 text-slate-400" />
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Plus className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">{t('noCategories')}</h3>
-            <p className="text-slate-400 text-center mb-4">
+            <h3 className="text-lg font-medium text-foreground mb-2">{t('noCategories')}</h3>
+            <p className="text-muted-foreground text-center mb-4">
               {t('startOrganizing')}
             </p>
             <Button
@@ -367,7 +367,7 @@ export default function CategoriesPage() {
           {categories.map((category) => (
             <Card
               key={category.id}
-              className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 hover:border-slate-600 transition-colors"
+              className="bg-gradient-to-br from-card to-muted/50 border-border hover:border-muted-foreground/30 transition-colors"
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -382,7 +382,7 @@ export default function CategoriesPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => openEditDialog(category)}
-                      className="h-8 w-8 text-slate-400 hover:text-white"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -390,7 +390,7 @@ export default function CategoriesPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => deleteCategory(category.id)}
-                      className="h-8 w-8 text-slate-400 hover:text-red-400"
+                      className="h-8 w-8 text-muted-foreground hover:text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -398,8 +398,8 @@ export default function CategoriesPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <CardTitle className="text-white mb-1">{category.name}</CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardTitle className="text-foreground mb-1">{category.name}</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   <div
                     className="inline-block w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: category.color }}
@@ -413,8 +413,8 @@ export default function CategoriesPage() {
                   {category.monthly_limit && category.monthly_limit > 0 && (
                     <div className="mt-4 space-y-2">
                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Budget</span>
-                          <span className="text-white font-medium">
+                          <span className="text-muted-foreground">Budget</span>
+                          <span className="text-foreground font-medium">
                             {formatCurrency(Number(category.monthly_limit || 0), currency, locale)}
                           </span>
                        </div>
@@ -429,7 +429,7 @@ export default function CategoriesPage() {
                            Let's update the Categories API response in backend to include 'current_month_expenses' later.
                            For now, let's visualy indicate the limit is set.
                        */}
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden border border-border">
                            <div className="h-full bg-slate-600 w-0" />
                         </div>
                     </div>

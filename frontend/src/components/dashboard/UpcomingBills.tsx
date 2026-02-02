@@ -24,22 +24,22 @@ export function UpcomingBills({ bills }: UpcomingBillsProps) {
   if (bills.length === 0) return null;
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 h-full">
+    <Card className="bg-card border-border h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white flex items-center gap-2 text-base">
-          <Calendar className="h-4 w-4 text-emerald-400" />
+        <CardTitle className="text-foreground flex items-center gap-2 text-base">
+          <Calendar className="h-4 w-4 text-emerald-500" />
           Upcoming Bills
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {bills.map((bill) => (
-            <div key={bill.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+            <div key={bill.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border">
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-slate-200">{bill.description}</span>
-                <span className="text-xs text-slate-400">Due: {new Date(bill.next_due_date).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                <span className="text-sm font-medium text-foreground">{bill.description}</span>
+                <span className="text-xs text-muted-foreground">Due: {new Date(bill.next_due_date).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US')}</span>
               </div>
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-bold text-foreground">
                 {formatCurrency(bill.amount, currency, locale)}
               </span>
             </div>

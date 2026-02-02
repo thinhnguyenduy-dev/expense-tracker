@@ -48,30 +48,30 @@ export function ProfileTab() {
   };
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">{t('profile')}</CardTitle>
-        <CardDescription className="text-slate-400">Manage your public profile information</CardDescription>
+        <CardTitle className="text-foreground">{t('profile')}</CardTitle>
+        <CardDescription className="text-muted-foreground">Manage your public profile information</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-200">{t('name')}</Label>
+            <Label htmlFor="name" className="text-foreground">{t('name')}</Label>
             <Input
                 id="name"
                 {...register('name')}
-                className="bg-slate-800 border-slate-700 text-white" 
+                className="bg-muted border-border text-foreground" 
             />
-            {errors.name && <p className="text-red-400 text-sm">{errors.name.message}</p>}
+            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-200">{t('email')}</Label>
+            <Label htmlFor="email" className="text-foreground">{t('email')}</Label>
             <Input 
                 id="email" 
                 {...register('email')} 
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-muted border-border text-foreground"
             />
-             {errors.email && <p className="text-red-400 text-sm">{errors.email.message}</p>}
+             {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           </div>
           <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

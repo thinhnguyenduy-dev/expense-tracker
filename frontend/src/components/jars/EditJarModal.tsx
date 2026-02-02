@@ -77,10 +77,10 @@ export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">{t("editJar")}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">{t("editJar")}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {t("editDesc")}
           </DialogDescription>
         </DialogHeader>
@@ -91,16 +91,11 @@ export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModa
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">{t("name", { fallback: "Name" })}</FormLabel>
-                   {/* Fallback used because "name" is common key, might be in Common or Jars need review. 
-                       Actually 'linkToJar' is inside Categories, here we are in Jars namespace.
-                       Wait, Jars namespace does NOT have "name". Common does. 
-                       I should just use "Name" or add key. 
-                       Wait, I can use Common translation too. */}
+                  <FormLabel className="text-foreground">{t("name", { fallback: "Name" })}</FormLabel>
                   <FormControl>
-                    <Input {...field} className="bg-slate-800 border-slate-700 text-white" />
+                    <Input {...field} className="bg-muted border-border text-foreground" />
                   </FormControl>
-                  <FormMessage className="text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
@@ -109,16 +104,16 @@ export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModa
               name="percentage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">{t("percentage")}</FormLabel>
+                  <FormLabel className="text-foreground">{t("percentage")}</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
                       {...field} 
                       onChange={e => field.onChange(parseFloat(e.target.value))}
-                      className="bg-slate-800 border-slate-700 text-white" 
+                      className="bg-muted border-border text-foreground" 
                     />
                   </FormControl>
-                  <FormMessage className="text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />

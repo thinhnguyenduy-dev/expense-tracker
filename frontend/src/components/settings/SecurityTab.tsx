@@ -54,42 +54,42 @@ export function SecurityTab() {
   };
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">{t('security')}</CardTitle>
-        <CardDescription className="text-slate-400">Update your password</CardDescription>
+        <CardTitle className="text-foreground">{t('security')}</CardTitle>
+        <CardDescription className="text-muted-foreground">Update your password</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
            <div className="space-y-2">
-            <Label htmlFor="current" className="text-slate-200">{t('currentPassword')}</Label>
+            <Label htmlFor="current" className="text-foreground">{t('currentPassword')}</Label>
             <Input 
                 id="current" 
                 type="password"
                 {...register('current_password')}
-                className="bg-slate-800 border-slate-700 text-white" 
+                className="bg-muted border-border text-foreground" 
             />
-            {errors.current_password && <p className="text-red-400 text-sm">{errors.current_password.message}</p>}
+            {errors.current_password && <p className="text-red-500 text-sm">{errors.current_password.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="new" className="text-slate-200">{t('newPassword')}</Label>
+            <Label htmlFor="new" className="text-foreground">{t('newPassword')}</Label>
             <Input 
                 id="new" 
                 type="password"
                 {...register('new_password')} 
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-muted border-border text-foreground"
             />
-             {errors.new_password && <p className="text-red-400 text-sm">{errors.new_password.message}</p>}
+             {errors.new_password && <p className="text-red-500 text-sm">{errors.new_password.message}</p>}
           </div>
            <div className="space-y-2">
-            <Label htmlFor="confirm" className="text-slate-200">{t('confirmPassword')}</Label>
+            <Label htmlFor="confirm" className="text-foreground">{t('confirmPassword')}</Label>
             <Input 
                 id="confirm" 
                 type="password"
                 {...register('confirm_password')} 
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-muted border-border text-foreground"
             />
-             {errors.confirm_password && <p className="text-red-400 text-sm">{errors.confirm_password.message}</p>}
+             {errors.confirm_password && <p className="text-red-500 text-sm">{errors.confirm_password.message}</p>}
           </div>
           <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

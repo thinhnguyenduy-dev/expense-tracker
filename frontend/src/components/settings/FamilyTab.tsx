@@ -37,7 +37,7 @@ export function FamilyTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
-  const t = useTranslations('Settings'); // Assuming translations exist, or fallback
+  const t = useTranslations('Settings');
 
   const {
     register: registerCreate,
@@ -117,43 +117,43 @@ export function FamilyTab() {
   if (family) {
     return (
       <div className="space-y-6">
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Users className="h-5 w-5 text-emerald-500" />
               {family.name}
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-muted-foreground">
               Manage your family settings and members.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-slate-900 border border-slate-700">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted border border-border">
               <div className="space-y-1">
-                <Label className="text-slate-400 text-xs uppercase tracking-wider">Invite Code</Label>
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Invite Code</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-mono text-emerald-400 font-bold tracking-widest">
+                  <span className="text-xl font-mono text-emerald-500 font-bold tracking-widest">
                     {family.invite_code}
                   </span>
-                  <Button variant="ghost" size="icon" onClick={copyInviteCode} className="h-8 w-8 text-slate-400 hover:text-white">
+                  <Button variant="ghost" size="icon" onClick={copyInviteCode} className="h-8 w-8 text-muted-foreground hover:text-foreground">
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-slate-500">Share this code to invite members.</p>
+                <p className="text-xs text-muted-foreground">Share this code to invite members.</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-white">Members ({family.members?.length || 0})</h3>
+              <h3 className="text-lg font-medium text-foreground">Members ({family.members?.length || 0})</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 {family.members?.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-700/50 border border-slate-700">
+                  <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
                     <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 font-medium">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-white font-medium">{member.name}</p>
-                      <p className="text-sm text-slate-400">{member.email}</p>
+                      <p className="text-foreground font-medium">{member.name}</p>
+                      <p className="text-sm text-muted-foreground">{member.email}</p>
                     </div>
                   </div>
                 ))}
@@ -167,10 +167,10 @@ export function FamilyTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Family Sharing</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Family Sharing</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Create or join a family to share expenses and budgets.
           </CardDescription>
         </CardHeader>
@@ -182,8 +182,8 @@ export function FamilyTab() {
                 <Users className="h-6 w-6 text-emerald-500" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Create a Family</h3>
-                <p className="text-sm text-slate-400 mt-1">Start a new family group and invite others.</p>
+                <h3 className="text-lg font-bold text-foreground">Create a Family</h3>
+                <p className="text-sm text-muted-foreground mt-1">Start a new family group and invite others.</p>
               </div>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
@@ -191,24 +191,24 @@ export function FamilyTab() {
                     Create Family
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-slate-900 border-slate-700">
+                <DialogContent className="bg-card border-border">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Create Family</DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogTitle className="text-foreground">Create Family</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
                       Give your family group a name.
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitCreate(onCreateFamily)}>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label className="text-slate-200">Family Name</Label>
+                        <Label className="text-foreground">Family Name</Label>
                         <Input
                           placeholder="e.g. The Smiths"
-                          className="bg-slate-800 border-slate-700 text-white"
+                          className="bg-muted border-border text-foreground"
                           {...registerCreate('name')}
                         />
                         {errorsCreate.name && (
-                          <p className="text-sm text-red-400">{errorsCreate.name.message}</p>
+                          <p className="text-sm text-red-500">{errorsCreate.name.message}</p>
                         )}
                       </div>
                     </div>
@@ -227,39 +227,39 @@ export function FamilyTab() {
             </div>
 
             {/* Join Family */}
-            <div className="p-6 rounded-xl bg-slate-700/30 border border-slate-700 flex flex-col items-center text-center space-y-4">
+            <div className="p-6 rounded-xl bg-muted/30 border border-border flex flex-col items-center text-center space-y-4">
               <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
                 <UserPlus className="h-6 w-6 text-blue-500" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Join a Family</h3>
-                <p className="text-sm text-slate-400 mt-1">Enter an invite code to join an existing group.</p>
+                <h3 className="text-lg font-bold text-foreground">Join a Family</h3>
+                <p className="text-sm text-muted-foreground mt-1">Enter an invite code to join an existing group.</p>
               </div>
               <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white">
+                  <Button variant="outline" className="w-full border-border text-foreground hover:bg-muted">
                     Join with Code
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-slate-900 border-slate-700">
+                <DialogContent className="bg-card border-border">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Join Family</DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogTitle className="text-foreground">Join Family</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
                       Enter the 6-character invite code.
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitJoin(onJoinFamily)}>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label className="text-slate-200">Invite Code</Label>
+                        <Label className="text-foreground">Invite Code</Label>
                         <Input
                           placeholder="e.g. A1B2C3"
-                          className="bg-slate-800 border-slate-700 text-white uppercase"
+                          className="bg-muted border-border text-foreground uppercase"
                           maxLength={6}
                           {...registerJoin('invite_code')}
                         />
                         {errorsJoin.invite_code && (
-                          <p className="text-sm text-red-400">{errorsJoin.invite_code.message}</p>
+                          <p className="text-sm text-red-500">{errorsJoin.invite_code.message}</p>
                         )}
                       </div>
                     </div>

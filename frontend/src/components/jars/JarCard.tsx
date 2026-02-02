@@ -14,9 +14,7 @@ export function JarCard({ jar, onEdit }: JarCardProps) {
   const locale = useLocale();
   const t = useTranslations('Jars');
   
-  // Format currency
   const formatCurrency = (amount: number) => {
-    // Note: This matches the formatting in JarsPage
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
       style: "currency",
       currency: locale === 'vi' ? 'VND' : 'USD',
@@ -24,11 +22,11 @@ export function JarCard({ jar, onEdit }: JarCardProps) {
   };
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-colors">
+    <Card className="bg-card border-border hover:bg-muted/50 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-           <CardTitle className="text-sm font-medium text-slate-200">{jar.name}</CardTitle>
-           <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-white" onClick={() => onEdit(jar)}>
+           <CardTitle className="text-sm font-medium text-foreground">{jar.name}</CardTitle>
+           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => onEdit(jar)}>
              <Pencil className="h-3 w-3" />
            </Button>
         </div>
@@ -37,8 +35,8 @@ export function JarCard({ jar, onEdit }: JarCardProps) {
         </Badge>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-white">{formatCurrency(jar.balance)}</div>
-        <p className="text-xs text-slate-400">
+        <div className="text-2xl font-bold text-foreground">{formatCurrency(jar.balance)}</div>
+        <p className="text-xs text-muted-foreground">
           {t('currentBalance')}
         </p>
       </CardContent>
