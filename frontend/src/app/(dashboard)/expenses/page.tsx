@@ -23,6 +23,7 @@ const expenseSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   date: z.date({ message: 'Date is required' }),
   category_id: z.string().min(1, 'Category is required'),
+  currency: z.string().optional(),
 });
 
 // Date range helper
@@ -157,6 +158,7 @@ export default function ExpensesPage() {
         description: data.description,
         date: format(data.date, 'yyyy-MM-dd'),
         category_id: parseInt(data.category_id),
+        currency: data.currency,
       };
 
       if (editingExpense) {

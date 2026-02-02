@@ -76,7 +76,7 @@ export interface ExpenseFormData {
   description: string;
   date: Date;
   category_id: string;
-  currency: string;
+  currency?: string;
 }
 
 interface ExpenseDialogProps {
@@ -249,7 +249,7 @@ export function ExpenseDialog({
               <div className="text-sm text-slate-400 bg-slate-800/50 p-2 rounded border border-slate-700">
                 <ConversionPreview 
                   amount={watch('amount')} 
-                  from={watch('currency')} 
+                  from={watch('currency') || 'VND'} 
                   to={user.currency} 
                 />
               </div>
