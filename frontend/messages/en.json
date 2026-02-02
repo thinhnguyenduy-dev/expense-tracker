@@ -198,7 +198,8 @@
     "linkToJar": "Link to Jar",
     "selectJar": "Select Jar",
     "noJar": "No Jar Linked",
-    "linkJarDesc": "Expenses in this category will automatically deduct from the selected Jar."
+    "linkJarDesc": "Expenses in this category will automatically deduct from the selected Jar.",
+    "monthlyLimit": "Monthly Limit"
   },
   "Goals": {
     "title": "Savings Goals",

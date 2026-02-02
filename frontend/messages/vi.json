@@ -198,7 +198,8 @@
     "linkToJar": "Liên kết với Hũ",
     "selectJar": "Chọn hũ",
     "noJar": "Không liên kết",
-    "linkJarDesc": "Chi tiêu trong danh mục này sẽ tự động trừ vào hũ đã chọn."
+    "linkJarDesc": "Chi tiêu trong danh mục này sẽ tự động trừ vào hũ đã chọn.",
+    "monthlyLimit": "Hạn mức hàng tháng"
   },
   "Goals": {
     "title": "Mục tiêu tiết kiệm",
