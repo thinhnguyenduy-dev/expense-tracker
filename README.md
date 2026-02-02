@@ -9,12 +9,15 @@ A modern full-stack expense management application built with FastAPI and Next.j
 
 ## ✨ Features
 
-- 🔐 **JWT Authentication** - Secure user registration and login
-- 📊 **Dashboard** - Visual statistics with charts (Recharts)
-- 💳 **Expense Management** - Full CRUD with filtering by date/category
-- 🏷️ **Category Management** - Custom icons and colors
-- 🎨 **Modern UI** - Dark theme with glassmorphism design
-- 📱 **Responsive** - Mobile-friendly interface
+- 🔐 **Authentication & Family** - Secure JWT auth with Family Sharing capabilities
+- 🏺 **6 Jars System** - Money management implementing T. Harv Eker's methodology
+- 📊 **Smart Dashboard** - Visual statistics, financial health analysis & Jars overview
+- 💳 **Transaction Control** - Complete Income & Expense tracking with date/category filtering
+- � **Financial Goals** - Create and track saving goals with progress visualization
+- 🔄 **Recurring Billing** - Automated tracking for subscriptions & bills with due date reminders
+- � **Multi-Currency** - Native support for multiple currencies (USD, VND, etc.)
+- 🏷️ **Customization** - Personalized categories with custom icons and colors
+- 📱 **Modern Experience** - Mobile-first design with Dark Mode & Glassmorphism UI
 
 ## 🏗️ Tech Stack
 
@@ -143,20 +146,12 @@ npm run dev
 
 Frontend runs at: http://localhost:3000
 
-## 📡 API Endpoints
+## 📡 API Documentation
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login (get JWT) |
-| GET | `/api/auth/me` | Current user info |
-| GET/POST | `/api/categories` | List/Create categories |
-| PUT/DELETE | `/api/categories/{id}` | Update/Delete category |
-| GET/POST | `/api/expenses` | List/Create expenses |
-| PUT/DELETE | `/api/expenses/{id}` | Update/Delete expense |
-| GET | `/api/dashboard` | Dashboard statistics |
+For detailed API endpoints and usage, please visit the interactive documentation:
 
-API Documentation: http://localhost:8000/docs
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ## 🎨 Screenshots
 
@@ -172,22 +167,6 @@ Filterable table with CRUD operations
 ### Categories
 Grid view with custom icons and colors
 
-## 📄 Environment Variables
-
-### Backend (.env)
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/expense_tracker
-JWT_SECRET=your-super-secret-key
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_MINUTES=1440
-BACKEND_CORS_ORIGINS=["http://localhost:3000"]
-```
-
-### Frontend (.env.local)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-## 📝 License
+##  License
 
 MIT
