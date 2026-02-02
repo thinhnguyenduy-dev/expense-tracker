@@ -86,15 +86,15 @@ export default function JarsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h2>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           {/* Actions: Add Income and Transfer */}
           <Button onClick={() => { setEditingIncome(null); setOpenIncomeModal(true); }} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
-            <Plus className="mr-2 h-4 w-4" /> {t('addIncome')}
+            <Plus className="h-4 w-4 mr-2" /> {t('addIncome')}
           </Button>
           <Button onClick={() => setOpenTransfer(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
-            <ArrowRightLeft className="mr-2 h-4 w-4" /> {t('transferFunds')}
+            <ArrowRightLeft className="h-4 w-4 mr-2" /> {t('transferFunds')}
           </Button>
         </div>
       </div>
