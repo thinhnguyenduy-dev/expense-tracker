@@ -27,6 +27,7 @@ class GoalResponse(GoalBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    user_name: Optional[str] = None  # For family mode attribution
 
     class Config:
         from_attributes = True

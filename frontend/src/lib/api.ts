@@ -177,6 +177,7 @@ export interface Goal {
   deadline?: string;
   color: string;
   created_at: string;
+  user_name?: string;  // For family mode attribution
 }
 
 export interface GoalCreate {
@@ -198,7 +199,7 @@ export interface GoalUpdate {
 }
 
 export const goalsApi = {
-  getAll: () => api.get<Goal[]>('/goals'),
+  getAll: (scope?: 'personal' | 'family') => api.get<Goal[]>('/goals', { params: { scope } }),
   
   getOne: (id: number) => api.get<Goal>(`/goals/${id}`),
   
@@ -255,6 +256,7 @@ export interface Income {
   date: string;
   user_id: number;
   created_at: string;
+  user_name?: string;  // For family mode attribution
 }
 
 export interface IncomeCreate {
@@ -264,7 +266,7 @@ export interface IncomeCreate {
 }
 
 export const incomesApi = {
-  getAll: () => api.get<Income[]>('/incomes'),
+  getAll: (scope?: 'personal' | 'family') => api.get<Income[]>('/incomes', { params: { scope } }),
   create: (data: IncomeCreate) => api.post<Income>('/incomes', data),
   update: (id: number, data: IncomeCreate) => api.put<Income>(`/incomes/${id}`, data),
   delete: (id: number) => api.delete(`/incomes/${id}`),
@@ -279,8 +281,8 @@ export interface ReportResponse {
 }
 
 export const reportsApi = {
-  get: (startDate?: string, endDate?: string) => 
-    api.get<ReportResponse>('/reports', { params: { start_date: startDate, end_date: endDate } }),
+  get: (startDate?: string, endDate?: string, scope?: 'personal' | 'family') => 
+    api.get<ReportResponse>('/reports', { params: { start_date: startDate, end_date: endDate, scope } }),
 };
 
 // Data API

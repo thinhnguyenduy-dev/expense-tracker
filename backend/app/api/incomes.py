@@ -15,10 +15,38 @@ router = APIRouter()
 
 @router.get("/", response_model=List[IncomeResponse])
 def get_incomes(
+    scope: str = "personal",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all incomes for the current user."""
+    """List all incomes for the current user or family."""
+    if scope == "family" and current_user.family_id:
+        # Get all family members
+        members = db.query(User).filter(User.family_id == current_user.family_id).all()
+        member_ids = [m.id for m in members]
+        member_names = {m.id: m.name for m in members}
+        
+        # Query incomes from all family members
+        incomes = db.query(Income).filter(
+            Income.user_id.in_(member_ids)
+        ).order_by(Income.date.desc()).all()
+        
+        # Add user_name for attribution
+        result = []
+        for income in incomes:
+            income_dict = {
+                "id": income.id,
+                "amount": income.amount,
+                "source": income.source,
+                "date": income.date,
+                "user_id": income.user_id,
+                "created_at": income.created_at,
+                "user_name": member_names.get(income.user_id)
+            }
+            result.append(income_dict)
+        return result
+    
+    # Personal scope (default)
     return db.query(Income).filter(Income.user_id == current_user.id).order_by(Income.date.desc()).all()
 
 

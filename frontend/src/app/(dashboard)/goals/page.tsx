@@ -9,7 +9,8 @@ import {
   MoreVertical, 
   Pencil, 
   Trash2,
-  PiggyBank
+  PiggyBank,
+  Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
@@ -46,8 +47,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { goalsApi, Goal } from '@/lib/api';
+import { goalsApi, authApi, Goal } from '@/lib/api';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -67,12 +70,22 @@ export default function GoalsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [savingGoal, setSavingGoal] = useState<Goal | null>(null);
+  const [scope, setScope] = useState<'personal' | 'family'>('personal');
+  const [hasFamily, setHasFamily] = useState(false);
   const t = useTranslations('Goals');
   const tCommon = useTranslations('Common');
 
+  // Check family status
+  useEffect(() => {
+    authApi.me().then(({ data }) => {
+      // @ts-ignore
+      if (data.family_id) setHasFamily(true);
+    }).catch(console.error);
+  }, []);
+
   const fetchGoals = async () => {
     try {
-      const response = await goalsApi.getAll();
+      const response = await goalsApi.getAll(scope);
       setGoals(response.data);
     } catch (error) {
       toast.error(t('failedToLoad'));
@@ -83,7 +96,7 @@ export default function GoalsPage() {
 
   useEffect(() => {
     fetchGoals();
-  }, []);
+  }, [scope]);
 
   const handleDelete = async (id: number) => {
     try {
@@ -110,10 +123,25 @@ export default function GoalsPage() {
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
           <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="bg-emerald-500 hover:bg-emerald-600">
-          <Plus className="h-4 w-4 mr-2" />
-          {t('newGoal')}
-        </Button>
+        <div className="flex items-center gap-4">
+          {hasFamily && (
+            <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
+              <Users className="h-4 w-4 text-slate-400" />
+              <Switch
+                id="family-mode-goals"
+                checked={scope === 'family'}
+                onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
+              />
+              <Label htmlFor="family-mode-goals" className="text-white cursor-pointer select-none">
+                View Family
+              </Label>
+            </div>
+          )}
+          <Button onClick={() => setIsCreateOpen(true)} className="bg-emerald-500 hover:bg-emerald-600">
+            <Plus className="h-4 w-4 mr-2" />
+            {t('newGoal')}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

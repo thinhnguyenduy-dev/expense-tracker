@@ -266,4 +266,10 @@
     "confirmDelete": "Are you sure you want to delete this recurring expense?",
     "selectDay": "Select day"
   }
-,"Reports": { "title": "Reports", "spendingTrend": "Spending Trend", "categoryBreakdown": "Category Breakdown", "details": "Details", "noData": "No data for selected period" }}
+,"Reports": { "title": "Reports", "spendingTrend": "Spending Trend", "categoryBreakdown": "Category Breakdown", "details": "Details", "noData": "No data for selected period" },
+  "Family": {
+    "viewFamily": "View Family",
+    "personalOnly": "Personal Only",
+    "by": "by {name}"
+  }
+}

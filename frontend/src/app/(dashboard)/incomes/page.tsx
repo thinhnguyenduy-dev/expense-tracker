@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, X, CircleDollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, CircleDollarSign, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useTranslations, useLocale } from 'next-intl';
@@ -17,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { incomesApi, Income } from '@/lib/api';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { incomesApi, authApi, Income } from '@/lib/api';
 import { IncomeModal } from '@/components/incomes/IncomeModal';
 import { cn } from '@/lib/utils';
 import { IncomeCard } from '@/components/incomes/IncomeCard';
@@ -35,15 +37,25 @@ export default function IncomesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState<Income | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [scope, setScope] = useState<'personal' | 'family'>('personal');
+  const [hasFamily, setHasFamily] = useState(false);
   
   const t = useTranslations('Incomes');
   const tCommon = useTranslations('Common');
   const locale = useLocale();
 
+  // Check family status
+  useEffect(() => {
+    authApi.me().then(({ data }) => {
+      // @ts-ignore
+      if (data.family_id) setHasFamily(true);
+    }).catch(console.error);
+  }, []);
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const response = await incomesApi.getAll();
+      const response = await incomesApi.getAll(scope);
       setIncomes(response.data);
     } catch (error) {
       console.error(error);
@@ -55,7 +67,7 @@ export default function IncomesPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [scope]);
 
   const handleOpenCreate = () => {
     setIncomeToEdit(null);
@@ -101,13 +113,28 @@ export default function IncomesPage() {
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
           <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
-        <Button
-          onClick={handleOpenCreate}
-          className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t('addIncome')}
-        </Button>
+        <div className="flex items-center gap-4">
+          {hasFamily && (
+            <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
+              <Users className="h-4 w-4 text-slate-400" />
+              <Switch
+                id="family-mode-incomes"
+                checked={scope === 'family'}
+                onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
+              />
+              <Label htmlFor="family-mode-incomes" className="text-white cursor-pointer select-none">
+                View Family
+              </Label>
+            </div>
+          )}
+          <Button
+            onClick={handleOpenCreate}
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {t('addIncome')}
+          </Button>
+        </div>
       </div>
 
       {/* Stats & Search */}
@@ -195,6 +222,7 @@ export default function IncomesPage() {
                 <TableRow className="border-slate-700 hover:bg-slate-800">
                   <TableHead className="text-slate-400">{tCommon('date')}</TableHead>
                   <TableHead className="text-slate-400">{t('source')}</TableHead>
+                  {scope === 'family' && <TableHead className="text-slate-400">By</TableHead>}
                   <TableHead className="text-slate-400 text-right">{tCommon('amount')}</TableHead>
                   <TableHead className="text-slate-400 text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
@@ -211,6 +239,11 @@ export default function IncomesPage() {
                     <TableCell className="text-white font-medium">
                       {income.source}
                     </TableCell>
+                    {scope === 'family' && (
+                      <TableCell className="text-slate-300">
+                        {income.user_name || '—'}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right font-medium text-emerald-400">
                       +{formatCurrency(Number(income.amount), locale)}
                     </TableCell>

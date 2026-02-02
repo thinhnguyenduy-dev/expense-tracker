@@ -14,10 +14,40 @@ router = APIRouter(
 
 @router.get("/", response_model=List[GoalResponse])
 def get_goals(
+    scope: str = "personal",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all goals for the current user."""
+    """List all goals for the current user or family."""
+    if scope == "family" and current_user.family_id:
+        # Get all family members
+        members = db.query(User).filter(User.family_id == current_user.family_id).all()
+        member_ids = [m.id for m in members]
+        member_names = {m.id: m.name for m in members}
+        
+        # Query goals from all family members
+        goals = db.query(Goal).filter(Goal.user_id.in_(member_ids)).all()
+        
+        # Add user_name for attribution
+        result = []
+        for goal in goals:
+            goal_dict = {
+                "id": goal.id,
+                "name": goal.name,
+                "description": goal.description,
+                "target_amount": goal.target_amount,
+                "current_amount": goal.current_amount,
+                "deadline": goal.deadline,
+                "color": goal.color,
+                "user_id": goal.user_id,
+                "created_at": goal.created_at,
+                "updated_at": goal.updated_at,
+                "user_name": member_names.get(goal.user_id)
+            }
+            result.append(goal_dict)
+        return result
+    
+    # Personal scope (default)
     return db.query(Goal).filter(Goal.user_id == current_user.id).all()
 
 @router.post("/", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)

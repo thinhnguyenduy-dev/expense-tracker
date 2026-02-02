@@ -22,6 +22,7 @@ router = APIRouter()
 def get_reports(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    scope: str = "personal",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -31,13 +32,20 @@ def get_reports(
         end_date = date.today()
     if not start_date:
         start_date = end_date - timedelta(days=29)
+    
+    # Determine user filter based on scope
+    if scope == "family" and current_user.family_id:
+        members = db.query(User).filter(User.family_id == current_user.family_id).all()
+        user_ids = [m.id for m in members]
+    else:
+        user_ids = [current_user.id]
         
     # --- 1. Daily Expenses Trend ---
     daily_query = db.query(
         Expense.date,
         func.sum(Expense.amount).label('total')
     ).filter(
-        Expense.user_id == current_user.id,
+        Expense.user_id.in_(user_ids),
         Expense.date >= start_date,
         Expense.date <= end_date
     ).group_by(
@@ -68,7 +76,7 @@ def get_reports(
     ).join(
         Expense, Expense.category_id == Category.id
     ).filter(
-        Expense.user_id == current_user.id,
+        Expense.user_id.in_(user_ids),
         Expense.date >= start_date,
         Expense.date <= end_date
     ).group_by(

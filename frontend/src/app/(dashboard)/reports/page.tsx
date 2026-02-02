@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, subDays } from 'date-fns';
-import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import {
   LineChart,
@@ -27,7 +27,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { reportsApi, ReportResponse } from '@/lib/api';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { reportsApi, authApi, ReportResponse } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function ReportsPage() {
@@ -37,10 +39,20 @@ export default function ReportsPage() {
     from: subDays(new Date(), 30),
     to: new Date(),
   });
+  const [scope, setScope] = useState<'personal' | 'family'>('personal');
+  const [hasFamily, setHasFamily] = useState(false);
   
   const t = useTranslations('Reports');
   const tCommon = useTranslations('Common');
   const locale = useLocale();
+
+  // Check family status
+  useEffect(() => {
+    authApi.me().then(({ data }) => {
+      // @ts-ignore
+      if (data.family_id) setHasFamily(true);
+    }).catch(console.error);
+  }, []);
 
   const fetchReports = async () => {
     if (!date?.from || !date?.to) return;
@@ -49,7 +61,7 @@ export default function ReportsPage() {
     try {
       const start = format(date.from, 'yyyy-MM-dd');
       const end = format(date.to, 'yyyy-MM-dd');
-      const response = await reportsApi.get(start, end);
+      const response = await reportsApi.get(start, end, scope);
       setData(response.data);
     } catch (error) {
       console.error(error);
@@ -60,7 +72,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchReports();
-  }, [date]);
+  }, [date, scope]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -89,7 +101,21 @@ export default function ReportsPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h2>
         
-        <Popover>
+        <div className="flex items-center gap-4">
+          {hasFamily && (
+            <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
+              <Users className="h-4 w-4 text-slate-400" />
+              <Switch
+                id="family-mode-reports"
+                checked={scope === 'family'}
+                onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
+              />
+              <Label htmlFor="family-mode-reports" className="text-white cursor-pointer select-none">
+                View Family
+              </Label>
+            </div>
+          )}
+          <Popover>
           <PopoverTrigger asChild>
             <Button
               id="date"
@@ -126,6 +152,7 @@ export default function ReportsPage() {
             />
           </PopoverContent>
         </Popover>
+        </div>
       </div>
 
       {loading ? (

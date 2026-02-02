@@ -266,4 +266,10 @@
     "confirmDelete": "Bạn có chắc chắn muốn xóa khoản chi định kỳ này không?",
     "selectDay": "Chọn ngày"
   }
-,"Reports": { "title": "Báo cáo", "spendingTrend": "Xu hướng chi tiêu", "categoryBreakdown": "Phân bổ danh mục", "details": "Chi tiết", "noData": "Không có dữ liệu cho giai đoạn này" }}
+,"Reports": { "title": "Báo cáo", "spendingTrend": "Xu hướng chi tiêu", "categoryBreakdown": "Phân bổ danh mục", "details": "Chi tiết", "noData": "Không có dữ liệu cho giai đoạn này" },
+  "Family": {
+    "viewFamily": "Xem gia đình",
+    "personalOnly": "Chỉ cá nhân",
+    "by": "bởi {name}"
+  }
+}
