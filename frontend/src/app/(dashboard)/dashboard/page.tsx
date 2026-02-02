@@ -22,7 +22,7 @@ import {
   Legend,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { dashboardApi } from '@/lib/api';
+import { dashboardApi, recurringExpensesApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
 import { Progress } from '@/components/ui/progress';
@@ -54,7 +54,7 @@ import { authApi } from '@/lib/api';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { UpcomingBills } from '@/components/dashboard/UpcomingBills';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Bell, ArrowRight } from "lucide-react";
@@ -63,6 +63,7 @@ import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scope, setScope] = useState<'personal' | 'family'>('personal');
   const [hasFamily, setHasFamily] = useState(false);
@@ -87,11 +88,35 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const response = await dashboardApi.getStats(scope);
-        setStats(response.data);
+        const [statsRes, billsRes] = await Promise.all([
+          dashboardApi.getStats(scope),
+          recurringExpensesApi.getAll()
+        ]);
+        
+        setStats(statsRes.data);
+
+        // Process bills
+        const data = billsRes.data;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+
+        const activeBills = data.filter((bill: any) => {
+              if (!bill.is_active) return false;
+              // Check computed property or calculate if needed
+              // Assuming API returns next_due_date
+              if (!bill.next_due_date) return false;
+              const dueDate = new Date(bill.next_due_date);
+              dueDate.setHours(0, 0, 0, 0);
+              return dueDate >= today && dueDate <= nextWeek;
+        });
+        activeBills.sort((a: any, b: any) => new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime());
+        setUpcomingBills(activeBills);
+
       } catch {
         toast.error(t('failedToLoad'));
       } finally {
@@ -99,7 +124,7 @@ export default function DashboardPage() {
       }
     };
 
-    fetchStats();
+    fetchData();
   }, [t, scope]);
 
   if (isLoading) {
@@ -165,11 +190,13 @@ export default function DashboardPage() {
       )}
 
       {/* Upcoming Bills and Stats Cards */}
-      <div className="grid gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-1">
-          <UpcomingBills />
-        </div>
-        <div className="lg:col-span-3 grid gap-4 md:grid-cols-3">
+      <div className={cn("grid gap-6", upcomingBills.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+        {upcomingBills.length > 0 && (
+          <div className="lg:col-span-1">
+            <UpcomingBills bills={upcomingBills} />
+          </div>
+        )}
+        <div className={cn("grid gap-4 md:grid-cols-3", upcomingBills.length > 0 ? "lg:col-span-3" : "col-span-3")}>
         <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">{t('totalExpenses')}</CardTitle>
