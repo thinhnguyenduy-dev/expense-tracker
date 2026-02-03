@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Download, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usersApi } from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   AlertDialog,
@@ -23,14 +24,21 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
+import { Progress } from "@/components/ui/progress";
+
 export function DataTab() {
   const t = useTranslations('Settings');
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
   const { logout } = useAuthStore();
   const router = useRouter();
+  const isSubmittingRef = useRef(false);
 
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
+    if (isSubmittingRef.current || exporting) return;
+    isSubmittingRef.current = true;
     setExporting(true);
     try {
       const response = await import('@/lib/api').then(mod => mod.dataApi.exportData());
@@ -51,10 +59,43 @@ export function DataTab() {
       toast.error('Failed to export data');
     } finally {
       setExporting(false);
+      isSubmittingRef.current = false;
+    }
+  }, [exporting]);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isSubmittingRef.current) return;
+    
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    isSubmittingRef.current = true;
+    setImporting(true);
+    setProgress(0);
+    const toastId = toast.loading('Importing data...');
+    
+    try {
+      const { dataApi } = await import('@/lib/api');
+      const response = await dataApi.importData(file, (percent) => {
+        setProgress(percent);
+      });
+      toast.success(response.data.message);
+      // Reset input
+      e.target.value = '';
+    } catch (error) {
+      console.error(error);
+      toast.error(getApiErrorMessage(error, 'Failed to import data'));
+    } finally {
+      toast.dismiss(toastId);
+      setImporting(false);
+      setProgress(0);
+      isSubmittingRef.current = false;
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = useCallback(async () => {
+    if (isSubmittingRef.current || deleting) return;
+    isSubmittingRef.current = true;
     setDeleting(true);
     try {
       await usersApi.deleteAccount();
@@ -66,28 +107,78 @@ export function DataTab() {
       toast.error('Failed to delete account');
     } finally {
       setDeleting(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [deleting, logout, router]);
 
   return (
     <div className="space-y-6">
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">{t('exportData')}</CardTitle>
-          <CardDescription className="text-muted-foreground">{t('exportDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-           <Button 
-                onClick={handleExport} 
-                disabled={exporting}
-                variant="outline"
-                className="border-border text-foreground hover:bg-muted"
-            >
-                {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                {t('download')}
-           </Button>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Export Card */}
+        <Card className="bg-card border-border">
+            <CardHeader>
+            <CardTitle className="text-foreground">{t('exportData')}</CardTitle>
+            <CardDescription className="text-muted-foreground">{t('exportDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <Button 
+                    onClick={handleExport} 
+                    disabled={exporting}
+                    variant="outline"
+                    className="border-border text-foreground hover:bg-muted w-full sm:w-auto"
+                >
+                    {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    {t('download')}
+            </Button>
+            </CardContent>
+        </Card>
+
+        {/* Import Card */}
+        <Card className="bg-card border-border">
+            <CardHeader>
+            <CardTitle className="text-foreground">Import Data</CardTitle>
+            <CardDescription className="text-muted-foreground">
+                Import from CSV. Supported types:
+                <br />
+                - <b>Jars</b>: name, percentage, balance
+                <br />
+                - <b>Categories</b>: name, icon, color, monthly_limit, jar
+                <br />
+                - <b>Goals</b>: name, target_amount, current_amount, deadline, color
+                <br />
+                - <b>Expenses</b>: date, amount, description, category
+                <br />
+                - <b>Incomes</b>: date, amount, source
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+            <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <input
+                        type="file"
+                        accept=".csv"
+                        id="file-upload"
+                        className="hidden"
+                        onChange={handleImport}
+                        disabled={importing}
+                    />
+                    <Button asChild variant="outline" className={`border-border text-foreground hover:bg-muted w-full sm:w-auto ${importing ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}>
+                        <label htmlFor={importing ? undefined : "file-upload"}>
+                            {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4 rotate-180" />}
+                            {importing ? 'Importing...' : 'Select CSV File'}
+                        </label>
+                    </Button>
+                </div>
+                {importing && (
+                    <div className="space-y-1">
+                        <Progress value={progress} className="h-2" />
+                        <p className="text-xs text-muted-foreground text-right">{progress}%</p>
+                    </div>
+                )}
+            </div>
+            </CardContent>
+        </Card>
+      </div>
 
       <Card className="bg-red-500/5 dark:bg-red-900/10 border-red-500/20 dark:border-red-900/30">
         <CardHeader>
@@ -120,55 +211,6 @@ export function DataTab() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Import Data</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Import your expenses or incomes from a CSV file.
-            Required headers:
-            <br />
-            - Expenses: date, amount, description, category
-            <br />
-            - Incomes: date, amount, description, source
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-           <div className="flex items-center gap-4">
-              <input
-                type="file"
-                accept=".csv"
-                id="file-upload"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  
-                  const toastId = toast.loading('Importing data...');
-                  try {
-                    const { dataApi } = await import('@/lib/api');
-                    const response = await dataApi.importData(file);
-                    toast.success(response.data.message);
-                    // Reset input
-                    e.target.value = '';
-                  } catch (error) {
-                    console.error(error);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    toast.error((error as any)?.response?.data?.detail || 'Failed to import data');
-                  } finally {
-                    toast.dismiss(toastId);
-                  }
-                }}
-              />
-              <Button asChild variant="outline" className="border-border text-foreground hover:bg-muted cursor-pointer">
-                <label htmlFor="file-upload">
-                    <Download className="mr-2 h-4 w-4 rotate-180" />
-                    Select CSV File
-                </label>
-              </Button>
-           </div>
         </CardContent>
       </Card>
     </div>

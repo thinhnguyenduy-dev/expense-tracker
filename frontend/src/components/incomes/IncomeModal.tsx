@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,6 +51,7 @@ interface IncomeModalProps {
 
 export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: IncomeModalProps) {
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,7 +78,16 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
     }
   }, [incomeToEdit, form, open]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
+    console.log('onSubmit called', { isSubmitting: isSubmittingRef.current, loading });
+    // Double-check guard - if already submitting, ignore
+    if (isSubmittingRef.current || loading) {
+      console.log('onSubmit blocked');
+      return;
+    }
+    isSubmittingRef.current = true;
+    console.log('onSubmit processing', { values });
+    
     try {
       setLoading(true);
       const data = {
@@ -95,18 +105,27 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
       }
       
       form.reset();
-      onSuccess();
       onOpenChange(false);
+      // Call onSuccess after modal is closed to prevent race conditions
+      setTimeout(() => onSuccess(), 100);
     } catch (error) {
       toast.error(incomeToEdit ? "Failed to update income" : "Failed to add income");
       console.error(error);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
+      console.log('onSubmit finished');
     }
-  };
+  }, [incomeToEdit, form, onSuccess, onOpenChange, loading]);
+
+  // Prevent dialog close during submission
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (loading) return; // Don't allow closing while submitting
+    onOpenChange(open);
+  }, [loading, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">{incomeToEdit ? "Edit Income" : "Add Income"}</DialogTitle>
@@ -118,6 +137,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={loading} className="space-y-4">
             <FormField
               control={form.control}
               name="amount"
@@ -190,12 +210,14 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {incomeToEdit ? "Save Changes" : "Add Income"}
               </Button>
             </DialogFooter>
+            </fieldset>
           </form>
         </Form>
       </DialogContent>

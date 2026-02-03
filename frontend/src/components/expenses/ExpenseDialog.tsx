@@ -159,6 +159,7 @@ export function ExpenseDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
+          <fieldset disabled={isSubmitting} className="contents">
           <div className="space-y-4 py-4">
             {/* Scan Receipt Button (Only for new expenses) */}
             {!editingExpense && (
@@ -320,6 +321,7 @@ export function ExpenseDialog({
               )}
             </div>
           </div>
+
           <DialogFooter>
             <Button
               type="button"
@@ -343,6 +345,7 @@ export function ExpenseDialog({
               )}
             </Button>
           </DialogFooter>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

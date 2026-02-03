@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   Plus, 
   Target, 
@@ -10,7 +10,8 @@ import {
   Pencil, 
   Trash2,
   PiggyBank,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
@@ -316,13 +317,16 @@ function GoalDialog({
   const tCommon = useTranslations('Common');
   const locale = useLocale();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: goal?.name || '',
       description: goal?.description || '',
-      target_amount: goal?.target_amount || 0,
-      current_amount: goal?.current_amount || 0,
+      target_amount: Number(goal?.target_amount) || 0,
+      current_amount: Number(goal?.current_amount) || 0,
       deadline: goal?.deadline ? new Date(goal.deadline) : undefined,
       color: goal?.color || '#10B981',
     },
@@ -334,15 +338,18 @@ function GoalDialog({
       form.reset({
         name: goal?.name || '',
         description: goal?.description || '',
-        target_amount: goal?.target_amount || 0,
-        current_amount: goal?.current_amount || 0,
+        target_amount: Number(goal?.target_amount) || 0,
+        current_amount: Number(goal?.current_amount) || 0,
         deadline: goal?.deadline ? new Date(goal.deadline) : undefined,
         color: goal?.color || '#10B981',
       });
     }
   }, [open, goal, form]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = useCallback(async (values: FormValues) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
     try {
       const data = {
         ...values,
@@ -359,14 +366,23 @@ function GoalDialog({
         result = await goalsApi.create(data);
         toast.success(t('successCreate'));
       }
-      onSuccess(result.data);
+      onOpenChange(false);
+      setTimeout(() => onSuccess(result.data), 100);
     } catch (error) {
       toast.error(goal ? t('failedSave') : t('failedSave'));
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [goal, onSuccess, onOpenChange, isSubmitting, t]);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (isSubmitting) return;
+    onOpenChange(open);
+  }, [isSubmitting, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
           <DialogTitle>{goal ? t('editGoal') : t('createGoal')}</DialogTitle>
@@ -376,6 +392,7 @@ function GoalDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={isSubmitting} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -398,19 +415,13 @@ function GoalDialog({
                   <FormItem>
                     <FormLabel>{t('targetAmount')}</FormLabel>
                     <FormControl>
-                      <Controller
-                        control={form.control}
-                        name="target_amount"
-                        render={({ field }) => (
-                          <AmountInput 
-                            placeholder="50000000" 
-                            className="bg-muted border-border text-foreground" 
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
-                            currency={locale === 'vi' ? 'VND' : 'USD'}
-                          />
-                        )}
+                      <AmountInput 
+                        placeholder="50000000" 
+                        className="bg-muted border-border text-foreground" 
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
+                        currency={locale === 'vi' ? 'VND' : 'USD'}
                       />
                     </FormControl>
                     <FormMessage />
@@ -424,20 +435,14 @@ function GoalDialog({
                   <FormItem>
                     <FormLabel>{t('currentAmount')}</FormLabel>
                     <FormControl>
-                      <Controller
-                          control={form.control}
-                          name="current_amount"
-                          render={({ field }) => (
-                            <AmountInput 
-                              placeholder="0" 
-                              className="bg-muted border-border text-foreground" 
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
-                              currency={locale === 'vi' ? 'VND' : 'USD'}
-                            />
-                          )}
-                        />
+                      <AmountInput 
+                        placeholder="0" 
+                        className="bg-muted border-border text-foreground" 
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        locale={locale === 'vi' ? 'vi-VN' : 'en-US'}
+                        currency={locale === 'vi' ? 'VND' : 'USD'}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -502,8 +507,10 @@ function GoalDialog({
               )}
             />
 
+            </fieldset>
             <DialogFooter>
-              <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto">
+              <Button type="submit" disabled={isSubmitting} className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {goal ? t('editGoal') : t('createGoal')}
               </Button>
             </DialogFooter>
@@ -526,29 +533,44 @@ function AddSavingsDialog({
   goal: Goal;
 }) {
   const [amount, setAmount] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const t = useTranslations('Goals');
   const locale = useLocale();
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     const addAmount = amount;
     if (!addAmount || addAmount <= 0) {
       toast.error('Please enter a valid amount');
+      isSubmittingRef.current = false;
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const newAmount = Number(goal.current_amount) + addAmount;
       const result = await goalsApi.update(goal.id, { current_amount: newAmount });
       toast.success(t('successAddSavings', { amount: new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: locale === 'vi' ? 'VND' : 'USD' }).format(addAmount), name: goal.name }));
-      onSuccess(result.data);
+      onOpenChange(false);
+      setTimeout(() => onSuccess(result.data), 100);
     } catch (error) {
       toast.error(t('failedAddSavings'));
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [amount, goal, onSuccess, onOpenChange, isSubmitting, t, locale]);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (isSubmitting) return;
+    onOpenChange(open);
+  }, [isSubmitting, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
           <DialogTitle>{t('addSavingsTo', { name: goal.name })}</DialogTitle>
@@ -557,6 +579,7 @@ function AddSavingsDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <fieldset disabled={isSubmitting} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('amountToAdd')}</label>
             <AmountInput 
@@ -570,8 +593,10 @@ function AddSavingsDialog({
               currency={locale === 'vi' ? 'VND' : 'USD'}
             />
           </div>
+          </fieldset>
           <DialogFooter>
-            <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 w-full">
+            <Button type="submit" disabled={isSubmitting} className="bg-emerald-500 hover:bg-emerald-600 w-full">
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {t('confirmAdd')}
             </Button>
           </DialogFooter>

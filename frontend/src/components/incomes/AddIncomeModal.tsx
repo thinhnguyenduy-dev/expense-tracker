@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -90,6 +90,7 @@ interface AddIncomeModalProps {
 
 export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModalProps) {
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const { user } = useAuthStore();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -109,7 +110,11 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
     }
   }, [user?.currency, form]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
+    // Double-check guard - if already submitting, ignore
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
+    
     try {
       setLoading(true);
       await incomesApi.create({
@@ -120,18 +125,26 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
       });
       toast.success("Income added successfully");
       form.reset();
-      onSuccess();
       onOpenChange(false);
+      // Call onSuccess after modal is closed to prevent race conditions
+      setTimeout(() => onSuccess(), 100);
     } catch (error) {
       toast.error("Failed to add income");
       console.error(error);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [form, onSuccess, onOpenChange, loading]);
+
+  // Prevent dialog close during submission
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (loading) return;
+    onOpenChange(open);
+  }, [loading, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700">
         <DialogHeader>
           <DialogTitle className="text-white">Add Income</DialogTitle>
@@ -141,6 +154,7 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={loading} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -238,12 +252,14 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Income
               </Button>
             </DialogFooter>
+            </fieldset>
           </form>
         </Form>
       </DialogContent>

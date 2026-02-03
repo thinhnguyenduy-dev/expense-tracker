@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { recurringExpensesApi, categoriesApi } from "@/lib/api"
 import { useTranslations, useLocale } from 'next-intl';
@@ -15,7 +15,7 @@ import { AmountInput } from "@/components/ui/amount-input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit, Plus, Play } from "lucide-react"
+import { Trash2, Edit, Plus, Play, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface RecurringExpense {
@@ -63,6 +63,8 @@ export default function RecurringExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
   
   const [formData, setFormData] = useState({
     category_id: "",
@@ -95,9 +97,11 @@ export default function RecurringExpensesPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    if (isSubmittingRef.current || isSubmitting) return
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: Record<string, any> = {
@@ -131,12 +135,20 @@ export default function RecurringExpensesPage() {
 
       setDialogOpen(false)
       resetForm()
-      fetchData()
+      setTimeout(() => fetchData(), 100)
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       toast.error((error as any)?.response?.data?.detail || t('failedSave'))
+    } finally {
+      setIsSubmitting(false)
+      isSubmittingRef.current = false
     }
-  }
+  }, [formData, editingId, t, isSubmitting])
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (isSubmitting) return;
+    setDialogOpen(open);
+  }, [isSubmitting]);
 
   const handleDelete = async (id: number) => {
     if (!confirm(t('confirmDelete'))) return
@@ -151,6 +163,8 @@ export default function RecurringExpensesPage() {
   }
 
   const handleCreateExpense = async (id: number) => {
+    if (isSubmittingRef.current) return
+    isSubmittingRef.current = true
     try {
       const response = await recurringExpensesApi.createExpense(id)
       toast.success(t('successExpenseCreated', { date: response.data.date }))
@@ -221,8 +235,12 @@ export default function RecurringExpensesPage() {
           {recurringExpenses.some(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date()) && (
             <Button 
                 onClick={async () => {
-                    const due = recurringExpenses.filter(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date());
-                    let successCount = 0;
+                    if (isSubmittingRef.current) return;
+                    isSubmittingRef.current = true;
+                    
+                    try {
+                        const due = recurringExpenses.filter(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date());
+                        let successCount = 0;
                     const toastId = toast.loading(t('processing', { count: due.length }));
                     
                     for (const item of due) {
@@ -235,11 +253,14 @@ export default function RecurringExpensesPage() {
                     }
                     
                     toast.dismiss(toastId);
-                    if (successCount > 0) {
-                        toast.success(t('successProcessAll', { count: successCount }));
-                        fetchData();
-                    } else {
-                        toast.error(t('failedProcessAll'));
+                        if (successCount > 0) {
+                            toast.success(t('successProcessAll', { count: successCount }));
+                            fetchData();
+                        } else {
+                            toast.error(t('failedProcessAll'));
+                        }
+                    } finally {
+                        isSubmittingRef.current = false;
                     }
                 }}
                 variant="default"
@@ -261,7 +282,9 @@ export default function RecurringExpensesPage() {
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="max-w-md bg-card border-border">
+          <DialogContent className="max-w-md bg-card border-border" onInteractOutside={(e) => {
+            if (isSubmitting) e.preventDefault();
+          }}>
             <DialogHeader>
               <DialogTitle className="text-foreground">{editingId ? t('editTemplate') : t('createTemplate')}</DialogTitle>
               <DialogDescription className="text-muted-foreground">
@@ -270,6 +293,7 @@ export default function RecurringExpensesPage() {
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4">
+              <fieldset disabled={isSubmitting} className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-foreground">{tCommon('category')}</Label>
                 <Select
@@ -388,9 +412,11 @@ export default function RecurringExpensesPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
+              <Button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {editingId ? t('update') : t('create')}
               </Button>
+              </fieldset>
             </form>
           </DialogContent>
         </Dialog>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -72,6 +72,7 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const t = useTranslations('Categories');
   const tCommon = useTranslations('Common');
   const locale = useLocale();
@@ -131,7 +132,9 @@ export default function CategoriesPage() {
     setIsDialogOpen(true);
   };
 
-  const onSubmit = async (data: CategoryFormData) => {
+  const onSubmit = useCallback(async (data: CategoryFormData) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       const apiData = {
@@ -150,14 +153,20 @@ export default function CategoriesPage() {
         toast.success(t('successCreate'));
       }
       setIsDialogOpen(false);
-      fetchCategories();
+      setTimeout(() => fetchCategories(), 100);
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
       toast.error(axiosError.response?.data?.detail || t('failedSave'));
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [editingCategory, t]);
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (isSubmitting) return;
+    setIsDialogOpen(open);
+  }, [isSubmitting]);
 
   const deleteCategory = async (id: number) => {
     if (!confirm(t('confirmDelete'))) return;
@@ -188,7 +197,7 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
           <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button
               onClick={openCreateDialog}
@@ -208,7 +217,7 @@ export default function CategoriesPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="space-y-4 py-4">
+              <fieldset disabled={isSubmitting} className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label className="text-foreground">{t('name')}</Label>
                   <Input
@@ -313,7 +322,7 @@ export default function CategoriesPage() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </fieldset>
               <DialogFooter>
                 <Button
                   type="button"

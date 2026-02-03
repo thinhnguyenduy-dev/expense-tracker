@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ import { ExpenseDialog, Category, ExpenseFormData } from '@/components/expenses/
 import { ExpenseFilters, DatePreset } from '@/components/expenses/ExpenseFilters';
 import { ExpenseTable } from '@/components/expenses/ExpenseTable';
 import { ExpenseBulkActions } from '@/components/expenses/ExpenseBulkActions';
+import { ImportExpensesModal } from '@/components/expenses/import-expenses-modal';
 
 // Zod schema
 const expenseSchema = z.object({
@@ -55,6 +56,7 @@ export default function ExpensesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [scope, setScope] = useState<'personal' | 'family'>('personal');
   const [hasFamily, setHasFamily] = useState(false);
   
@@ -150,7 +152,9 @@ export default function ExpensesPage() {
     setIsDialogOpen(true);
   };
 
-  const onSubmit = async (data: ExpenseFormData) => {
+  const onSubmit = useCallback(async (data: ExpenseFormData) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       const payload = {
@@ -169,17 +173,25 @@ export default function ExpensesPage() {
         toast.success(t('successAdd'));
       }
       setIsDialogOpen(false);
-      fetchData();
+      setTimeout(() => fetchData(), 100);
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
       toast.error(axiosError.response?.data?.detail || t('failedSave'));
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [editingExpense, t, fetchData, isSubmitting]);
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (isSubmitting) return;
+    setIsDialogOpen(open);
+  }, [isSubmitting]);
 
   const deleteExpense = async (id: number) => {
     if (!confirm(t('confirmDelete'))) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     try {
       await expensesApi.delete(id);
       toast.success(t('successDelete'));
@@ -187,6 +199,8 @@ export default function ExpensesPage() {
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
       toast.error(axiosError.response?.data?.detail || t('failedDelete'));
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -203,6 +217,8 @@ export default function ExpensesPage() {
 
   const handleBulkDelete = async () => {
     if (!confirm(t('confirmBulkDelete', { count: selectedIds.size }))) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsBulkDeleting(true);
     try {
       await expensesApi.bulkDelete(Array.from(selectedIds));
@@ -214,10 +230,13 @@ export default function ExpensesPage() {
       toast.error(axiosError.response?.data?.detail || t('failedBulkDelete'));
     } finally {
       setIsBulkDeleting(false);
+      isSubmittingRef.current = false;
     }
   };
 
   const handleBulkCategoryChange = async (categoryId: string) => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsBulkUpdating(true);
     try {
       await expensesApi.bulkUpdate(Array.from(selectedIds), parseInt(categoryId));
@@ -230,6 +249,7 @@ export default function ExpensesPage() {
       toast.error(axiosError.response?.data?.detail || t('failedBulkUpdate'));
     } finally {
       setIsBulkUpdating(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -268,13 +288,16 @@ export default function ExpensesPage() {
           <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
           <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
-        <Button
-          onClick={openCreateDialog}
-          className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t('addExpense')}
-        </Button>
+        <div className="flex gap-2">
+          <ImportExpensesModal onSuccess={fetchData} />
+          <Button
+            onClick={openCreateDialog}
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {t('addExpense')}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -357,7 +380,7 @@ export default function ExpensesPage() {
       {/* Dialog */}
       <ExpenseDialog
         isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         form={form}
         categories={categories}
         editingExpense={editingExpense}

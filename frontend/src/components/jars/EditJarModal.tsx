@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -39,6 +39,7 @@ interface EditJarModalProps {
 
 export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModalProps) {
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const t = useTranslations("Jars");
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -58,25 +59,32 @@ export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModa
     }
   }, [jar, form]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!jar) return;
+  const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
+    if (!jar || isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
 
     try {
       setLoading(true);
       await jarsApi.update(jar.id, values);
       toast.success(t("successUpdate"));
-      onSuccess();
       onOpenChange(false);
+      setTimeout(() => onSuccess(), 100);
     } catch (error) {
       toast.error(t("failedUpdate"));
       console.error(error);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [jar, onSuccess, onOpenChange, loading, t]);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (loading) return;
+    onOpenChange(open);
+  }, [loading, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">{t("editJar")}</DialogTitle>
@@ -86,6 +94,7 @@ export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModa
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={loading} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -117,6 +126,7 @@ export function EditJarModal({ jar, open, onOpenChange, onSuccess }: EditJarModa
                 </FormItem>
               )}
             />
+            </fieldset>
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

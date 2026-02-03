@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -50,6 +50,7 @@ interface TransferModalProps {
 
 export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferModalProps) {
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const t = useTranslations("Jars");
   const tCommon = useTranslations("Common");
 
@@ -62,7 +63,10 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
+    
     try {
       setLoading(true);
       await jarsApi.transfer({
@@ -72,18 +76,24 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
       });
       toast.success(t("successTransfer"));
       form.reset();
-      onSuccess();
       onOpenChange(false);
+      setTimeout(() => onSuccess(), 100);
     } catch (error) {
       toast.error(t("failedTransfer"));
       console.error(error);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [form, onSuccess, onOpenChange, loading, t]);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (loading) return;
+    onOpenChange(open);
+  }, [loading, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground flex items-center gap-2">
@@ -96,6 +106,7 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={loading} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -166,6 +177,7 @@ export function TransferModal({ jars, open, onOpenChange, onSuccess }: TransferM
               )}
             />
 
+            </fieldset>
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white w-full">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

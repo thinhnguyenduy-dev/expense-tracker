@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +26,7 @@ const passwordSchema = z.object({
 export function SecurityTab() {
   const t = useTranslations('Settings');
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(passwordSchema),
@@ -36,7 +37,9 @@ export function SecurityTab() {
     }
   });
 
-  const onSubmit = async (data: z.infer<typeof passwordSchema>) => {
+  const onSubmit = useCallback(async (data: z.infer<typeof passwordSchema>) => {
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await usersApi.changePassword({
@@ -50,8 +53,9 @@ export function SecurityTab() {
       toast.error(axiosError.response?.data?.detail || t('failedUpdate'));
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [t, reset, loading]);
 
   return (
     <Card className="bg-card border-border">
@@ -61,6 +65,7 @@ export function SecurityTab() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <fieldset disabled={loading} className="space-y-4">
            <div className="space-y-2">
             <Label htmlFor="current" className="text-foreground">{t('currentPassword')}</Label>
             <Input 
@@ -91,6 +96,7 @@ export function SecurityTab() {
             />
              {errors.confirm_password && <p className="text-red-500 text-sm">{errors.confirm_password.message}</p>}
           </div>
+          </fieldset>
           <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('changePassword')}

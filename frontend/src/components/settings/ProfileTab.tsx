@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +24,7 @@ export function ProfileTab() {
   const t = useTranslations('Settings');
   const { user, updateUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(profileSchema),
@@ -33,7 +34,9 @@ export function ProfileTab() {
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof profileSchema>) => {
+  const onSubmit = useCallback(async (data: z.infer<typeof profileSchema>) => {
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await usersApi.updateProfile(data);
@@ -44,8 +47,9 @@ export function ProfileTab() {
       console.error(error);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
-  };
+  }, [updateUser, t, loading]);
 
   return (
     <Card className="bg-card border-border">
@@ -55,6 +59,7 @@ export function ProfileTab() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <fieldset disabled={loading} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-foreground">{t('name')}</Label>
             <Input
@@ -73,6 +78,7 @@ export function ProfileTab() {
             />
              {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           </div>
+          </fieldset>
           <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('save')}

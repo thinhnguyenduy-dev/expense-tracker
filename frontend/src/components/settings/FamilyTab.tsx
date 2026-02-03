@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,6 +37,7 @@ export function FamilyTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const isSubmittingRef = useRef(false);
   const t = useTranslations('Settings');
 
   const {
@@ -75,29 +76,37 @@ export function FamilyTab() {
     fetchFamily();
   }, []);
 
-  const onCreateFamily = async (data: CreateFamilyFormData) => {
+  const onCreateFamily = useCallback(async (data: CreateFamilyFormData) => {
+    if (isSubmittingRef.current || isSubmittingCreate) return;
+    isSubmittingRef.current = true;
     try {
       await familiesApi.create(data.name);
       toast.success('Family created successfully!');
       setIsCreateDialogOpen(false);
       resetCreate();
-      fetchFamily();
+      setTimeout(() => fetchFamily(), 100);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to create family');
+    } finally {
+      isSubmittingRef.current = false;
     }
-  };
+  }, [isSubmittingCreate, resetCreate]);
 
-  const onJoinFamily = async (data: JoinFamilyFormData) => {
+  const onJoinFamily = useCallback(async (data: JoinFamilyFormData) => {
+    if (isSubmittingRef.current || isSubmittingJoin) return;
+    isSubmittingRef.current = true;
     try {
       await familiesApi.join(data.invite_code);
       toast.success('Joined family successfully!');
       setIsJoinDialogOpen(false);
       resetJoin();
-      fetchFamily();
+      setTimeout(() => fetchFamily(), 100);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to join family');
+    } finally {
+      isSubmittingRef.current = false;
     }
-  };
+  }, [isSubmittingJoin, resetJoin]);
 
   const copyInviteCode = () => {
     if (family?.invite_code) {
@@ -199,7 +208,7 @@ export function FamilyTab() {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitCreate(onCreateFamily)}>
-                    <div className="space-y-4 py-4">
+                    <fieldset disabled={isSubmittingCreate} className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label className="text-foreground">Family Name</Label>
                         <Input
@@ -211,7 +220,7 @@ export function FamilyTab() {
                           <p className="text-sm text-red-500">{errorsCreate.name.message}</p>
                         )}
                       </div>
-                    </div>
+                    </fieldset>
                     <DialogFooter>
                       <Button
                         type="submit"
@@ -249,7 +258,7 @@ export function FamilyTab() {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitJoin(onJoinFamily)}>
-                    <div className="space-y-4 py-4">
+                    <fieldset disabled={isSubmittingJoin} className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label className="text-foreground">Invite Code</Label>
                         <Input
@@ -262,7 +271,7 @@ export function FamilyTab() {
                           <p className="text-sm text-red-500">{errorsJoin.invite_code.message}</p>
                         )}
                       </div>
-                    </div>
+                    </fieldset>
                     <DialogFooter>
                       <Button
                         type="submit"

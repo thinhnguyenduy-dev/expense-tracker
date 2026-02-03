@@ -122,6 +122,14 @@ export const expensesApi = {
   
   bulkUpdate: (expenseIds: number[], categoryId: number) =>
     api.patch<Expense[]>('/expenses/bulk-update', { expense_ids: expenseIds, category_id: categoryId }),
+
+  import: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ success_count: number; failed_count: number; errors: any[]; message: string }>('/expenses/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Dashboard API
@@ -296,11 +304,17 @@ export const reportsApi = {
 // Data API
 export const dataApi = {
   exportData: () => api.get('/data/export', { responseType: 'blob' }),
-  importData: (file: File) => {
+  importData: (file: File, onProgress?: (percent: number) => void) => {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/data/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percent);
+        }
+      },
     });
   },
 };

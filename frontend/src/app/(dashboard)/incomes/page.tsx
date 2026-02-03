@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Plus, Pencil, Trash2, Search, X, CircleDollarSign, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -45,6 +45,7 @@ interface FamilyMember {
 
 export default function IncomesPage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const isSubmittingRef = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState<Income | null>(null);
@@ -100,6 +101,8 @@ export default function IncomesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm(t('confirmDelete'))) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     try {
       await incomesApi.delete(id);
@@ -107,6 +110,8 @@ export default function IncomesPage() {
       fetchData();
     } catch {
       toast.error(t('failedDelete'));
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 

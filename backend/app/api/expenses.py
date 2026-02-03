@@ -24,6 +24,117 @@ from ..core.exchange_rate import exchange_rate_service
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
+from fastapi import UploadFile, File
+from ..schemas.import_expenses import ImportResult, ImportError
+from datetime import datetime
+
+@router.post("/import", response_model=ImportResult)
+async def import_expenses(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Import expenses from a CSV file."""
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Invalid file format. Please upload a CSV file.")
+    
+    content = await file.read()
+    decoded_content = content.decode("utf-8")
+    csv_reader = csv.DictReader(io.StringIO(decoded_content))
+    
+    # Normalize headers to lowercase to be more forgiving
+    headers = [h.lower() for h in csv_reader.fieldnames or []]
+    
+    valid_expenses = []
+    errors = []
+    row_index = 1 # 1-based index for user feedback (header is 0)
+    
+    # Pre-fetch user categories for quick lookup
+    user_categories = db.query(Category).filter(Category.user_id == current_user.id).all()
+    category_map = {c.name.lower(): c for c in user_categories}
+    
+    # Ensure "Uncategorized" category exists
+    uncategorized = category_map.get("uncategorized")
+    if not uncategorized:
+        uncategorized = Category(name="Uncategorized", user_id=current_user.id, icon="help-circle", color="#94a3b8")
+        db.add(uncategorized)
+        db.commit()
+        db.refresh(uncategorized)
+        category_map["uncategorized"] = uncategorized
+    
+    for row in csv_reader:
+        row_index += 1
+        
+        # Lowercase keys for case-insensitive matching
+        row_data = {k.lower(): v.strip() for k, v in row.items()}
+        
+        # 1. Validate Date
+        date_str = row_data.get("date")
+        expense_date = None
+        if not date_str:
+             errors.append(ImportError(row=row_index, error="Missing date", data=row))
+             continue
+             
+        try:
+            # Try ISO format first
+            expense_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            try:
+                # Try DD/MM/YYYY
+                expense_date = datetime.strptime(date_str, "%d/%m/%Y").date()
+            except ValueError:
+                 errors.append(ImportError(row=row_index, error=f"Invalid date format: {date_str}. Use YYYY-MM-DD or DD/MM/YYYY", data=row))
+                 continue
+        
+        # 2. Validate Amount
+        amount_str = row_data.get("amount")
+        amount = 0.0
+        if not amount_str:
+            errors.append(ImportError(row=row_index, error="Missing amount", data=row))
+            continue
+            
+        try:
+            amount = float(amount_str)
+        except ValueError:
+            errors.append(ImportError(row=row_index, error=f"Invalid amount: {amount_str}", data=row))
+            continue
+            
+        # 3. Resolve Category
+        category_name = row_data.get("category", "").lower()
+        category = category_map.get(category_name)
+        
+        if not category:
+            # Fallback to Uncategorized if empty or not found
+            category = uncategorized
+            
+        # 4. Description
+        description = row_data.get("description", "Imported Expense")
+        
+        # Create Expense Object
+        valid_expenses.append(Expense(
+            user_id=current_user.id,
+            category_id=category.id,
+            amount=amount,
+            date=expense_date,
+            description=description
+        ))
+    
+    # Bulk Insert
+    if valid_expenses:
+        db.add_all(valid_expenses)
+        db.commit()
+        
+        # Invalidate cache
+        invalidate_user_dashboard_cache(current_user.id)
+        
+    return ImportResult(
+        success_count=len(valid_expenses),
+        failed_count=len(errors),
+        errors=errors,
+        message=f"Successfully imported {len(valid_expenses)} expenses. {len(errors)} failed."
+    )
+
+
 
 def check_budget_and_notify(db: Session, user: User, category: Category):
     """Check if budget limit is reached and send notification if needed."""
