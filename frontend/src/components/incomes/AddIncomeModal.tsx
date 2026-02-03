@@ -105,10 +105,13 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
 
   // Ensure default currency is set when user data loads
   useEffect(() => {
+    if (open) {
+      isSubmittingRef.current = false;
+    }
     if (user?.currency && !form.getValues("currency")) {
       form.setValue("currency", user.currency);
     }
-  }, [user?.currency, form]);
+  }, [user?.currency, form, open]);
 
   const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
     // Double-check guard - if already submitting, ignore
@@ -131,9 +134,9 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
     } catch (error) {
       toast.error("Failed to add income");
       console.error(error);
+      isSubmittingRef.current = false;
     } finally {
       setLoading(false);
-      isSubmittingRef.current = false;
     }
   }, [form, onSuccess, onOpenChange, loading]);
 

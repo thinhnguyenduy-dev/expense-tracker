@@ -63,6 +63,9 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
   });
 
   useEffect(() => {
+    if (open) {
+      isSubmittingRef.current = false;
+    }
     if (incomeToEdit) {
       form.reset({
         amount: Number(incomeToEdit.amount),
@@ -79,14 +82,8 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
   }, [incomeToEdit, form, open]);
 
   const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
-    console.log('onSubmit called', { isSubmitting: isSubmittingRef.current, loading });
-    // Double-check guard - if already submitting, ignore
-    if (isSubmittingRef.current || loading) {
-      console.log('onSubmit blocked');
-      return;
-    }
+    if (isSubmittingRef.current || loading) return;
     isSubmittingRef.current = true;
-    console.log('onSubmit processing', { values });
     
     try {
       setLoading(true);
@@ -111,10 +108,9 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
     } catch (error) {
       toast.error(incomeToEdit ? "Failed to update income" : "Failed to add income");
       console.error(error);
+      isSubmittingRef.current = false;
     } finally {
       setLoading(false);
-      isSubmittingRef.current = false;
-      console.log('onSubmit finished');
     }
   }, [incomeToEdit, form, onSuccess, onOpenChange, loading]);
 

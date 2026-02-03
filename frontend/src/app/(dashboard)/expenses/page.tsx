@@ -138,12 +138,14 @@ export default function ExpensesPage() {
 
   // Handlers
   const openCreateDialog = () => {
+    isSubmittingRef.current = false;
     setEditingExpense(null);
     form.reset({ amount: 0, description: '', date: new Date(), category_id: '' });
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (expense: Expense) => {
+    isSubmittingRef.current = false;
     setEditingExpense(expense);
     form.setValue('amount', Number(expense.amount));
     form.setValue('description', expense.description);
@@ -177,9 +179,9 @@ export default function ExpensesPage() {
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
       toast.error(axiosError.response?.data?.detail || t('failedSave'));
+      isSubmittingRef.current = false;
     } finally {
       setIsSubmitting(false);
-      isSubmittingRef.current = false;
     }
   }, [editingExpense, t, fetchData, isSubmitting]);
 
