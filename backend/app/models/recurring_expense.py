@@ -35,44 +35,45 @@ class RecurringExpense(Base):
             return None
         
         today = date.today()
-        if self.end_date and self.end_date < today:
+        if self.end_date and self.end_date < today and (not self.last_created or self.last_created < self.end_date):
+            # If expired, but maybe there is one last due date? 
+            # Actually if end_date reached, usually we stop.
+            # But let's stick to simple rule: if strictly passed end_date, no more.
             return None
         
-        base_date = self.last_created or self.start_date
+        # If never created, the first due date is the start date
+        if not self.last_created:
+            if self.end_date and self.start_date > self.end_date:
+                return None
+            return self.start_date
+            
+        # If created, next due is based on last_created
+        base_date = self.last_created
         
         if self.frequency == "monthly":
-            next_date = base_date
-            while next_date <= today:
-                next_date = next_date + relativedelta(months=1)
-                try:
+            next_date = base_date + relativedelta(months=1)
+            # Handle day clamping
+            try:
+                if self.day_of_month:
                     next_date = next_date.replace(day=self.day_of_month)
-                except ValueError:
-                    next_date = next_date.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
-            
+            except ValueError:
+                # e.g. Feb 30 -> Feb 28
+                next_date = next_date.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
+                
             if self.end_date and next_date > self.end_date:
                 return None
             return next_date
         
         elif self.frequency == "weekly":
-            days_ahead = self.day_of_week - base_date.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            next_date = base_date + timedelta(days=days_ahead)
-            
-            while next_date <= today:
-                next_date += timedelta(weeks=1)
-            
+            next_date = base_date + timedelta(weeks=1)
             if self.end_date and next_date > self.end_date:
                 return None
             return next_date
         
         elif self.frequency == "yearly":
-            next_date = base_date
-            while next_date <= today:
-                next_date = next_date + relativedelta(years=1)
-            
+            next_date = base_date + relativedelta(years=1)
             if self.end_date and next_date > self.end_date:
                 return None
             return next_date
-        
+            
         return None

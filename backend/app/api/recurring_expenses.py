@@ -20,61 +20,6 @@ from ..schemas.recurring_expense import (
 router = APIRouter(prefix="/recurring-expenses", tags=["Recurring Expenses"])
 
 
-def calculate_next_due_date(recurring: RecurringExpense) -> date | None:
-    """Calculate the next due date for a recurring expense."""
-    if not recurring.is_active:
-        return None
-    
-    if recurring.end_date and recurring.end_date < date.today():
-        return None
-    
-    base_date = recurring.last_created or recurring.start_date
-    today = date.today()
-    
-    if recurring.frequency == "monthly":
-        # Start from base_date and add months until we're in the future
-        next_date = base_date
-        while next_date <= today:
-            next_date = next_date + relativedelta(months=1)
-            # Ensure the day is valid for the month
-            try:
-                next_date = next_date.replace(day=recurring.day_of_month)
-            except ValueError:
-                # Handle months with fewer days (e.g., Feb 30 -> Feb 28/29)
-                next_date = next_date.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
-        
-        if recurring.end_date and next_date > recurring.end_date:
-            return None
-        return next_date
-    
-    elif recurring.frequency == "weekly":
-        # Find the next occurrence of day_of_week
-        days_ahead = recurring.day_of_week - base_date.weekday()
-        if days_ahead <= 0:  # Target day already happened this week
-            days_ahead += 7
-        next_date = base_date + timedelta(days=days_ahead)
-        
-        # If we're still in the past, add weeks
-        while next_date <= today:
-            next_date += timedelta(weeks=1)
-        
-        if recurring.end_date and next_date > recurring.end_date:
-            return None
-        return next_date
-    
-    elif recurring.frequency == "yearly":
-        # Add years until we're in the future
-        next_date = base_date
-        while next_date <= today:
-            next_date = next_date + relativedelta(years=1)
-        
-        if recurring.end_date and next_date > recurring.end_date:
-            return None
-        return next_date
-    
-    return None
-
-
 def _build_recurring_with_due_date(
     recurring: RecurringExpense, 
     db: Session
@@ -95,7 +40,7 @@ def _build_recurring_with_due_date(
         end_date=recurring.end_date,
         is_active=recurring.is_active,
         last_created=recurring.last_created,
-        next_due_date=calculate_next_due_date(recurring),
+        next_due_date=recurring.next_due_date,
         category_name=category.name if category else "",
         category_icon=category.icon if category else "",
         category_color=category.color if category else ""
