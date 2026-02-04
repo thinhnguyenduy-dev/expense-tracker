@@ -34,3 +34,30 @@ services:
     region: singapore
     plan: free # Use free tier if available, otherwise starter
     ipAllowList: [] # Only internal access by default
+
+  # Cron Job (Daily Automation)
+  - type: cron
+    name: expense-tracker-worker
+    region: singapore
+    plan: free
+    schedule: "0 0 * * *" # Run daily at midnight UTC
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.cron_worker
+    envVars:
+      - key: DATABASE_URL
+        sync: false # User must provide this
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: expense-tracker-redis
+          property: connectionString
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO

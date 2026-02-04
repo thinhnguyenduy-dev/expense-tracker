@@ -15,3 +15,4 @@ from .ocr import router as ocr_router
 from .families import router as families_router
 from .cron import router as cron_router
 from .rates import router as rates_router
+from .budgets import router as budgets_router

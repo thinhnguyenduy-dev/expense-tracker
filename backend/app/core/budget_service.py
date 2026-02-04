@@ -26,7 +26,7 @@ class BudgetService:
         total_spent = self.db.query(func.sum(Expense.amount)).filter(
             Expense.user_id == user_id,
             Expense.date >= start_date,
-            Expense.is_recurring == False  # Exclude bills from "budget" usually? Or include?
+            Expense.date >= start_date
             # User request: "80% of budget". Usually "budget" includes everything.
             # Let's include everything for now, or maybe make it configurable later.
             # Actually, standard practice is ALL expenses.

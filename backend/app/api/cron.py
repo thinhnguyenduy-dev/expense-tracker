@@ -54,9 +54,15 @@ async def run_cron_jobs(db: Session = Depends(get_db)):
     from ..core.reminder_service import ReminderService
     reminder_service = ReminderService(db)
     reminders_sent = await reminder_service.process_reminders()
+
+    # 3. Process Automated Recurring Expenses
+    from ..core.recurring_expense_service import RecurringExpenseService
+    recurring_service = RecurringExpenseService(db)
+    expenses_created = recurring_service.process_all_due_expenses()
                  
     return {
         "status": "ok", 
         "alerts_sent": alerts_sent, 
-        "reminders_sent": reminders_sent
+        "reminders_sent": reminders_sent,
+        "expenses_created": expenses_created
     }

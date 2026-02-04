@@ -176,6 +176,7 @@
   },
   "Sidebar": {
     "dashboard": "Dashboard",
+    "budgets": "Budgets",
     "jars": "6 Jars",
     "expenses": "Expenses",
     "categories": "Categories",

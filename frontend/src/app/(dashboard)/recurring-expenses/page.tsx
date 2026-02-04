@@ -236,44 +236,11 @@ export default function RecurringExpensesPage() {
         </div>
         
         <div className="flex gap-2">
-          {recurringExpenses.some(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date()) && (
-            <Button 
-                onClick={async () => {
-                    if (isSubmittingRef.current) return;
-                    isSubmittingRef.current = true;
-                    
-                    try {
-                        const due = recurringExpenses.filter(r => r.is_active && r.next_due_date && new Date(r.next_due_date) <= new Date());
-                        let successCount = 0;
-                    const toastId = toast.loading(t('processing', { count: due.length }));
-                    
-                    for (const item of due) {
-                        try {
-                            await recurringExpensesApi.createExpense(item.id);
-                            successCount++;
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    }
-                    
-                    toast.dismiss(toastId);
-                        if (successCount > 0) {
-                            toast.success(t('successProcessAll', { count: successCount }));
-                            fetchData();
-                        } else {
-                            toast.error(t('failedProcessAll'));
-                        }
-                    } finally {
-                        isSubmittingRef.current = false;
-                    }
-                }}
-                variant="default"
-                className="bg-yellow-600 hover:bg-yellow-700 text-white"
-            >
-              <Play className="mr-2 h-4 w-4" />
-              {t('processAll')}
-            </Button>
-          )}
+{/* Automation Info Badge instead of Process All */}
+          <div className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-full border border-border">
+             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+             <span className="text-xs text-muted-foreground whitespace-nowrap">Auto-processing enabled</span>
+          </div>
 
           <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open)
@@ -504,15 +471,12 @@ export default function RecurringExpensesPage() {
                     </div>
                   )}
 
-                  {recurring.is_active && recurring.next_due_date && (
-                    <Button
-                      className={`w-full ${isDueSoon(recurring.next_due_date) ? 'bg-yellow-600 hover:bg-yellow-700 ring-1 ring-yellow-500' : 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30'}`}
-                      onClick={() => handleCreateExpense(recurring.id)}
-                    >
-                      <Play className="mr-2 h-4 w-4" />
-                      {t('createExpense')}
-                    </Button>
-                  )}
+{/* Auto-processed, no manual action needed usually, but could keep for forced run if needed. 
+                     For this feature request, we are automating it, so let's remove the manual trigger to avoid confusion 
+                     or keep it as "Force Run"? 
+                     User asked to "Replace manual button with background automation".
+                     Let's hide it to emphasize automation.
+                  */}
 
                   {!recurring.is_active && (
                     <Badge variant="secondary" className="bg-muted text-muted-foreground">{t('inactive')}</Badge>

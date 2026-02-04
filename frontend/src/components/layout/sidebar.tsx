@@ -30,6 +30,7 @@ export function Sidebar() {
   
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/budgets', label: t('budgets'), icon: BarChart3 },
     { href: '/incomes', label: t('incomes'), icon: CircleDollarSign },
     { href: '/jars', label: t('jars'), icon: PiggyBank },
     { href: '/expenses', label: t('expenses'), icon: Receipt },

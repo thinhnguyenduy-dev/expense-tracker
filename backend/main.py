@@ -6,7 +6,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.rate_limit import limiter
-from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router
+from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router
 from app.middleware import LoggingMiddleware, SecurityHeadersMiddleware
 
 # Setup logging first
@@ -120,6 +120,7 @@ app.include_router(cron_router, prefix="/api/cron", tags=["Cron"])
 app.include_router(rates_router)
 app.include_router(ocr_router, prefix="/api", tags=["OCR"])
 app.include_router(families_router, prefix="/api", tags=["Families"])
+app.include_router(budgets_router, prefix="/api")
 
 
 @app.get("/")

@@ -358,3 +358,25 @@ export const familiesApi = {
   join: (invite_code: string) => api.post<Family>('/families/join', { invite_code }),
   getMyFamily: () => api.get<Family>('/families/me'),
 };
+
+// Budgets API
+export interface BudgetStatus {
+  limit: number | null;
+  spent: number;
+  percentage: number;
+  is_over_limit: boolean;
+  is_warning: boolean;
+}
+
+export interface CategoryBudgetStatus extends BudgetStatus {
+  category_name: string;
+}
+
+export interface BudgetResponse {
+  overall: BudgetStatus;
+  categories: CategoryBudgetStatus[];
+}
+
+export const budgetsApi = {
+  getStatus: () => api.get<BudgetResponse>('/budgets'),
+};

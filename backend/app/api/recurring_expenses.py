@@ -208,22 +208,11 @@ def create_expense_from_template(
             detail="No upcoming due date for this recurring expense"
         )
     
-    # Create the expense
-    expense = Expense(
-        user_id=current_user.id,
-        category_id=recurring.category_id,
-        amount=recurring.amount,
-        description=recurring.description,
-        date=next_due
-    )
-    db.add(expense)
+    # Use Service
+    from ..core.recurring_expense_service import RecurringExpenseService
+    service = RecurringExpenseService(db)
+    expense = service.create_expense_from_recurring(recurring, next_due)
     
-    # Update last_created
-    recurring.last_created = next_due
-    
-    db.commit()
-    db.refresh(expense)
-
     # Invalidate dashboard cache
     try:
         from .dashboard import invalidate_user_dashboard_cache
