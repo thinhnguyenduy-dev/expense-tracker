@@ -192,7 +192,7 @@ def invalidate_user_dashboard_cache(user_id: int):
     app.core.cache.invalidate_cache_pattern works with keys.
     """
     # Invalidate personal cache
-    invalidate_cache_pattern(f"dashboard_stats_user_{user_id}")
+    invalidate_cache_pattern(f"dashboard_stats_v2_user_{user_id}")
     
     # TODO: Invalidate family cache. 
     # Since we don't have family_id here easily without querying DB, we might leave it stale or 

@@ -128,17 +128,49 @@ async def import_data(
         if {"name", "percentage", "balance"}.issubset(headers):
             type_name = "jar"
             from app.models.jar import Jar
+            import re
+            
+            # Fetch all existing jars once for efficient matching
+            existing_jars = db.query(Jar).filter(Jar.user_id == current_user.id).all()
+            
             for row in rows:
                 try:
-                    existing = db.query(Jar).filter(Jar.user_id == current_user.id, Jar.name == row["name"]).first()
-                    if not existing:
-                        db.add(Jar(
+                    imported_name = row["name"].strip()
+                    target_jar = None
+                    
+                    # Strategy 1: Exact Name Match
+                    target_jar = next((j for j in existing_jars if j.name == imported_name), None)
+                    
+                    # Strategy 2: Smart Code Match (e.g. "Necessities (NEC)" matches "Chi tieu (NEC)")
+                    if not target_jar:
+                        # Extract code like (NEC), (FFA)
+                        code_match = re.search(r'\(([A-Z]{3,4})\)$', imported_name)
+                        if code_match:
+                            code = code_match.group(1)
+                            # Find existing jar that contains this code
+                            target_jar = next((j for j in existing_jars if f"({code})" in j.name), None)
+                    
+                    if target_jar:
+                        # Update existing jar
+                        target_jar.balance = float(row["balance"])
+                        target_jar.percentage = float(row["percentage"])
+                        # Optional: Update name to match the imported file (syncing language)
+                        # Only update if the base code matches to avoid accidents, but code match implies it is safe.
+                        target_jar.name = imported_name 
+                        count += 1
+                    else:
+                        # Create new jar
+                        new_jar = Jar(
                             user_id=current_user.id, 
-                            name=row["name"], 
+                            name=imported_name, 
                             percentage=float(row["percentage"]),
                             balance=float(row["balance"])
-                        ))
+                        )
+                        db.add(new_jar)
+                        # Add to local list to correctly handle duplicates within the same file if any
+                        existing_jars.append(new_jar)
                         count += 1
+                        
                 except Exception:
                     continue
 
