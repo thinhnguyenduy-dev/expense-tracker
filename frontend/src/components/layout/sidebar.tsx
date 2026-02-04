@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -41,6 +41,7 @@ export function Sidebar() {
   ];
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuthStore();
 
   return (
@@ -133,11 +134,15 @@ export function Sidebar() {
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-              onClick={logout}
+              onClick={() => {
+                logout();
+                router.push('/login');
+              }}
             >
               <LogOut className="h-5 w-5" />
               {tCommon('logout')}
             </Button>
+
           </div>
         </div>
       </aside>

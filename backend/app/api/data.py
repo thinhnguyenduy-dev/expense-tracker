@@ -92,6 +92,26 @@ async def export_data(
             })
         zip_file.writestr("incomes.csv", generate_csv(incomes_data))
 
+        # 6. Export Recurring Expenses
+        from app.models.recurring_expense import RecurringExpense
+        recurring = db.query(RecurringExpense).filter(RecurringExpense.user_id == current_user.id).all()
+        recurring_data = []
+        for r in recurring:
+            recurring_data.append({
+                "amount": r.amount,
+                "description": r.description,
+                "frequency": r.frequency,
+                "day_of_month": r.day_of_month if r.day_of_month else "",
+                "day_of_week": r.day_of_week if r.day_of_week is not None else "",
+                "start_date": r.start_date.isoformat() if r.start_date else "",
+                "end_date": r.end_date.isoformat() if r.end_date else "",
+                "is_active": r.is_active,
+                "last_created": r.last_created.isoformat() if r.last_created else "",
+                "last_reminder_date": r.last_reminder_date.isoformat() if r.last_reminder_date else "",
+                "category": r.category.name if r.category else "Uncategorized"
+            })
+        zip_file.writestr("recurring_expenses.csv", generate_csv(recurring_data))
+
     zip_buffer.seek(0)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -247,14 +267,24 @@ async def import_data(
                         db.commit()
                         db.refresh(category)
                     
-                    db.add(Expense(
-                        user_id=current_user.id,
-                        amount=float(row["amount"]),
-                        description=row["description"],
-                        date=row_date,
-                        category_id=category.id
-                    ))
-                    count += 1
+                    # Duplicate Check
+                    existing_expense = db.query(Expense).filter(
+                        Expense.user_id == current_user.id,
+                        Expense.amount == float(row["amount"]),
+                        Expense.description == row["description"],
+                        Expense.date == row_date,
+                        Expense.category_id == category.id
+                    ).first()
+
+                    if not existing_expense:
+                        db.add(Expense(
+                            user_id=current_user.id,
+                            amount=float(row["amount"]),
+                            description=row["description"],
+                            date=row_date,
+                            category_id=category.id
+                        ))
+                        count += 1
                 except Exception as e:
                     continue
 
@@ -264,14 +294,94 @@ async def import_data(
             for row in rows:
                 try:
                     row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
-                    db.add(Income(
-                        user_id=current_user.id,
-                        amount=float(row["amount"]),
-                        date=row_date,
-                        source=row["source"]
-                    ))
-                    count += 1
+                    
+                    # Duplicate Check
+                    existing_income = db.query(Income).filter(
+                        Income.user_id == current_user.id,
+                        Income.amount == float(row["amount"]),
+                        Income.date == row_date,
+                        Income.source == row["source"]
+                    ).first()
+
+                    if not existing_income:
+                        db.add(Income(
+                            user_id=current_user.id,
+                            amount=float(row["amount"]),
+                            date=row_date,
+                            source=row["source"]
+                        ))
+                        count += 1
                 except Exception:
+                    continue
+
+        # 6. Recurring Expenses
+        elif {"amount", "description", "frequency", "start_date", "category"}.issubset(headers):
+            type_name = "recurring_expense"
+            from app.models.recurring_expense import RecurringExpense
+            
+            for row in rows:
+                try:
+                    # Parse dates
+                    start_date = datetime.strptime(row["start_date"].split("T")[0], "%Y-%m-%d").date()
+                    end_date = None
+                    if row.get("end_date"):
+                        end_date = datetime.strptime(row["end_date"].split("T")[0], "%Y-%m-%d").date()
+                    
+                    last_created = None
+                    if row.get("last_created"):
+                        last_created = datetime.strptime(row["last_created"].split("T")[0], "%Y-%m-%d").date()
+
+                    last_reminder_date = None
+                    if row.get("last_reminder_date"):
+                        last_reminder_date = datetime.strptime(row["last_reminder_date"].split("T")[0], "%Y-%m-%d").date()
+
+                    # Find or create category
+                    category_name = row.get("category") or "Uncategorized"
+                    category = db.query(Category).filter(
+                        Category.user_id == current_user.id,
+                        Category.name == category_name
+                    ).first()
+                    
+                    if not category:
+                        category = Category(
+                            user_id=current_user.id, 
+                            name=category_name, 
+                            icon="📦", 
+                            color="#94a3b8"
+                        )
+                        db.add(category)
+                        db.commit()
+                        db.refresh(category)
+
+                    # Duplicate Check
+                    existing_recurring = db.query(RecurringExpense).filter(
+                        RecurringExpense.user_id == current_user.id,
+                        RecurringExpense.amount == float(row["amount"]),
+                        RecurringExpense.description == row["description"],
+                        RecurringExpense.frequency == row["frequency"],
+                        RecurringExpense.start_date == start_date,
+                        RecurringExpense.category_id == category.id
+                    ).first()
+
+                    if not existing_recurring:
+                        # Create Recurring Expense
+                        db.add(RecurringExpense(
+                            user_id=current_user.id,
+                            amount=float(row["amount"]),
+                            description=row["description"],
+                            frequency=row["frequency"],
+                            day_of_month=int(float(row["day_of_month"])) if row.get("day_of_month") else None,
+                            day_of_week=int(float(row["day_of_week"])) if row.get("day_of_week") else None,
+                            start_date=start_date,
+                            end_date=end_date,
+                            is_active=str(row.get("is_active")).lower() == "true",
+                            last_created=last_created,
+                            last_reminder_date=last_reminder_date,
+                            category_id=category.id
+                        ))
+                        count += 1
+                except Exception as e:
+                    print(f"Error importing recurring expense: {e}")
                     continue
         
         else:
@@ -286,8 +396,8 @@ async def import_data(
         content = await file.read()
         try:
             with zipfile.ZipFile(io.BytesIO(content)) as z:
-                # Order matters: Jars -> Categories -> Goals -> Expenses -> Incomes
-                process_order = ['jars.csv', 'categories.csv', 'goals.csv', 'expenses.csv', 'incomes.csv']
+                # Order matters: Jars -> Categories -> Goals -> Expenses -> Incomes -> Recurring Expenses
+                process_order = ['jars.csv', 'categories.csv', 'goals.csv', 'expenses.csv', 'incomes.csv', 'recurring_expenses.csv']
                 
                 # Also check for files that might be just names without checking strict order if named differently
                 # But strict order is safer for dependencies.
