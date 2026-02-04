@@ -18,24 +18,24 @@ expense-tracker/
 ## 🔗 Backend Dependency Graph
 
 ```
-                              ┌─────────────────────────────────────────────────────────┐
-                              │                      main.py                             │
-                              └───────────────────────────┬─────────────────────────────┘
-                                           │
+                               ┌─────────────────────────────────────────────────────────┐
+                               │                      main.py                             │
+                               └───────────────────────────┬─────────────────────────────┘
+                                            │
           ┌────────────────────────────────┼────────────────────────────────┐
           │                                │                                │
           ▼                                ▼                                ▼
 ┌─────────────────────┐      ┌─────────────────────┐      ┌─────────────────────┐
 │    app/core/        │      │    app/models/      │      │    app/api/         │
-├─────────────────────┤      ├─────────────────────┤      ├─────────────────────┤
+30: ├─────────────────────┤      ├─────────────────────┤      ├─────────────────────┤
 │ config.py ──────────┼──┐   │ user.py ────────────┼──┐   │ auth.py             │
-│   └─ Settings, ENV  │  │   │   └─ User model     │  │   │   └─ login,register │
+│   └─ Settings, ENV  │  │   │   └─ User           │  │   │   └─ login,register │
 │                     │  │   │                     │  │   │                     │
 │ database.py ◄───────┼──┘   │ category.py ────────┼──┤   │ categories.py       │
-│   └─ Engine, Base   │◄─────┼   └─ Category model │  │   │   └─ CRUD           │
+│   └─ Engine, Base   │◄─────┼   └─ Category       │  │   │   └─ CRUD           │
 │                     │      │                     │  │   │                     │
 │ security.py ◄───────┼──────┤ expense.py ─────────┼──┤   │ expenses.py         │
-│   └─ JWT, bcrypt    │      │   └─ Expense model  │  │   │   └─ CRUD + filter  │
+│   └─ JWT, bcrypt    │      │   └─ Expense        │  │   │   └─ CRUD + filter  │
 │                     │      │                     │  │   │                     │
 │ deps.py ◄───────────┼──────┼─────────────────────┼──┘   │ dashboard.py        │
 │   └─ get_current_   │      │                     │      │   └─ stats          │
@@ -51,6 +51,7 @@ expense-tracker/
                     │ category.py         │
                     │ expense.py          │
                     │ dashboard.py        │
+                    │ (+others)           │
                     └─────────────────────┘
 ```
 
@@ -71,18 +72,15 @@ expense-tracker/
 
 | File | Purpose | Depends On | Dependents |
 |------|---------|------------|------------|
-| [user.py](backend/app/models/user.py) | User model | database.Base | deps, auth, categories, expenses, dashboard |
-| [category.py](backend/app/models/category.py) | Category model | database.Base | categories, expenses, dashboard |
+| [user.py](backend/app/models/user.py) | User model | database.Base | deps, auth, others |
+| [category.py](backend/app/models/category.py) | Category model | database.Base | categories, expenses |
 | [expense.py](backend/app/models/expense.py) | Expense model | database.Base | expenses, dashboard |
-
-### Schemas Layer
-
-| File | Purpose | Dependents |
-|------|---------|------------|
-| [user.py](backend/app/schemas/user.py) | UserCreate, UserResponse, Token | auth.py |
-| [category.py](backend/app/schemas/category.py) | CategoryCreate, CategoryResponse | categories.py |
-| [expense.py](backend/app/schemas/expense.py) | ExpenseCreate, ExpenseResponse | expenses.py |
-| [dashboard.py](backend/app/schemas/dashboard.py) | DashboardStats, CategoryStat | dashboard.py |
+| [income.py](backend/app/models/income.py) | Income model | database.Base | incomes |
+| [goal.py](backend/app/models/goal.py) | Goal model | database.Base | goals |
+| [jar.py](backend/app/models/jar.py) | Jar model | database.Base | jars |
+| [transfer.py](backend/app/models/transfer.py) | Transfer model | database.Base | transfers |
+| [family.py](backend/app/models/family.py) | Family model | database.Base | families |
+| [recurring_expense.py](backend/app/models/recurring_expense.py) | Rec. Expense model | database.Base | recurring_expenses |
 
 ### API Layer
 
@@ -91,7 +89,12 @@ expense-tracker/
 | [auth.py](backend/app/api/auth.py) | `/api/auth` | register, login, me | security, deps, User |
 | [categories.py](backend/app/api/categories.py) | `/api/categories` | CRUD | deps, Category |
 | [expenses.py](backend/app/api/expenses.py) | `/api/expenses` | CRUD + filters | deps, Expense, Category |
-| [dashboard.py](backend/app/api/dashboard.py) | `/api/dashboard` | stats | deps, Expense, Category |
+| [incomes.py](backend/app/api/incomes.py) | `/api/incomes` | CRUD | deps, Income |
+| [goals.py](backend/app/api/goals.py) | `/api/goals` | CRUD | deps, Goal |
+| [jars.py](backend/app/api/jars.py) | `/api/jars` | CRUD | deps, Jar |
+| [transfers.py](backend/app/api/transfers.py) | `/api/transfers` | CRUD | deps, Transfer |
+| [families.py](backend/app/api/families.py) | `/api/families` | CRUD | deps, Family |
+| [dashboard.py](backend/app/api/dashboard.py) | `/api/dashboard` | stats | deps, various |
 
 ---
 
@@ -106,6 +109,7 @@ expense-tracker/
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    src/components/providers/                                 │
 │                         auth-provider.tsx                                    │
+│                         query-provider.tsx                                   │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
                                    ▼
@@ -116,17 +120,18 @@ expense-tracker/
 │  (axios, endpoints)        (Zustand state)                 (cn helper)       │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
-          ┌────────────────────────┼────────────────────────┐
-          │                        │                        │
-          ▼                        ▼                        ▼
-┌───────────────────┐  ┌───────────────────┐  ┌───────────────────────────────┐
-│ /login            │  │ /register         │  │ /(dashboard)/                 │
-│   page.tsx        │  │   page.tsx        │  ├───────────────────────────────┤
-│   └─ Login form   │  │   └─ Register     │  │ layout.tsx  ◄── sidebar.tsx   │
-│                   │  │       form        │  │ page.tsx     (Stats & charts) │
-│                   │  │                   │  │ expenses/page.tsx             │
-│                   │  │                   │  │ categories/page.tsx           │
-└───────────────────┘  └───────────────────┘  └───────────────────────────────┘
+                                   ▼
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│ src/app/ (Pages)                                                                  │
+│ ├─ (dashboard)/           ├─ [locale]/              ├─ login/      ├─ register/   │
+│ │  ├─ dashboard/          │  └─ page.tsx            │  └─ page.tsx │  └─ page.tsx │
+│ │  ├─ expenses/           │                         └──────────────┴──────────────┘
+│ │  ├─ incomes/            │                                                       │
+│ │  ├─ categories/         │                                                       │
+│ │  ├─ goals/              │                                                       │
+│ │  ├─ jars/               │                                                       │
+│ │  └─ ...                 │                                                       │
+└───────────────────────────┴───────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -146,45 +151,24 @@ expense-tracker/
 | Directory | Contents |
 |-----------|----------|
 | `components/ui/` | shadcn components (button, input, dialog, etc.) |
-| `components/providers/` | AuthProvider, ThemeProvider |
+| `components/providers/` | AuthProvider, ThemeProvider, QueryProvider |
 | `components/layout/` | Sidebar |
-| `components/expenses/` | ExpenseDialog, ExpenseFilters, ExpenseTable, ExpenseBulkActions, ExpenseCard |
+| `components/expenses/` | ExpenseDialog, ExpenseFilters, ExpenseTable, ExpenseBulkActions |
+| `components/incomes/` | AddIncomeModal, IncomeTable |
+| `components/jars/` | JarCard, TransferModal, EditJarModal, TransfersHistory |
 | `components/settings/` | ProfileTab, SecurityTab, PreferencesTab, DataTab, FamilyTab |
-| `components/incomes/` | AddIncomeModal |
-| `components/jars/` | JarCard, TransferModal |
 
-### Page Structure
+### Page Structure (Key Routes)
 
 | Route | File | Purpose |
 |-------|------|---------|
-| `/` | [page.tsx](frontend/src/app/page.tsx) | Redirect to dashboard |
-| `/login` | [login/page.tsx](frontend/src/app/login/page.tsx) | Login form |
-| `/register` | [register/page.tsx](frontend/src/app/register/page.tsx) | Register form |
-| `/dashboard` | [(dashboard)/page.tsx](frontend/src/app/(dashboard)/page.tsx) | Stats & charts |
-| `/dashboard/expenses` | [(dashboard)/expenses/page.tsx](frontend/src/app/(dashboard)/expenses/page.tsx) | Expense CRUD |
-| `/dashboard/categories` | [(dashboard)/categories/page.tsx](frontend/src/app/(dashboard)/categories/page.tsx) | Category CRUD |
-
----
-
-## 📡 API Flow
-
-```
-Frontend                    Backend
-─────────────────────────────────────────────
-api.ts                      main.py
-  │                           │
-  │ POST /api/auth/login    ──┼──► auth.py
-  │                           │      └─ security.py (JWT)
-  │ GET /api/auth/me        ──┼──► deps.py → User
-  │                           │
-  │ GET /api/categories     ──┼──► categories.py → Category
-  │ POST /api/categories    ──┼──►
-  │                           │
-  │ GET /api/expenses       ──┼──► expenses.py → Expense
-  │ POST /api/expenses      ──┼──►
-  │                           │
-  │ GET /api/dashboard      ──┼──► dashboard.py → Stats
-```
+| `/dashboard/dashboard` | [(dashboard)/dashboard/page.tsx](frontend/src/app/(dashboard)/dashboard/page.tsx) | Main Dashboard Stats |
+| `/dashboard/expenses` | [(dashboard)/expenses/page.tsx](frontend/src/app/(dashboard)/expenses/page.tsx) | Expense Management |
+| `/dashboard/incomes` | [(dashboard)/incomes/page.tsx](frontend/src/app/(dashboard)/incomes/page.tsx) | Income Management |
+| `/dashboard/categories`| [(dashboard)/categories/page.tsx](frontend/src/app/(dashboard)/categories/page.tsx) | Category Management |
+| `/dashboard/goals` | [(dashboard)/goals/page.tsx](frontend/src/app/(dashboard)/goals/page.tsx) | Goals Management |
+| `/dashboard/jars` | [(dashboard)/jars/page.tsx](frontend/src/app/(dashboard)/jars/page.tsx) | Jars (Buckets) Management |
+| `/login` | [login/page.tsx](frontend/src/app/login/page.tsx) | Login |
 
 ---
 
@@ -211,7 +195,7 @@ When modifying:
 - [ ] **API Routes**: Update `api.ts` on frontend
 - [ ] **UI Components**: Check all pages using them
 - [ ] **Auth**: Check both `deps.py` and `auth-store.ts`
+- [ ] **I18n**: If adding/changing text, update `messages/*.json`
 
 ---
-
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-03*
