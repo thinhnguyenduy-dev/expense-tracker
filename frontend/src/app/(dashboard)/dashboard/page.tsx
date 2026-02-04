@@ -190,7 +190,7 @@ export default function DashboardPage() {
               You have {stats.due_recurring_count} recurring expenses that are due for processing.
             </span>
             <Button size="sm" variant="outline" className="text-yellow-600 dark:text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20" asChild>
-              <Link href="/recurring-expenses" className="flex items-center gap-2">
+              <Link href="/recurring-expenses?filter=due" className="flex items-center gap-2">
                 Process Now <ArrowRight className="h-3 w-3" />
               </Link>
             </Button>

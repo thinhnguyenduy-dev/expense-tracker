@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { recurringExpensesApi, categoriesApi } from "@/lib/api"
 import { useTranslations, useLocale } from 'next-intl';
 import { isDueSoon } from "@/lib/date-utils";
@@ -48,6 +48,8 @@ export default function RecurringExpensesPage() {
   const locale = useLocale();
   const { user } = useAuthStore();
   const currency = user?.currency || 'VND';
+  const searchParams = useSearchParams();
+  const filter = searchParams.get('filter');
 
   const WEEKDAYS = [
     { value: 0, label: tCommon('days.monday') },
@@ -435,8 +437,18 @@ export default function RecurringExpensesPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {recurringExpenses.map((recurring) => (
-            <Card key={recurring.id} className="bg-card border-border hover:shadow-md transition-all duration-200">
+          {recurringExpenses
+            .filter(recurring => {
+                if (filter === 'due') {
+                    // Show only due items
+                     return recurring.is_active && recurring.next_due_date && new Date(recurring.next_due_date) <= new Date();
+                }
+                return true;
+            })
+            .map((recurring) => {
+             const isDue = recurring.next_due_date && new Date(recurring.next_due_date) <= new Date();
+             return (
+            <Card key={recurring.id} className={`bg-card border-border hover:shadow-md transition-all duration-200 ${isDue && filter === 'due' ? 'ring-2 ring-yellow-500 border-yellow-500/50 bg-yellow-500/5' : ''}`}>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
@@ -506,7 +518,8 @@ export default function RecurringExpensesPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+             );
+           })}
         </div>
       )}
     </div>

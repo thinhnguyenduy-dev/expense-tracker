@@ -201,7 +201,7 @@ def create_expense_from_template(
             detail="Cannot create expense from inactive template"
         )
     
-    next_due = calculate_next_due_date(recurring)
+    next_due = recurring.next_due_date
     if not next_due:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
