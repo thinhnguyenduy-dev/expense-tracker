@@ -11,6 +11,7 @@ from app.middleware import LoggingMiddleware, SecurityHeadersMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.database import SessionLocal
 from app.core.recurring_expense_service import RecurringExpenseService
+from app.core.reminder_service import ReminderService
 
 # Setup logging first
 setup_logging()
@@ -33,6 +34,21 @@ async def process_recurring_expenses_job():
             db.close()
     except Exception as e:
         logger.error(f"❌ Error in recurring expense job: {e}")
+
+async def process_reminders_job():
+    """Job to send bill reminders."""
+    try:
+        # logger.info("⏳ Checking for bill reminders...") # Optional noise reduction
+        db = SessionLocal()
+        try:
+            service = ReminderService(db)
+            sent = await service.process_reminders()
+            if sent > 0:
+                logger.info(f"📧 Sent {sent} bill reminders.")
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"❌ Error in reminder job: {e}")
 
 # Initialize Sentry if configured
 if settings.SENTRY_DSN:
@@ -94,8 +110,9 @@ async def lifespan(app: FastAPI):
     
     # Start Scheduler
     scheduler.add_job(process_recurring_expenses_job, 'interval', hours=1)
+    scheduler.add_job(process_reminders_job, 'interval', hours=24) # Check reminders daily
     scheduler.start()
-    logger.info("⏰ Background scheduler started (recurring expenses check every 1h)")
+    logger.info("⏰ Background scheduler started (recurring: 1h, reminders: 24h)")
     
     yield
     
