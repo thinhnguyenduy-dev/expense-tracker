@@ -59,7 +59,9 @@
       "friday": "Thứ 6",
       "saturday": "Thứ 7",
       "sunday": "Chủ Nhật"
-    }
+    },
+    "export": "Xuất dữ liệu"
+
   },
   "Dashboard": {
     "title": "Bảng điều khiển",
@@ -279,8 +281,23 @@
     "failedCreateExpense": "Tạo khoản chi thất bại",
     "confirmDelete": "Bạn có chắc chắn muốn xóa khoản chi định kỳ này không?",
     "selectDay": "Chọn ngày"
-  }
-,"Reports": { "title": "Báo cáo", "spendingTrend": "Xu hướng chi tiêu", "categoryBreakdown": "Phân bổ danh mục", "details": "Chi tiết", "noData": "Không có dữ liệu cho giai đoạn này" },
+  },
+  "Reports": {
+    "title": "Báo cáo",
+    "spendingTrend": "Xu hướng chi tiêu",
+    "categoryBreakdown": "Phân bổ danh mục",
+    "details": "Chi tiết",
+    "noData": "Không có dữ liệu cho giai đoạn này",
+    "savingsRate": "Tỷ lệ tiết kiệm",
+    "netSavings": "Tiết kiệm ròng",
+    "totalIncome": "Tổng thu nhập",
+    "totalExpense": "Tổng chi phí",
+    "ofIncomeSaved": "thu nhập được tiết kiệm",
+    "totalSavingsPeriod": "tổng tiết kiệm trong kỳ",
+    "incomeVsExpense": "Thu nhập vs Chi phí",
+    "expense": "Chi phí",
+    "income": "Thu nhập"
+  },
   "Family": {
     "viewFamily": "Xem gia đình",
     "personalOnly": "Chỉ cá nhân",

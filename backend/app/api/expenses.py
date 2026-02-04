@@ -122,6 +122,42 @@ async def import_expenses(
     # Bulk Insert
     if valid_expenses:
         db.add_all(valid_expenses)
+        
+        # JAR LOGIC: Deduct from Jars if linked
+        # We need to process this before commit to be safe, or alongside.
+        # Since we just added objects, they have category_id. We need to check categories.
+        # We have category_map, so we can look up if category has jar_id.
+        
+        from ..services.jar_service import JarService
+        
+        for expense in valid_expenses:
+             # Find the category object to check jar_id
+             # expense.category_id is set.
+             # We can't easily access expense.category relationship immediately before flush/refresh in some cases,
+             # but we can look up via our local map or query if needed.
+             # Actually, we assigned category object from map to expense.
+             # But SQLAlchemy might not have back-populated the checking without flush.
+             # Simpler: we know the category object we assigned.
+             
+             # Optimization: We assigned `category_id` using `category.id`. 
+             # We can find the category object in `category_map` (values) that matches the ID, 
+             # OR effectively we can just iterate our valid_expenses and re-lookup or carry context.
+             # Better yet, in the loop above where we created Expense, we could have tracked jar updates.
+             # But let's do it here to keep "Create Expense Object" clean.
+             
+             # We need to find the category object for this expense. 
+             # Since we don't have a direct link in the list except via DB relations which aren't committed,
+             # let's just use a helper map of id -> category
+             pass
+
+        # To avoid N+1 or complex lookups, let's build a map
+        cat_id_to_jar_id = {c.id: c.jar_id for c in user_categories if c.jar_id}
+        
+        for expense in valid_expenses:
+            jar_id = cat_id_to_jar_id.get(expense.category_id)
+            if jar_id:
+                JarService.update_jar_balance(db, jar_id, -expense.amount)
+
         db.commit()
         
         # Invalidate cache
