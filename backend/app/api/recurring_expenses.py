@@ -223,6 +223,13 @@ def create_expense_from_template(
     
     db.commit()
     db.refresh(expense)
+
+    # Invalidate dashboard cache
+    try:
+        from .dashboard import invalidate_user_dashboard_cache
+        invalidate_user_dashboard_cache(current_user.id)
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
     
     return {
         "message": "Expense created successfully",
