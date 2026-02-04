@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useTranslations, useLocale } from 'next-intl';
 import { expensesApi, categoriesApi, authApi, ExpenseFilter, PaginatedResponse, Expense } from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/utils';
 
 import { ExpenseDialog, Category, ExpenseFormData } from '@/components/expenses/ExpenseDialog';
 import { ExpenseFilters, DatePreset } from '@/components/expenses/ExpenseFilters';
@@ -177,8 +178,7 @@ export default function ExpensesPage() {
       setIsDialogOpen(false);
       setTimeout(() => fetchData(), 100);
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedSave'));
+      toast.error(getApiErrorMessage(error, t('failedSave')));
       isSubmittingRef.current = false;
     } finally {
       setIsSubmitting(false);
@@ -199,8 +199,7 @@ export default function ExpensesPage() {
       toast.success(t('successDelete'));
       fetchData();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedDelete'));
+      toast.error(getApiErrorMessage(error, t('failedDelete')));
     } finally {
       isSubmittingRef.current = false;
     }
@@ -228,8 +227,7 @@ export default function ExpensesPage() {
       setSelectedIds(new Set());
       fetchData();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedBulkDelete'));
+      toast.error(getApiErrorMessage(error, t('failedBulkDelete')));
     } finally {
       setIsBulkDeleting(false);
       isSubmittingRef.current = false;
@@ -247,8 +245,7 @@ export default function ExpensesPage() {
       setBulkCategoryDialogOpen(false);
       fetchData();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedBulkUpdate'));
+      toast.error(getApiErrorMessage(error, t('failedBulkUpdate')));
     } finally {
       setIsBulkUpdating(false);
       isSubmittingRef.current = false;

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/utils';
 import { Users, Copy, Loader2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -86,7 +87,7 @@ export function FamilyTab() {
       resetCreate();
       setTimeout(() => fetchFamily(), 100);
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to create family');
+      toast.error(getApiErrorMessage(error, 'Failed to create family'));
     } finally {
       isSubmittingRef.current = false;
     }
@@ -102,7 +103,7 @@ export function FamilyTab() {
       resetJoin();
       setTimeout(() => fetchFamily(), 100);
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to join family');
+      toast.error(getApiErrorMessage(error, 'Failed to join family'));
     } finally {
       isSubmittingRef.current = false;
     }

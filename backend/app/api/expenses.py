@@ -386,10 +386,9 @@ async def create_expense(
     
     # Deduct from Jar if linked
     if category.jar_id:
-        from ..models.jar import Jar
-        jar = db.query(Jar).filter(Jar.id == category.jar_id).first()
-        if jar:
-            jar.balance -= expense.amount
+        from ..services.jar_service import JarService
+        # Deducting means negative delta
+        JarService.update_jar_balance(db, category.jar_id, -expense.amount)
             
     db.commit()
     db.refresh(expense)
@@ -448,6 +447,10 @@ async def update_expense(
             detail="Expense not found"
         )
     
+    # Capture previous state for Jar logic
+    prev_amount = expense.amount
+    prev_category_id = expense.category_id
+    
     update_data = expense_data.model_dump(exclude_unset=True)
     
     # If updating category, verify it belongs to user
@@ -501,6 +504,36 @@ async def update_expense(
             expense.original_currency = None
             expense.exchange_rate = None
     
+    # JAR LOGIC: Calculate impacts
+    from ..services.jar_service import JarService
+    
+    # 1. Did Category Change?
+    if expense.category_id != prev_category_id:
+        # Refund Jar associated with OLD category (using OLD amount)
+        from ..models.category import Category as CatModel # Alias to avoid conflict if needed
+        old_cat = db.query(CatModel).filter(CatModel.id == prev_category_id).first()
+        if old_cat and old_cat.jar_id:
+            JarService.update_jar_balance(db, old_cat.jar_id, prev_amount)
+            
+        # Deduct from Jar associated with NEW category (using NEW amount)
+        # We already fetched 'category' above if category_id changed
+        if category.jar_id:
+             JarService.update_jar_balance(db, category.jar_id, -expense.amount)
+             
+    # 2. Category Same, Amount Changed?
+    elif expense.amount != prev_amount:
+        # Adjust Same Jar by the difference
+        # Amount increase (e.g. 100 -> 150): Delta is -50 (spend 50 more)
+        # Amount decrease (e.g. 100 -> 80): Delta is +20 (refund 20)
+        # Formula: Refunding (old - new)
+        # Example 1: 100 - 150 = -50. Add -50 to balance. OK.
+        # Example 2: 100 - 80 = 20. Add 20 to balance. OK.
+        
+        current_cat = db.query(Category).filter(Category.id == expense.category_id).first()
+        if current_cat and current_cat.jar_id:
+             diff = prev_amount - expense.amount
+             JarService.update_jar_balance(db, current_cat.jar_id, diff)
+
     db.commit()
     db.refresh(expense, ["category"])
     
@@ -530,10 +563,8 @@ def delete_expense(
     
     # Refund to Jar if linked
     if expense.category.jar_id:
-        from ..models.jar import Jar
-        jar = db.query(Jar).filter(Jar.id == expense.category.jar_id).first()
-        if jar:
-            jar.balance += expense.amount
+        from ..services.jar_service import JarService
+        JarService.update_jar_balance(db, expense.category.jar_id, expense.amount)
 
     db.delete(expense)
     db.commit()
@@ -557,19 +588,39 @@ def bulk_delete_expenses(
             detail="No expense IDs provided"
         )
     
-    # Delete expenses that belong to the current user
-    deleted_count = db.query(Expense).filter(
+    # Fetch expenses first to handle Jar refunds
+    expenses_to_delete = db.query(Expense).options(
+        joinedload(Expense.category)
+    ).filter(
         Expense.id.in_(expense_ids),
         Expense.user_id == current_user.id
-    ).delete(synchronize_session=False)
+    ).all()
     
-    db.commit()
-    
-    if deleted_count == 0:
+    if not expenses_to_delete:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No expenses found to delete"
         )
+        
+    # Process Jar Refunds
+    from ..services.jar_service import JarService
+    for expense in expenses_to_delete:
+        if expense.category and expense.category.jar_id:
+             JarService.update_jar_balance(db, expense.category.jar_id, expense.amount)
+
+    # Delete expenses that belong to the current user
+    # We can delete individually or bulk. Bulk is faster but we already fetched objects.
+    # Given we need to refund individually anyway, deleting objects via session might be cleaner for hooks
+    # but bulk delete via query is faster.
+    
+    # Since we need to delete exactly what we found:
+    ids_to_delete = [e.id for e in expenses_to_delete]
+    
+    deleted_count = db.query(Expense).filter(
+        Expense.id.in_(ids_to_delete)
+    ).delete(synchronize_session=False)
+    
+    db.commit()
     
     # Invalidate dashboard cache
     invalidate_user_dashboard_cache(current_user.id)
@@ -609,10 +660,48 @@ def bulk_update_expenses(
             detail="Category not found"
         )
     
-    # Update expenses that belong to the current user
-    db.query(Expense).filter(
+    # Fetch expenses first to handle Jar logic
+    expenses_to_update = db.query(Expense).options(
+        joinedload(Expense.category)
+    ).filter(
         Expense.id.in_(expense_ids),
         Expense.user_id == current_user.id
+    ).all()
+    
+    if not expenses_to_update:
+        # If no expenses found, nothing to do. Return empty list? or error?
+        # Logic says "update expenses", if none match, effectively 0 updated.
+        return []
+
+    # Prepare for Jar updates
+    from ..services.jar_service import JarService
+    
+    # We update all to NEW category.
+    # Logic: For each expense:
+    # 1. Refund OLD Category Jar (if exists)
+    # 2. Deduct NEW Category Jar (if exists)
+    
+    # Optimize: Check if new category has a jar
+    new_cat_jar_id = category.jar_id
+    
+    for expense in expenses_to_update:
+        # 1. Refund Old
+        if expense.category and expense.category.jar_id:
+            # If old jar is same as new jar, net effect is 0?
+            # Wait, if we change category, even if both cats map to SAME jar, 
+            # we refund old, deduct new. Result 0. Correct.
+            JarService.update_jar_balance(db, expense.category.jar_id, expense.amount)
+            
+        # 2. Deduct New
+        if new_cat_jar_id:
+             JarService.update_jar_balance(db, new_cat_jar_id, -expense.amount)
+
+    # Perform Update
+    # Since we need to delete exactly what we found:
+    ids_to_update = [e.id for e in expenses_to_update]
+    
+    db.query(Expense).filter(
+        Expense.id.in_(ids_to_update)
     ).update({"category_id": category_id}, synchronize_session=False)
     
     db.commit()
@@ -624,8 +713,7 @@ def bulk_update_expenses(
     expenses = db.query(Expense).options(
         joinedload(Expense.category)
     ).filter(
-        Expense.id.in_(expense_ids),
-        Expense.user_id == current_user.id
-    ).all()
+        Expense.id.in_(ids_to_update)
+    ).all() # No need to filter by user again since we used verified IDs
     
     return expenses

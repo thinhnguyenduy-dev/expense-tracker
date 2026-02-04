@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import date, datetime
+from datetime import date as date_type, datetime
 from typing import Optional
 from decimal import Decimal
 from .category import CategoryResponse
@@ -8,7 +8,7 @@ from .category import CategoryResponse
 class ExpenseBase(BaseModel):
     amount: Decimal
     description: str
-    date: date
+    date: date_type
     category_id: int
 
 
@@ -18,7 +18,7 @@ class ExpenseCreate(ExpenseBase):
 class ExpenseUpdate(BaseModel):
     amount: Optional[Decimal] = None
     description: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[date_type] = None
     category_id: Optional[int] = None
     currency: Optional[str] = None
 

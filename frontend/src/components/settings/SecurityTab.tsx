@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,8 +50,7 @@ export function SecurityTab() {
       toast.success(t('successPassword'));
       reset();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedUpdate'));
+      toast.error(getApiErrorMessage(error, t('failedUpdate')));
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
