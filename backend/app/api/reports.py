@@ -96,9 +96,73 @@ def get_reports(
             "percentage": round(percentage, 2)
         })
         
+
+    # --- 3. Income vs Expense (Monthly) ---
+    # Group by month string YYYY-MM
+    expenses_monthly = db.query(
+        func.to_char(Expense.date, 'YYYY-MM').label('month'),
+        func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.user_id.in_(user_ids),
+        Expense.date >= start_date,
+        Expense.date <= end_date
+    ).group_by(
+        literal_column('month')
+    ).all()
+
+    incomes_monthly = db.query(
+        func.to_char(Income.date, 'YYYY-MM').label('month'),
+        func.sum(Income.amount).label('total')
+    ).filter(
+        Income.user_id.in_(user_ids),
+        Income.date >= start_date,
+        Income.date <= end_date
+    ).group_by(
+        literal_column('month')
+    ).all()
+
+    monthly_data = {}
+    
+    # Process expenses
+    for e in expenses_monthly:
+        month_key = e.month
+        monthly_data.setdefault(month_key, {"income": 0, "expense": 0})
+        monthly_data[month_key]["expense"] = e.total
+
+    # Process incomes
+    for i in incomes_monthly:
+        month_key = i.month
+        monthly_data.setdefault(month_key, {"income": 0, "expense": 0})
+        monthly_data[month_key]["income"] = i.total
+
+    income_vs_expense = [
+        {"month": k, "income": v["income"], "expense": v["expense"]}
+        for k, v in sorted(monthly_data.items())
+    ]
+
+    # --- 4. Savings Stats ---
+    total_income_period = sum(i.total for i in incomes_monthly) if incomes_monthly else 0
+    total_expense_period = sum(e.total for e in expenses_monthly) if expenses_monthly else 0
+    
+    # If category query differs slightly due to joins, we trust the expense query here for total logic
+    # Or rely on category sum for expenses as before? They should be identical.
+    # Let's use the explicit queries we just ran.
+    
+    net_savings = total_income_period - total_expense_period
+    current_savings_rate = (float(net_savings) / float(total_income_period) * 100) if total_income_period > 0 else 0
+    
+    savings_stats = {
+        "current_savings_rate": round(current_savings_rate, 2),
+        "total_income": total_income_period,
+        "total_expense": total_expense_period,
+        "net_savings": net_savings
+    }
+
     return {
         "daily_expenses": daily_expenses,
         "category_breakdown": category_breakdown,
+        "income_vs_expense": income_vs_expense,
+        "savings_stats": savings_stats,
         "total_period": total_period,
         "period_start": start_date,
         "period_end": end_date

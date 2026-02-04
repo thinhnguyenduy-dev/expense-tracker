@@ -6,12 +6,33 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.rate_limit import limiter
-from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router
+from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router, search_router
 from app.middleware import LoggingMiddleware, SecurityHeadersMiddleware
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.core.database import SessionLocal
+from app.core.recurring_expense_service import RecurringExpenseService
 
 # Setup logging first
 setup_logging()
 logger = get_logger()
+scheduler = AsyncIOScheduler()
+
+async def process_recurring_expenses_job():
+    """Job to run recurring expense processing."""
+    try:
+        logger.info("⏳ Starting scheduled recurring expense check...")
+        db = SessionLocal()
+        try:
+             service = RecurringExpenseService(db)
+             count = service.process_all_due_expenses()
+             if count > 0:
+                 logger.info(f"✅ Processed {count} recurring expenses via automation.")
+             # else:
+             #    logger.info("ℹ️ No pending recurring expenses found.") # Reduce noise
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"❌ Error in recurring expense job: {e}")
 
 # Initialize Sentry if configured
 if settings.SENTRY_DSN:
@@ -71,9 +92,16 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("ℹ️ Email notifications disabled (SMTP not configured)")
     
+    # Start Scheduler
+    scheduler.add_job(process_recurring_expenses_job, 'interval', hours=1)
+    scheduler.start()
+    logger.info("⏰ Background scheduler started (recurring expenses check every 1h)")
+    
     yield
     
     # Shutdown
+    scheduler.shutdown()
+    logger.info("⏰ Background scheduler shut down")
     logger.info("👋 Expense Tracker API shutting down")
 
 
@@ -121,6 +149,7 @@ app.include_router(rates_router)
 app.include_router(ocr_router, prefix="/api", tags=["OCR"])
 app.include_router(families_router, prefix="/api", tags=["Families"])
 app.include_router(budgets_router, prefix="/api")
+app.include_router(search_router, prefix="/api/search", tags=["Search"])
 
 
 @app.get("/")

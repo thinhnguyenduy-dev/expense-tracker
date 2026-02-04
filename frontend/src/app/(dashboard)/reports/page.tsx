@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, subDays } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
-import { Loader2, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Users, Download, TrendingUp, TrendingDown, PiggyBank, Wallet } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import {
   LineChart,
@@ -17,7 +17,9 @@ import {
   PieChart,
   Pie,
   Cell,
-
+  BarChart,
+  Bar,
+  Legend,
 } from 'recharts';
 
 import { Button } from '@/components/ui/button';
@@ -71,6 +73,22 @@ export default function ReportsPage() {
     }
   };
 
+  const handleExport = async () => {
+      try {
+          const response = await reportsApi.export();
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement('a');
+          link.href = url;
+          const fileName = `expense_report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+          link.setAttribute('download', fileName);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
+      } catch (error) {
+          console.error("Export failed", error);
+      }
+  };
+
   useEffect(() => {
     fetchReports();
   }, [date, scope]);
@@ -116,6 +134,11 @@ export default function ReportsPage() {
               </Label>
             </div>
           )}
+          <Button variant="outline" onClick={handleExport} className="border-border bg-muted text-foreground hover:bg-muted/80">
+            <Download className="mr-2 h-4 w-4" />
+            {tCommon('export')}
+          </Button>
+
           <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -161,7 +184,99 @@ export default function ReportsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
         </div>
       ) : data ? (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-6">
+            
+            {/* Savings Stats Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-card border-border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('savingsRate')}</CardTitle>
+                        <PieChart className="h-4 w-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-foreground">{data.savings_stats?.current_savings_rate}%</div>
+                        <p className="text-xs text-muted-foreground">
+                            {t('ofIncomeSaved')}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('netSavings')}</CardTitle>
+                        <PiggyBank className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-bold ${data.savings_stats?.net_savings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {formatCurrency(Number(data.savings_stats?.net_savings))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {t('totalSavingsPeriod')}
+                        </p>
+                    </CardContent>
+                </Card>
+                 <Card className="bg-card border-border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('totalIncome')}</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-foreground">{formatCurrency(Number(data.savings_stats?.total_income))}</div>
+                    </CardContent>
+                </Card>
+                 <Card className="bg-card border-border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('totalExpense')}</CardTitle>
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-foreground">{formatCurrency(Number(data.savings_stats?.total_expense))}</div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+            
+            {/* Income vs Expense Chart */}
+            <Card className="col-span-2 bg-card border-border">
+                <CardHeader>
+                    <CardTitle className="text-foreground">{t('incomeVsExpense')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data.income_vs_expense}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <XAxis 
+                                    dataKey="month" 
+                                    stroke="#94a3b8" 
+                                />
+                                <YAxis 
+                                    stroke="#94a3b8"
+                                    tickFormatter={(val) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(val)}
+                                />
+                                <Tooltip 
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-card border border-border p-2 rounded shadow-lg">
+                                                    <p className="text-muted-foreground text-sm mb-1">{label}</p>
+                                                    <p className="text-emerald-500 text-sm">Income: {formatCurrency(payload[0].value as number)}</p>
+                                                    <p className="text-red-500 text-sm">Expense: {formatCurrency(payload[1].value as number)}</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Legend />
+                                <Bar dataKey="income" name={t('income')} fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="expense" name={t('expense')} fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Spending Trend */}
             <Card className="col-span-2 bg-card border-border">
                 <CardHeader>
@@ -267,6 +382,7 @@ export default function ReportsPage() {
                 </CardContent>
             </Card>
 
+        </div>
         </div>
       ) : null}
     </div>

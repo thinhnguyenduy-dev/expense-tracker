@@ -291,6 +291,8 @@ export const incomesApi = {
 export interface ReportResponse {
   daily_expenses: { date: string; amount: number }[];
   category_breakdown: { category_id: number; category_name: string; category_color: string; amount: number; percentage: number }[];
+  income_vs_expense: { month: string; income: number; expense: number }[];
+  savings_stats: { current_savings_rate: number; total_income: number; total_expense: number; net_savings: number };
   total_period: number;
   period_start: string;
   period_end: string;
@@ -299,6 +301,8 @@ export interface ReportResponse {
 export const reportsApi = {
   get: (startDate?: string, endDate?: string, scope?: 'personal' | 'family') => 
     api.get<ReportResponse>('/reports', { params: { start_date: startDate, end_date: endDate, scope } }),
+  
+  export: () => api.get('/reports/export', { responseType: 'blob' }),
 };
 
 // Data API
@@ -379,4 +383,19 @@ export interface BudgetResponse {
 
 export const budgetsApi = {
   getStatus: () => api.get<BudgetResponse>('/budgets'),
+};
+
+// Search API
+export interface SearchResult {
+  id: number;
+  type: 'expense' | 'income';
+  date: string;
+  amount: number;
+  description: string;
+  category_name: string;
+  category_color?: string;
+}
+
+export const searchApi = {
+  search: (query: string) => api.get<SearchResult[]>('/search', { params: { q: query } }),
 };

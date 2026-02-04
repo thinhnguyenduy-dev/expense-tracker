@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useTranslations } from 'next-intl';
+import { SearchBar } from '@/components/ui/search-bar';
 
 export function Sidebar() {
   const t = useTranslations('Sidebar');
@@ -95,6 +96,12 @@ export function Sidebar() {
             >
               <X className="h-5 w-5" />
             </Button>
+          </div>
+
+          
+          {/* Search */}
+          <div className="px-4 py-4">
+            <SearchBar />
           </div>
 
           {/* Navigation */}
