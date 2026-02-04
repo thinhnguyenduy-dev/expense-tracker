@@ -6,6 +6,8 @@ import { recurringExpensesApi, categoriesApi } from "@/lib/api"
 import { useTranslations, useLocale } from 'next-intl';
 import { isDueSoon } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/utils";
+import { format } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -493,7 +495,7 @@ export default function RecurringExpensesPage() {
 
                   {recurring.next_due_date && (
                     <div className={`text-sm ${isDueSoon(recurring.next_due_date) ? 'text-yellow-500 font-bold' : 'text-muted-foreground'}`}>
-                      {t('nextDue')} {new Date(recurring.next_due_date).toLocaleDateString()}
+                      {t('nextDue')} {format(new Date(recurring.next_due_date), 'MMM dd, yyyy', { locale: locale === 'vi' ? vi : enUS })}
                       {isDueSoon(recurring.next_due_date) && (
                         <span className="ml-2 text-xs bg-yellow-400/20 text-yellow-400 px-2 py-0.5 rounded-full">
                           Due Soon

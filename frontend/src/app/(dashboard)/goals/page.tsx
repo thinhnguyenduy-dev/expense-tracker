@@ -14,6 +14,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -280,7 +281,7 @@ function GoalCard({
         {goal.deadline && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <span>{t('target')} {format(new Date(goal.deadline), 'MMM d, yyyy')}</span>
+            <span>{t('target')} {format(new Date(goal.deadline), 'MMM d, yyyy', { locale: locale === 'vi' ? vi : enUS })}</span>
           </div>
         )}
 
@@ -468,7 +469,7 @@ function GoalDialog({
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(field.value, "PPP", { locale: locale === 'vi' ? vi : enUS })
                           ) : (
                             <span>{tCommon('date')}</span>
                           )}
@@ -584,7 +585,6 @@ function AddSavingsDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('amountToAdd')}</label>
             <AmountInput 
-              type="number" 
               placeholder={t('amountToAdd')} 
               value={typeof amount === 'number' ? amount : 0}
               onValueChange={setAmount}

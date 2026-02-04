@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 import { ArrowRight, History } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { jarsApi, Transfer } from '@/lib/api';
@@ -72,7 +73,7 @@ export function TransfersHistory() {
             {transfers.map((transfer) => (
               <TableRow key={transfer.id} className="border-border hover:bg-muted/50">
                 <TableCell className="text-foreground">
-                  {format(new Date(transfer.date), 'MMM dd, yyyy')}
+                  {format(new Date(transfer.date), 'MMM dd, yyyy', { locale: locale === 'vi' ? vi : enUS })}
                 </TableCell>
                 <TableCell className="text-foreground font-medium">
                   {transfer.from_jar_name}

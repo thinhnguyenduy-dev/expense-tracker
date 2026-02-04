@@ -18,6 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { vi, enUS } from "date-fns/locale";
+import { useLocale } from "next-intl";
 import { Income } from "@/lib/api";
 import { IncomeCard } from "@/components/incomes/IncomeCard";
 
@@ -42,6 +44,7 @@ export function TransferHistoryWrapper({
   setOpenIncomeModal, 
   deleteIncome 
 }: TransferHistoryWrapperProps) {
+  const locale = useLocale();
   return (
     <>
       <div className="md:hidden space-y-4">
@@ -95,7 +98,7 @@ export function TransferHistoryWrapper({
                     incomes.map((income) => (
                       <TableRow key={income.id} className="border-border hover:bg-muted/50">
                         <TableCell className="text-foreground">
-                          {format(new Date(income.date), "MMM d, yyyy")}
+                          {format(new Date(income.date), "MMM d, yyyy", { locale: locale === 'vi' ? vi : enUS })}
                         </TableCell>
                         <TableCell className="text-foreground">{income.source}</TableCell>
                         <TableCell className="text-right font-medium text-foreground">

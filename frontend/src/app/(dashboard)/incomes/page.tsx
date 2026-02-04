@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Plus, Pencil, Trash2, Search, X, CircleDollarSign, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 import { useTranslations, useLocale } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -283,7 +284,7 @@ export default function IncomesPage() {
                     className="border-border hover:bg-muted/50"
                   >
                     <TableCell className="text-foreground">
-                      {format(new Date(income.date), 'MMM dd, yyyy')}
+                      {format(new Date(income.date), 'MMM dd, yyyy', { locale: locale === 'vi' ? vi : enUS })}
                     </TableCell>
                     <TableCell className="text-foreground font-medium">
                       {income.source}

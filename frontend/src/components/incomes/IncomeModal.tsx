@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
+import { vi, enUS } from "date-fns/locale";
+import { useLocale } from "next-intl";
 import { CalendarIcon, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,7 @@ interface IncomeModalProps {
 }
 
 export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: IncomeModalProps) {
+  const locale = useLocale();
   const [loading, setLoading] = useState(false);
   const isSubmittingRef = useRef(false);
 
@@ -182,7 +185,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(field.value, "PPP", { locale: locale === 'vi' ? vi : enUS })
                           ) : (
                             <span>Pick a date</span>
                           )}

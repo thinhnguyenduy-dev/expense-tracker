@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -70,6 +72,7 @@ export function ExpenseTable({
   isLoading = false,
 }: ExpenseTableProps) {
   // State for page input
+  const locale = useLocale();
   const [pageInput, setPageInput] = React.useState(page.toString());
 
   React.useEffect(() => {
@@ -169,7 +172,7 @@ export function ExpenseTable({
                   />
                 </TableCell>
                 <TableCell className="text-foreground">
-                  {format(new Date(expense.date), 'MMM dd, yyyy')}
+                  {format(new Date(expense.date), 'MMM dd, yyyy', { locale: locale === 'vi' ? vi : enUS })}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

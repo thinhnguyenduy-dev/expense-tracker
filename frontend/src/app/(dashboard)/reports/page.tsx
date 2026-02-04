@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, subDays } from 'date-fns';
+import { vi, enUS } from 'date-fns/locale';
 import { Loader2, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import {
@@ -86,7 +87,7 @@ export default function ReportsPage() {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border border-border p-2 rounded shadow-lg">
-          <p className="text-muted-foreground text-sm mb-1">{format(new Date(label || ''), 'MMM dd, yyyy')}</p>
+          <p className="text-muted-foreground text-sm mb-1">{format(new Date(label || ''), 'MMM dd, yyyy', { locale: locale === 'vi' ? vi : enUS })}</p>
           <p className="text-emerald-500 font-bold">
             {formatCurrency(payload[0].value)}
           </p>
@@ -129,11 +130,11 @@ export default function ReportsPage() {
               {date?.from ? (
                 date.to ? (
                   <>
-                    {format(date.from, "LLL dd, y")} -{" "}
-                    {format(date.to, "LLL dd, y")}
+                    {format(date.from, "LLL dd, y", { locale: locale === 'vi' ? vi : enUS })} -{" "}
+                    {format(date.to, "LLL dd, y", { locale: locale === 'vi' ? vi : enUS })}
                   </>
                 ) : (
-                  format(date.from, "LLL dd, y")
+                  format(date.from, "LLL dd, y", { locale: locale === 'vi' ? vi : enUS })
                 )
               ) : (
                 <span>Pick a date</span>
@@ -177,7 +178,7 @@ export default function ReportsPage() {
                                 <XAxis 
                                     dataKey="date" 
                                     stroke="#94a3b8" 
-                                    tickFormatter={(val) => format(new Date(val), 'MMM dd')}
+                                    tickFormatter={(val) => format(new Date(val), 'MMM dd', { locale: locale === 'vi' ? vi : enUS })}
                                     minTickGap={30}
                                 />
                                 <YAxis 
