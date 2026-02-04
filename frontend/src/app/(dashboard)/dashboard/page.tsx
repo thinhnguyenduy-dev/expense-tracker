@@ -69,6 +69,7 @@ export default function DashboardPage() {
   const [scope, setScope] = useState<'personal' | 'family'>('personal');
   const [hasFamily, setHasFamily] = useState(false);
   const t = useTranslations('Dashboard');
+  const tFamily = useTranslations('Family');
   const locale = useLocale();
   const { user } = useAuthStore();
   const currency = user?.currency || 'VND';
@@ -172,7 +173,7 @@ export default function DashboardPage() {
               onCheckedChange={(checked) => setScope(checked ? 'family' : 'personal')}
             />
             <Label htmlFor="family-mode" className="text-foreground cursor-pointer select-none">
-              Family View
+              {tFamily('viewFamily')}
             </Label>
           </div>
         )}
@@ -183,15 +184,15 @@ export default function DashboardPage() {
         <Alert className="bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-500">
           <Bell className="h-4 w-4" />
           <AlertTitle className="text-yellow-600 dark:text-yellow-500 font-semibold ml-2">
-            Recurring Expenses Due
+            {t('recurringDueTitle')}
           </AlertTitle>
           <AlertDescription className="flex items-center justify-between ml-2 mt-2 text-yellow-700/90 dark:text-yellow-200/90">
             <span>
-              You have {stats.due_recurring_count} recurring expenses that are due for processing.
+              {t('recurringDueDesc', { count: stats.due_recurring_count })}
             </span>
             <Button size="sm" variant="outline" className="text-yellow-600 dark:text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20" asChild>
               <Link href="/recurring-expenses?filter=due" className="flex items-center gap-2">
-                Process Now <ArrowRight className="h-3 w-3" />
+                {t('processNow')} <ArrowRight className="h-3 w-3" />
               </Link>
             </Button>
           </AlertDescription>
@@ -340,7 +341,7 @@ export default function DashboardPage() {
 
             {/* Budget Limits Section */}
             <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-medium text-foreground">Budget Limits</h3>
+              <h3 className="text-lg font-medium text-foreground">{t('budgetLimits')}</h3>
               <div className="space-y-4">
                 {stats?.expenses_by_category.filter(c => c.monthly_limit).length ? (
                   stats.expenses_by_category.filter(c => c.monthly_limit).map((category) => {
@@ -365,9 +366,9 @@ export default function DashboardPage() {
                    );
                 })) : (
                    <div className="text-center py-4">
-                     <p className="text-sm text-muted-foreground italic">No budget limits set.</p>
+                     <p className="text-sm text-muted-foreground italic">{t('noBudgetLimits')}</p>
                      <Button variant="link" size="sm" className="text-emerald-500 mt-1" asChild>
-                       <Link href="/categories">Set limits in Categories</Link>
+                       <Link href="/categories">{t('setLimits')}</Link>
                      </Button>
                    </div>
                 )}

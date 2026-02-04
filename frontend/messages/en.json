@@ -76,7 +76,13 @@
     "expensesByCategory": "Expenses by Category",
     "expensesByCategoryDesc": "How your money is distributed",
     "noData": "No expense data yet. Start adding expenses!",
-    "failedToLoad": "Failed to load dashboard stats"
+    "failedToLoad": "Failed to load dashboard stats",
+    "recurringDueTitle": "Recurring Expenses Due",
+    "recurringDueDesc": "You have {count} recurring expenses that are due for processing.",
+    "processNow": "Process Now",
+    "budgetLimits": "Budget Limits",
+    "noBudgetLimits": "No budget limits set.",
+    "setLimits": "Set limits in Categories"
   },
   "Expenses": {
     "title": "Expenses",
@@ -237,7 +243,9 @@
     "successAddSavings": "Added {amount} to {name}",
     "failedSave": "Failed to save goal",
     "failedDelete": "Failed to delete goal",
-    "failedAddSavings": "Failed to add savings"
+    "failedAddSavings": "Failed to add savings",
+    "noDescription": "No description",
+    "invalidAmount": "Please enter a valid amount"
   },
   "RecurringExpenses": {
     "title": "Recurring Expenses",

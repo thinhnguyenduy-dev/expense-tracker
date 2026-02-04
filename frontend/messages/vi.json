@@ -76,7 +76,13 @@
     "expensesByCategory": "Chi tiêu theo danh mục",
     "expensesByCategoryDesc": "Cách phân bổ tiền của bạn",
     "noData": "Chưa có dữ liệu chi tiêu. Bắt đầu thêm chi tiêu!",
-    "failedToLoad": "Không thể tải thống kê bảng điều khiển"
+    "failedToLoad": "Không thể tải thống kê bảng điều khiển",
+    "recurringDueTitle": "Đến hạn thanh toán chi phí định kỳ",
+    "recurringDueDesc": "Bạn có {count} khoản chi định kỳ cần xử lý.",
+    "processNow": "Xử lý ngay",
+    "budgetLimits": "Hạn mức ngân sách",
+    "noBudgetLimits": "Chưa thiết lập hạn mức ngân sách.",
+    "setLimits": "Thiết lập hạn mức trong Danh mục"
   },
   "Expenses": {
     "title": "Chi tiêu",
@@ -237,7 +243,9 @@
     "successAddSavings": "Đã thêm {amount} vào {name}",
     "failedSave": "Lưu mục tiêu thất bại",
     "failedDelete": "Xóa mục tiêu thất bại",
-    "failedAddSavings": "Thêm tiết kiệm thất bại"
+    "failedAddSavings": "Thêm tiết kiệm thất bại",
+    "noDescription": "Không có mô tả",
+    "invalidAmount": "Vui lòng nhập số tiền hợp lệ"
   },
   "RecurringExpenses": {
     "title": "Chi tiêu định kỳ",

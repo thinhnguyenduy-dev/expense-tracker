@@ -110,149 +110,182 @@ async def import_data(
     db: Session = Depends(get_db)
 ):
     """
-    Import data from various CSV types (expenses, incomes, categories, jars, goals).
+    Import data from a CSV file or a ZIP file containing multiple CSVs.
+    Supported CSVs: expenses.csv, incomes.csv, categories.csv, jars.csv, goals.csv.
     """
-    content = await file.read()
-    try:
-        rows = parse_csv(content)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
-
-    if not rows:
-        return {"message": "Empty CSV file", "imported_count": 0}
-
-    headers = set(rows[0].keys())
-    imported_count = 0
+    imported_summary = []
     
-    # 1. Detect Jars: name, percentage, balance
-    if {"name", "percentage", "balance"}.issubset(headers):
-        from app.models.jar import Jar
-        for row in rows:
-            try:
-                # Check if jar exists
-                existing = db.query(Jar).filter(Jar.user_id == current_user.id, Jar.name == row["name"]).first()
-                if not existing:
-                    db.add(Jar(
-                        user_id=current_user.id, 
-                        name=row["name"], 
-                        percentage=float(row["percentage"]),
-                        balance=float(row["balance"])
-                    ))
-                    imported_count += 1
-            except Exception as e:
-                print(f"Skipping jar: {e}")
-        db.commit()
-        return {"message": "Jars imported successfully", "imported_count": imported_count, "type": "jar"}
+    # Helper to process a single CSV content
+    def process_rows(rows: List[dict]) -> dict:
+        if not rows:
+            return {"message": "Empty rows", "count": 0, "type": "unknown"}
+            
+        headers = set(rows[0].keys())
+        count = 0
+        type_name = "unknown"
 
-    # 2. Detect Categories: name, icon, color, monthly_limit, jar
-    elif {"name", "icon", "color"}.issubset(headers):
-        from app.models.jar import Jar
-        for row in rows:
-            try:
-                existing = db.query(Category).filter(Category.user_id == current_user.id, Category.name == row["name"]).first()
-                if not existing:
-                    # Resolve Jar
-                    jar_id = None
-                    if row.get("jar"):
-                        jar = db.query(Jar).filter(Jar.user_id == current_user.id, Jar.name == row["jar"]).first()
-                        if jar: jar_id = jar.id
+        # 1. Detect Jars
+        if {"name", "percentage", "balance"}.issubset(headers):
+            type_name = "jar"
+            from app.models.jar import Jar
+            for row in rows:
+                try:
+                    existing = db.query(Jar).filter(Jar.user_id == current_user.id, Jar.name == row["name"]).first()
+                    if not existing:
+                        db.add(Jar(
+                            user_id=current_user.id, 
+                            name=row["name"], 
+                            percentage=float(row["percentage"]),
+                            balance=float(row["balance"])
+                        ))
+                        count += 1
+                except Exception:
+                    continue
+
+        # 2. Detect Categories
+        elif {"name", "icon", "color"}.issubset(headers):
+            type_name = "category"
+            from app.models.jar import Jar
+            for row in rows:
+                try:
+                    existing = db.query(Category).filter(Category.user_id == current_user.id, Category.name == row["name"]).first()
+                    if not existing:
+                        jar_id = None
+                        if row.get("jar"):
+                            jar = db.query(Jar).filter(Jar.user_id == current_user.id, Jar.name == row["jar"]).first()
+                            if jar: jar_id = jar.id
+                        
+                        db.add(Category(
+                            user_id=current_user.id,
+                            name=row["name"],
+                            icon=row["icon"],
+                            color=row["color"],
+                            monthly_limit=float(row["monthly_limit"]) if row.get("monthly_limit") else None,
+                            jar_id=jar_id
+                        ))
+                        count += 1
+                except Exception:
+                    continue
+
+        # 3. Detect Goals
+        elif {"name", "target_amount", "current_amount"}.issubset(headers):
+            type_name = "goal"
+            from app.models.goal import Goal
+            for row in rows:
+                try:
+                    existing = db.query(Goal).filter(Goal.user_id == current_user.id, Goal.name == row["name"]).first()
+                    if not existing:
+                        deadline = None
+                        if row.get("deadline"):
+                            deadline = datetime.strptime(row["deadline"].split("T")[0], "%Y-%m-%d").date()
+                        
+                        db.add(Goal(
+                            user_id=current_user.id,
+                            name=row["name"],
+                            description=row.get("description"),
+                            target_amount=float(row["target_amount"]),
+                            current_amount=float(row["current_amount"]),
+                            deadline=deadline,
+                            color=row.get("color")
+                        ))
+                        count += 1
+                except Exception:
+                    continue
+
+        # 4. Expenses
+        elif {"date", "amount", "description", "category"}.issubset(headers):
+            type_name = "expense"
+            for row in rows:
+                try:
+                    row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
+                    category_name = row.get("category") or "Uncategorized"
+                    category = db.query(Category).filter(
+                        Category.user_id == current_user.id,
+                        Category.name == category_name
+                    ).first()
                     
-                    db.add(Category(
-                        user_id=current_user.id,
-                        name=row["name"],
-                        icon=row["icon"],
-                        color=row["color"],
-                        monthly_limit=float(row["monthly_limit"]) if row.get("monthly_limit") else None,
-                        jar_id=jar_id
-                    ))
-                    imported_count += 1
-            except Exception as e:
-                 print(f"Skipping category: {e}")
-        db.commit()
-        return {"message": "Categories imported successfully", "imported_count": imported_count, "type": "category"}
-
-    # 3. Detect Goals: name, target_amount, current_amount, deadline, color
-    elif {"name", "target_amount", "current_amount"}.issubset(headers):
-        from app.models.goal import Goal
-        for row in rows:
-            try:
-                existing = db.query(Goal).filter(Goal.user_id == current_user.id, Goal.name == row["name"]).first()
-                if not existing:
-                    deadline = None
-                    if row.get("deadline"):
-                         deadline = datetime.strptime(row["deadline"].split("T")[0], "%Y-%m-%d").date()
+                    if not category:
+                        category = Category(
+                            user_id=current_user.id, 
+                            name=category_name, 
+                            icon="📦", 
+                            color="#94a3b8"
+                        )
+                        db.add(category)
+                        db.commit()
+                        db.refresh(category)
                     
-                    db.add(Goal(
+                    db.add(Expense(
                         user_id=current_user.id,
-                        name=row["name"],
-                        description=row.get("description"),
-                        target_amount=float(row["target_amount"]),
-                        current_amount=float(row["current_amount"]),
-                        deadline=deadline,
-                        color=row.get("color")
+                        amount=float(row["amount"]),
+                        description=row["description"],
+                        date=row_date,
+                        category_id=category.id
                     ))
-                    imported_count += 1
-            except Exception as e:
-                 print(f"Skipping goal: {e}")
-        db.commit()
-        return {"message": "Goals imported successfully", "imported_count": imported_count, "type": "goal"}
+                    count += 1
+                except Exception as e:
+                    continue
 
-    # 4. Expenses
-    elif {"date", "amount", "description", "category"}.issubset(headers):
-        for row in rows:
-            try:
-                row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
-                
-                # Find or create category
-                category_name = row.get("category") or "Uncategorized"
-                category = db.query(Category).filter(
-                    Category.user_id == current_user.id,
-                    Category.name == category_name
-                ).first()
-                
-                if not category:
-                    category = Category(
+        # 5. Incomes
+        elif {"date", "amount", "source"}.issubset(headers):
+            type_name = "income"
+            for row in rows:
+                try:
+                    row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
+                    db.add(Income(
                         user_id=current_user.id,
-                        name=category_name,
-                        icon="📦",
-                        color="#94a3b8"
-                    )
-                    db.add(category)
-                    db.commit()
-                    db.refresh(category)
+                        amount=float(row["amount"]),
+                        date=row_date,
+                        source=row["source"]
+                    ))
+                    count += 1
+                except Exception:
+                    continue
+        
+        else:
+            return {"message": "Unknown format", "count": 0, "type": "unknown"}
+
+        db.commit()
+        return {"message": f"Imported {type_name}s", "count": count, "type": type_name}
+
+
+    # Handle ZIP file
+    if file.filename.endswith(".zip"):
+        content = await file.read()
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as z:
+                # Order matters: Jars -> Categories -> Goals -> Expenses -> Incomes
+                process_order = ['jars.csv', 'categories.csv', 'goals.csv', 'expenses.csv', 'incomes.csv']
                 
-                db.add(Expense(
-                    user_id=current_user.id,
-                    amount=float(row["amount"]),
-                    description=row["description"],
-                    date=row_date,
-                    category_id=category.id
-                ))
-                imported_count += 1
-            except Exception as e:
-                continue
-        db.commit()
-        return {"message": "Expenses imported successfully", "imported_count": imported_count, "type": "expense"}
-
-    # 5. Incomes
-    elif {"date", "amount", "source"}.issubset(headers):
-        for row in rows:
-            try:
-                row_date = datetime.strptime(row["date"].split("T")[0], "%Y-%m-%d").date()
-                db.add(Income(
-                    user_id=current_user.id,
-                    amount=float(row["amount"]),
-                    date=row_date,
-                    source=row["source"]
-                ))
-                imported_count += 1
-            except Exception as e:
-                 continue
-        db.commit()
-        return {"message": "Incomes imported successfully", "imported_count": imported_count, "type": "income"}
-
+                # Also check for files that might be just names without checking strict order if named differently
+                # But strict order is safer for dependencies.
+                
+                for filename in process_order:
+                    if filename in z.namelist():
+                        with z.open(filename) as f:
+                            rows = parse_csv(f.read())
+                            if rows:
+                                res = process_rows(rows)
+                                imported_summary.append(f"{filename}: {res['count']} imported")
+            
+        except zipfile.BadZipFile:
+            raise HTTPException(status_code=400, detail="Invalid ZIP file")
+            
+    # Handle single CSV file
     else:
-        raise HTTPException(
-            status_code=400, 
-            detail="Unknown CSV format. Supported: Expenses, Incomes, Categories, Jars, Goals."
-        )
+        content = await file.read()
+        try:
+            rows = parse_csv(content)
+            res = process_rows(rows)
+            imported_summary.append(f"{res['type']}: {res['count']} imported")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
+
+    # Invalidate dashboard cache
+    from .dashboard import invalidate_user_dashboard_cache
+    invalidate_user_dashboard_cache(current_user.id)
+
+    return {
+        "message": "Import completed successfully",
+        "details": imported_summary
+    }

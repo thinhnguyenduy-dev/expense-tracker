@@ -74,6 +74,7 @@ export default function GoalsPage() {
   const [scope, setScope] = useState<'personal' | 'family'>('personal');
   const [hasFamily, setHasFamily] = useState(false);
   const t = useTranslations('Goals');
+  const tFamily = useTranslations('Family');
   const tCommon = useTranslations('Common');
 
   // Check family status
@@ -134,7 +135,7 @@ export default function GoalsPage() {
                 onCheckedChange={(checked: boolean) => setScope(checked ? 'family' : 'personal')}
               />
               <Label htmlFor="family-mode-goals" className="text-foreground cursor-pointer select-none">
-                View Family
+                {tFamily('viewFamily')}
               </Label>
             </div>
           )}
@@ -239,7 +240,7 @@ function GoalCard({
         <div>
           <CardTitle className="text-lg font-semibold text-foreground">{goal.name}</CardTitle>
           <CardDescription className="text-muted-foreground mt-1 line-clamp-1">
-            {goal.description || 'No description'}
+            {goal.description || t('noDescription')}
           </CardDescription>
         </div>
         <DropdownMenu>
@@ -544,7 +545,7 @@ function AddSavingsDialog({
     isSubmittingRef.current = true;
     const addAmount = amount;
     if (!addAmount || addAmount <= 0) {
-      toast.error('Please enter a valid amount');
+      toast.error(t('invalidAmount'));
       isSubmittingRef.current = false;
       return;
     }
