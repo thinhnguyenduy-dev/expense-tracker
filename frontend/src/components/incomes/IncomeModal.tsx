@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { CalendarIcon, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { incomesApi, Income } from "@/lib/api";
 import { toast } from "sonner";
 
+
 const formSchema = z.object({
   amount: z.number().min(0.01, "Amount must be greater than 0"),
   source: z.string().min(1, "Source is required"),
@@ -53,8 +54,18 @@ interface IncomeModalProps {
 
 export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: IncomeModalProps) {
   const locale = useLocale();
+  const t = useTranslations('Incomes');
+  const tCommon = useTranslations('Common');
   const [loading, setLoading] = useState(false);
   const isSubmittingRef = useRef(false);
+
+  const formSchema = z.object({
+    amount: z.number().min(0.01, t('amountRequired')),
+    source: z.string().min(1, t('sourceRequired')),
+    date: z.date({
+      message: t('dateRequired'),
+    }),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -98,10 +109,10 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
 
       if (incomeToEdit) {
         await incomesApi.update(incomeToEdit.id, data);
-        toast.success("Income updated successfully");
+        toast.success(t('successUpdate'));
       } else {
         await incomesApi.create(data);
-        toast.success("Income added successfully");
+        toast.success(t('successAdd'));
       }
       
       form.reset();
@@ -109,13 +120,13 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
       // Call onSuccess after modal is closed to prevent race conditions
       setTimeout(() => onSuccess(), 100);
     } catch (error) {
-      toast.error(incomeToEdit ? "Failed to update income" : "Failed to add income");
+      toast.error(t('failedSave'));
       console.error(error);
       isSubmittingRef.current = false;
     } finally {
       setLoading(false);
     }
-  }, [incomeToEdit, form, onSuccess, onOpenChange, loading]);
+  }, [incomeToEdit, form, onSuccess, onOpenChange, loading, t]);
 
   // Prevent dialog close during submission
   const handleOpenChange = useCallback((open: boolean) => {
@@ -127,11 +138,11 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{incomeToEdit ? "Edit Income" : "Add Income"}</DialogTitle>
+          <DialogTitle className="text-foreground">{incomeToEdit ? t('editIncome') : t('addIncome')}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {incomeToEdit 
-              ? "Update income details. This will adjust the distribution in your jars." 
-              : "Add new income to distribute across your 6 Jars."}
+              ? t('editIncomeDesc')
+              : t('addIncomeDesc')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -142,7 +153,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground">Amount</FormLabel>
+                  <FormLabel className="text-foreground">{tCommon('amount')}</FormLabel>
                   <FormControl>
                     <AmountInput
                       placeholder="0.00"
@@ -160,9 +171,9 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
               name="source"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground">Source</FormLabel>
+                  <FormLabel className="text-foreground">{t('source')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Salary, Bonus, etc." {...field} className="bg-muted border-border text-foreground" />
+                    <Input placeholder={t('sourcePlaceholder')} {...field} className="bg-muted border-border text-foreground" />
                   </FormControl>
                   <FormMessage className="text-red-500" />
                 </FormItem>
@@ -173,7 +184,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="text-foreground">Date</FormLabel>
+                  <FormLabel className="text-foreground">{tCommon('date')}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -187,7 +198,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
                           {field.value ? (
                             format(field.value, "PPP", { locale: locale === 'vi' ? vi : enUS })
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{t('pickDate')}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -213,7 +224,7 @@ export function IncomeModal({ open, onOpenChange, onSuccess, incomeToEdit }: Inc
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {incomeToEdit ? "Save Changes" : "Add Income"}
+                {incomeToEdit ? t('saveChanges') : t('addIncome')}
               </Button>
             </DialogFooter>
             </fieldset>

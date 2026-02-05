@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -42,45 +43,10 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { incomesApi, ratesApi } from "@/lib/api";
 import { toast } from "sonner";
 
-// Inline ConversionPreview component
-function ConversionPreview({ amount, from, to }: { amount: number; from: string; to: string }) {
-  const [converted, setConverted] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  // Simple debounce
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (amount <= 0) return;
-      setLoading(true);
-      try {
-        const { data } = await ratesApi.convert(amount, from, to);
-        setConverted(data.converted_amount);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [amount, from, to]);
-
-  if (loading) return <span className="animate-pulse">Calculating...</span>;
-  if (converted === null) return null;
-  
-  return (
-    <span>≈ {formatCurrency(converted, to, 'en-US')}</span> 
-  );
-}
 
 
-const formSchema = z.object({
-  amount: z.number().min(0.01, "Amount must be greater than 0"),
-  source: z.string().min(1, "Source is required"),
-  currency: z.string().optional(),
-  date: z.date({
-    message: "Date is required",
-  }),
-});
+
+
 
 interface AddIncomeModalProps {
   open: boolean;
@@ -92,6 +58,18 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
   const [loading, setLoading] = useState(false);
   const isSubmittingRef = useRef(false);
   const { user } = useAuthStore();
+  const t = useTranslations('Incomes');
+  const tCommon = useTranslations('Common');
+
+
+  const formSchema = z.object({
+    amount: z.number().min(0.01, t('amountRequired')),
+    source: z.string().min(1, t('sourceRequired')),
+    currency: z.string().optional(),
+    date: z.date({
+      message: t('dateRequired'),
+    }),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -126,19 +104,19 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
         currency: values.currency,
         date: format(values.date, "yyyy-MM-dd"),
       });
-      toast.success("Income added successfully");
+      toast.success(t('successAdd'));
       form.reset();
       onOpenChange(false);
       // Call onSuccess after modal is closed to prevent race conditions
       setTimeout(() => onSuccess(), 100);
     } catch (error) {
-      toast.error("Failed to add income");
+      toast.error(t('failedSave'));
       console.error(error);
       isSubmittingRef.current = false;
     } finally {
       setLoading(false);
     }
-  }, [form, onSuccess, onOpenChange, loading]);
+  }, [form, onSuccess, onOpenChange, loading, t]);
 
   // Prevent dialog close during submission
   const handleOpenChange = useCallback((open: boolean) => {
@@ -150,9 +128,9 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700">
         <DialogHeader>
-          <DialogTitle className="text-white">Add Income</DialogTitle>
+          <DialogTitle className="text-white">{t('addIncome')}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Add new income to distribute across your 6 Jars.
+             {t('addIncomeDesc')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -164,7 +142,7 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-200">Amount</FormLabel>
+                    <FormLabel className="text-slate-200">{tCommon('amount')}</FormLabel>
                     <FormControl>
                       <AmountInput
                         placeholder="0.00"
@@ -205,9 +183,9 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
               name="source"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Source</FormLabel>
+                  <FormLabel className="text-slate-200">{t('source')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Salary, Bonus, etc." {...field} className="bg-slate-800 border-slate-700 text-white" />
+                    <Input placeholder={t('sourcePlaceholder')} {...field} className="bg-slate-800 border-slate-700 text-white" />
                   </FormControl>
                   <FormMessage className="text-red-400" />
                 </FormItem>
@@ -218,7 +196,7 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="text-slate-200">Date</FormLabel>
+                  <FormLabel className="text-slate-200">{tCommon('date')}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -232,7 +210,7 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{t('pickDate')}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -259,7 +237,7 @@ export function AddIncomeModal({ open, onOpenChange, onSuccess }: AddIncomeModal
             <DialogFooter>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Income
+                {t('addIncome')}
               </Button>
             </DialogFooter>
             </fieldset>

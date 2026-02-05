@@ -51,10 +51,14 @@ export const authApi = {
   register: (data: { email: string; password: string; name: string }) =>
     api.post('/auth/register', data),
   
-  login: (data: { username: string; password: string }) =>
-    api.post('/auth/login', data, {
+  login: (data: { username: string; password: string }) => {
+    const params = new URLSearchParams();
+    params.append('username', data.username);
+    params.append('password', data.password);
+    return api.post('/auth/login', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    }),
+    });
+  },
   
   me: () => api.get('/auth/me'),
 };

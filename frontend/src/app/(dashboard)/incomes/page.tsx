@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
 import { useTranslations, useLocale } from 'next-intl';
+import { motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,8 @@ import { incomesApi, authApi, familiesApi, Income } from '@/lib/api';
 import { IncomeModal } from '@/components/incomes/IncomeModal';
 import { cn } from '@/lib/utils';
 import { IncomeCard } from '@/components/incomes/IncomeCard';
+
+const MotionTableRow = motion(TableRow);
 
 const formatCurrency = (value: number, locale: string) => {
   return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -161,11 +164,11 @@ export default function IncomesPage() {
                   onValueChange={(val) => setSelectedMemberId(val === 'all' ? undefined : Number(val))}
                 >
                   <SelectTrigger className="w-full sm:w-[150px] bg-muted border-border text-foreground">
-                    <SelectValue placeholder="All Members" />
+                    <SelectValue placeholder={tFamily('allMembers')} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
                     <SelectItem value="all" className="text-foreground hover:bg-muted">
-                      All Members
+                      {tFamily('allMembers')}
                     </SelectItem>
                     {familyMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id.toString()} className="text-foreground hover:bg-muted">
@@ -272,15 +275,18 @@ export default function IncomesPage() {
                 <TableRow className="border-border hover:bg-muted">
                   <TableHead className="text-muted-foreground">{tCommon('date')}</TableHead>
                   <TableHead className="text-muted-foreground">{t('source')}</TableHead>
-                  {scope === 'family' && <TableHead className="text-muted-foreground">By</TableHead>}
+                    {scope === 'family' && <TableHead className="text-muted-foreground">{t('by')}</TableHead>}
                   <TableHead className="text-muted-foreground text-right">{tCommon('amount')}</TableHead>
                   <TableHead className="text-muted-foreground text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredIncomes.map((income) => (
-                  <TableRow
+                {filteredIncomes.map((income, index) => (
+                  <MotionTableRow
                     key={income.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
                     className="border-border hover:bg-muted/50"
                   >
                     <TableCell className="text-foreground">
@@ -317,7 +323,7 @@ export default function IncomesPage() {
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
               </TableBody>
             </Table>

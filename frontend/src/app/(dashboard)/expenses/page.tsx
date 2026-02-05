@@ -20,13 +20,7 @@ import { ExpenseBulkActions } from '@/components/expenses/ExpenseBulkActions';
 import { ImportExpensesModal } from '@/components/expenses/import-expenses-modal';
 
 // Zod schema
-const expenseSchema = z.object({
-  amount: z.number().min(0.01, 'Amount must be greater than 0'),
-  description: z.string().min(1, 'Description is required'),
-  date: z.date({ message: 'Date is required' }),
-  category_id: z.string().min(1, 'Category is required'),
-  currency: z.string().optional(),
-});
+
 
 // Date range helper
 const getDateRange = (preset: DatePreset): { start?: Date; end?: Date } => {
@@ -82,6 +76,14 @@ export default function ExpensesPage() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [bulkCategoryDialogOpen, setBulkCategoryDialogOpen] = useState(false);
+
+  const expenseSchema = z.object({
+    amount: z.number().min(0.01, t('amountRequired')),
+    description: z.string().min(1, t('descriptionRequired')),
+    date: z.date({ message: t('dateRequired') }),
+    category_id: z.string().min(1, t('categoryRequired')),
+    currency: z.string().optional(),
+  });
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -385,24 +387,6 @@ export default function ExpensesPage() {
         editingExpense={editingExpense}
         isSubmitting={isSubmitting}
         onSubmit={onSubmit}
-        translations={{
-          editExpense: t('editExpense'),
-          addExpense: t('addExpense'),
-          editExpenseDesc: t('editExpenseDesc'),
-          addExpenseDesc: t('addExpenseDesc'),
-          descriptionPlaceholder: t('descriptionPlaceholder'),
-          selectCategory: t('selectCategory'),
-          pickDate: t('pickDate'),
-        }}
-        commonTranslations={{
-          amount: tCommon('amount'),
-          description: tCommon('description'),
-          category: tCommon('category'),
-          date: tCommon('date'),
-          cancel: tCommon('cancel'),
-          update: tCommon('update'),
-          add: tCommon('add'),
-        }}
       />
     </div>
   );

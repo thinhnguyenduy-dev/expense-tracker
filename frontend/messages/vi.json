@@ -117,6 +117,15 @@
     "failedBulkUpdate": "Không thể cập nhật các khoản chi",
     "confirmDelete": "Bạn có chắc chắn muốn xóa khoản chi này không?",
     "confirmBulkDelete": "Bạn có chắc chắn muốn xóa {count} khoản chi này không?",
+    "receiptScan": "Quét hóa đơn (Tự động điền)",
+    "receiptScanDesc": "Tải lên hình ảnh để trích xuất dữ liệu tự động",
+    "scanning": "Đang quét hóa đơn...",
+    "scanSuccess": "Đã quét hóa đơn!",
+    "scanFailed": "Quét hóa đơn thất bại. Hãy đảm bảo Tesseract đã được cài đặt trên máy chủ.",
+    "amountRequired": "Vui lòng nhập số tiền",
+    "descriptionRequired": "Vui lòng nhập mô tả",
+    "dateRequired": "Vui lòng chọn ngày",
+    "categoryRequired": "Vui lòng chọn danh mục",
     "DatePresets": {
       "all": "Tất cả",
       "today": "Hôm nay",
@@ -145,7 +154,13 @@
     "successUpdate": "Cập nhật thu nhập thành công",
     "successDelete": "Xóa thu nhập thành công",
     "failedSave": "Lưu thu nhập thất bại",
-    "failedDelete": "Xóa thu nhập thất bại"
+    "failedDelete": "Xóa thu nhập thất bại",
+    "amountRequired": "Số tiền phải lớn hơn 0",
+    "sourceRequired": "Vui lòng nhập nguồn thu nhập",
+    "dateRequired": "Vui lòng chọn ngày",
+    "saveChanges": "Lưu thay đổi",
+    "pickDate": "Chọn ngày",
+    "by": "Bởi"
   },
   "Jars": {
     "title": "Phương pháp 6 cái hũ",

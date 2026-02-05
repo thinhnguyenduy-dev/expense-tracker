@@ -19,6 +19,9 @@ import {
 import { cn } from '@/lib/utils';
 import { Expense } from '@/lib/api';
 import { ExpenseCard } from './ExpenseCard';
+import { motion } from 'framer-motion';
+
+const MotionTableRow = motion(TableRow);
 
 interface ExpenseTableProps {
   expenses: Expense[];
@@ -157,9 +160,12 @@ export function ExpenseTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {expenses.map((expense) => (
-              <TableRow
+            {expenses.map((expense, index) => (
+              <MotionTableRow
                 key={expense.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
                 className={cn(
                   'border-border hover:bg-muted/50',
                   selectedIds.has(expense.id) && 'bg-emerald-500/10'
@@ -211,7 +217,7 @@ export function ExpenseTable({
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
+              </MotionTableRow>
             ))}
           </TableBody>
         </Table>

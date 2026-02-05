@@ -6,7 +6,9 @@ import {
   TrendingDown, 
   Calendar, 
   DollarSign,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Bell, 
+  ArrowRight
 } from 'lucide-react';
 import {
   BarChart,
@@ -22,10 +24,23 @@ import {
   Legend,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { dashboardApi, recurringExpensesApi } from '@/lib/api';
+import { dashboardApi, recurringExpensesApi, authApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { UpcomingBills } from '@/components/dashboard/UpcomingBills';
+import { formatCurrency, cn } from '@/lib/utils';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { useTheme } from 'next-themes';
+import { motion } from 'framer-motion';
+
+import { Greeting } from '@/components/dashboard/Greeting';
+import { FadeIn, SlideUp, StaggerContainer, StaggerItem, ScaleHover } from '@/components/ui/motion';
 
 interface CategoryStat {
   category_id: number;
@@ -49,18 +64,6 @@ interface DashboardStats {
   monthly_trend: MonthlyTrend[];
   due_recurring_count?: number;
 }
-
-import { authApi } from '@/lib/api';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { UpcomingBills } from '@/components/dashboard/UpcomingBills';
-import { formatCurrency, cn } from '@/lib/utils';
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Bell, ArrowRight } from "lucide-react";
-import Link from 'next/link';
-import { Button } from "@/components/ui/button";
-import { useTheme } from 'next-themes';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -156,105 +159,134 @@ export default function DashboardPage() {
     color: isDark ? '#fff' : '#1e293b',
   };
 
+  const MotionCard = motion(Card);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <Greeting />
           <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
         
         {hasFamily && (
-          <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border border-border">
+          <FadeIn delay={0.2} className="flex items-center space-x-2 bg-card p-2 rounded-lg border border-border shadow-sm">
             <Switch
               id="family-mode"
               checked={scope === 'family'}
               onCheckedChange={(checked) => setScope(checked ? 'family' : 'personal')}
             />
-            <Label htmlFor="family-mode" className="text-foreground cursor-pointer select-none">
+            <Label htmlFor="family-mode" className="text-foreground cursor-pointer select-none font-medium">
               {tFamily('viewFamily')}
             </Label>
-          </div>
+          </FadeIn>
         )}
       </div>
 
       {/* Due Recurring Expenses Alert */}
       {stats?.due_recurring_count && stats.due_recurring_count > 0 && (
-        <Alert className="bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-500">
-          <Bell className="h-4 w-4" />
-          <AlertTitle className="text-yellow-600 dark:text-yellow-500 font-semibold ml-2">
-            {t('recurringDueTitle')}
-          </AlertTitle>
-          <AlertDescription className="flex items-center justify-between ml-2 mt-2 text-yellow-700/90 dark:text-yellow-200/90">
-            <span>
-              {t('recurringDueDesc', { count: stats.due_recurring_count })}
-            </span>
-            <Button size="sm" variant="outline" className="text-yellow-600 dark:text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20" asChild>
-              <Link href="/recurring-expenses?filter=due" className="flex items-center gap-2">
-                {t('processNow')} <ArrowRight className="h-3 w-3" />
-              </Link>
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <FadeIn delay={0.3}>
+            <Alert className="bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400">
+            <Bell className="h-4 w-4" />
+            <AlertTitle className="text-yellow-600 dark:text-yellow-400 font-semibold ml-2">
+                {t('recurringDueTitle')}
+            </AlertTitle>
+            <AlertDescription className="flex items-center justify-between ml-2 mt-2 text-yellow-700/90 dark:text-yellow-200/90">
+                <span>
+                {t('recurringDueDesc', { count: stats.due_recurring_count })}
+                </span>
+                <Button size="sm" variant="outline" className="text-yellow-600 dark:text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20" asChild>
+                <Link href="/recurring-expenses?filter=due" className="flex items-center gap-2">
+                    {t('processNow')} <ArrowRight className="h-3 w-3" />
+                </Link>
+                </Button>
+            </AlertDescription>
+            </Alert>
+        </FadeIn>
       )}
 
       {/* Upcoming Bills and Stats Cards */}
-      <div className={cn("grid gap-6", upcomingBills.length > 0 ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3")}>
+      <StaggerContainer className={cn("grid gap-6", upcomingBills.length > 0 ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3")}>
         {upcomingBills.length > 0 && (
-          <div className="lg:col-span-1">
+          <StaggerItem className="lg:col-span-1">
             <UpcomingBills bills={upcomingBills} />
-          </div>
+          </StaggerItem>
         )}
-        <div className={cn("grid gap-4 md:grid-cols-3", upcomingBills.length > 0 ? "lg:col-span-3" : "col-span-3")}>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t('totalExpenses')}</CardTitle>
-            <DollarSign className="h-5 w-5 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {formatCurrency(Number(stats?.total_expenses) || 0, currency, locale)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('allTimeSpending')}</p>
-          </CardContent>
-        </Card>
+        <div className={cn("grid gap-5 md:grid-cols-3", upcomingBills.length > 0 ? "lg:col-span-3" : "col-span-3")}>
+        <StaggerItem>
+            <ScaleHover>
+                <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('totalExpenses')}</CardTitle>
+                    <div className="p-2 bg-emerald-500/10 rounded-full">
+                        <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-3xl font-bold text-foreground">
+                    {formatCurrency(Number(stats?.total_expenses) || 0, currency, locale)}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        {t('allTimeSpending')}
+                    </p>
+                </CardContent>
+                </Card>
+            </ScaleHover>
+        </StaggerItem>
 
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisMonth')}</CardTitle>
-            <Calendar className="h-5 w-5 text-pink-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {formatCurrency(Number(stats?.total_this_month) || 0, currency, locale)}
-            </div>
-            <div className="flex items-center gap-1 mt-1">
-              <TrendingUp className="h-3 w-3 text-green-500" />
-              <p className="text-xs text-muted-foreground">{t('monthlySpending')}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StaggerItem>
+            <ScaleHover>
+                <Card className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/20 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisMonth')}</CardTitle>
+                    <div className="p-2 bg-pink-500/10 rounded-full">
+                        <Calendar className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-3xl font-bold text-foreground">
+                    {formatCurrency(Number(stats?.total_this_month) || 0, currency, locale)}
+                    </div>
+                    <div className="flex items-center gap-1 mt-2">
+                    <TrendingUp className="h-3 w-3 text-pink-500" />
+                    <p className="text-xs text-muted-foreground">{t('monthlySpending')}</p>
+                    </div>
+                </CardContent>
+                </Card>
+            </ScaleHover>
+        </StaggerItem>
 
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisWeek')}</CardTitle>
-            <TrendingDown className="h-5 w-5 text-cyan-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {formatCurrency(Number(stats?.total_this_week) || 0, currency, locale)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('weeklySpending')}</p>
-          </CardContent>
-        </Card>
+        <StaggerItem>
+            <ScaleHover>
+                <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/20 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisWeek')}</CardTitle>
+                    <div className="p-2 bg-cyan-500/10 rounded-full">
+                        <TrendingDown className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-3xl font-bold text-foreground">
+                    {formatCurrency(Number(stats?.total_this_week) || 0, currency, locale)}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-cyan-500"></span>
+                        {t('weeklySpending')}
+                    </p>
+                </CardContent>
+                </Card>
+            </ScaleHover>
+        </StaggerItem>
         </div>
-      </div>
+      </StaggerContainer>
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Monthly Trend Chart */}
-        <Card className="bg-card border-border">
+        <FadeIn delay={0.4}>
+        <Card className="bg-card border-border h-full">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-500" />
@@ -292,9 +324,11 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+        </FadeIn>
 
         {/* Category Breakdown Chart */}
-        <Card className="bg-card border-border">
+        <FadeIn delay={0.5}>
+        <Card className="bg-card border-border h-full">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <PieChartIcon className="h-5 w-5 text-pink-500" />
@@ -376,6 +410,7 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+        </FadeIn>
       </div>
     </div>
   );

@@ -25,7 +25,13 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useTranslations } from 'next-intl';
 import { SearchBar } from '@/components/ui/search-bar';
 
-export function Sidebar() {
+interface SidebarProps {
+  className?: string;
+  onClose?: () => void;
+  staticMode?: boolean;
+}
+
+export function Sidebar({ className, onClose, staticMode = false }: SidebarProps) {
   const t = useTranslations('Sidebar');
   const tCommon = useTranslations('Common');
   
@@ -46,23 +52,30 @@ export function Sidebar() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
 
+  const handleClose = () => {
+    setIsMobileOpen(false);
+    onClose?.();
+  };
+
   return (
     <>
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          "fixed top-4 left-4 z-50 md:hidden text-foreground hover:bg-muted transition-opacity duration-200",
-          isMobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-        )}
-        onClick={() => setIsMobileOpen(true)}
-      >
-        <Menu className="h-6 w-6" />
-      </Button>
+      {/* Mobile menu button - Only show if NOT in static mode and on mobile */}
+      {!staticMode && (
+        <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+            "fixed top-4 left-4 z-50 md:hidden text-foreground hover:bg-muted transition-opacity duration-200",
+            isMobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
+            onClick={() => setIsMobileOpen(true)}
+        >
+            <Menu className="h-6 w-6" />
+        </Button>
+      )}
 
-      {/* Overlay */}
-      {isMobileOpen && (
+      {/* Overlay - Only if NOT static mode */}
+      {!staticMode && isMobileOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsMobileOpen(false)}
@@ -72,10 +85,13 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-64 bg-card border-r border-border transition-transform duration-300',
+          'bg-card border-r border-border transition-transform duration-300',
           'dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-800',
-          'md:translate-x-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          staticMode 
+            ? 'relative h-full w-full translate-x-0' 
+            : 'fixed left-0 top-0 z-40 h-screen w-64 md:translate-x-0',
+          !staticMode && (isMobileOpen ? 'translate-x-0' : '-translate-x-full'),
+          className
         )}
       >
         <div className="flex h-full flex-col">
@@ -88,14 +104,16 @@ export function Sidebar() {
               <span className="text-xl font-bold text-foreground">ExpenseTracker</span>
             </div>
             {/* Mobile Close Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-muted-foreground hover:text-foreground -mr-2"
-              onClick={() => setIsMobileOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            {(isMobileOpen || staticMode) && (
+                <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden text-muted-foreground hover:text-foreground -mr-2"
+                onClick={staticMode ? onClose : () => setIsMobileOpen(false)}
+                >
+                <X className="h-5 w-5" />
+                </Button>
+            )}
           </div>
 
           
@@ -105,14 +123,14 @@ export function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={handleClose}
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
                     isActive

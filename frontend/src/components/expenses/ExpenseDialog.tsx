@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+
 
 import { UseFormReturn, Controller } from 'react-hook-form';
 import { format } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
 import { Loader2, CalendarIcon, CameraIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,24 +59,6 @@ interface ExpenseDialogProps {
   editingExpense: Expense | null;
   isSubmitting: boolean;
   onSubmit: (data: ExpenseFormData) => void;
-  translations: {
-    editExpense: string;
-    addExpense: string;
-    editExpenseDesc: string;
-    addExpenseDesc: string;
-    descriptionPlaceholder: string;
-    selectCategory: string;
-    pickDate: string;
-  };
-  commonTranslations: {
-    amount: string;
-    description: string;
-    category: string;
-    date: string;
-    cancel: string;
-    update: string;
-    add: string;
-  };
 }
 
 export function ExpenseDialog({
@@ -87,18 +69,19 @@ export function ExpenseDialog({
   editingExpense,
   isSubmitting,
   onSubmit,
-  translations: t,
-  commonTranslations: tCommon,
 }: ExpenseDialogProps) {
   const locale = useLocale();
-  const { user } = useAuthStore();
+  const t = useTranslations('Expenses');
+  const tCommon = useTranslations('Common');
+  
+
   const { control, register, watch, setValue, handleSubmit, formState: { errors } } = form;
   const selectedDate = watch('date');
 
 
 
   const handleReceiptScan = async (file: File) => {
-    const toastId = toast.loading('Scanning receipt...');
+    const toastId = toast.loading(t('scanning'));
     try {
       const { ocrApi } = await import('@/lib/api');
       const { data } = await ocrApi.scanReceipt(file);
@@ -108,10 +91,10 @@ export function ExpenseDialog({
       if (data.merchant) setValue('description', data.merchant);
       else setValue('description', 'Receipt scan ' + new Date().toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US'));
       
-      toast.success('Receipt scanned!', { id: toastId });
+      toast.success(t('scanSuccess'), { id: toastId });
     } catch (error) {
       console.error(error);
-      toast.error('Failed to scan receipt. Ensure Tesseract is installed on server.', { id: toastId });
+      toast.error(t('scanFailed'), { id: toastId });
     }
   };
 
@@ -120,10 +103,10 @@ export function ExpenseDialog({
       <DialogContent className="bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">
-            {editingExpense ? t.editExpense : t.addExpense}
+            {editingExpense ? t('editExpense') : t('addExpense')}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {editingExpense ? t.editExpenseDesc : t.addExpenseDesc}
+            {editingExpense ? t('editExpenseDesc') : t('addExpenseDesc')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -154,10 +137,10 @@ export function ExpenseDialog({
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-foreground group-hover:text-emerald-500 transition-colors duration-300">
-                        Scan Receipt (Auto-fill)
+                        {t('receiptScan')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Upload an image to auto-extract data
+                        {t('receiptScanDesc')}
                       </p>
                     </div>
                   </div>
@@ -167,7 +150,7 @@ export function ExpenseDialog({
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-foreground">{tCommon.amount}</Label>
+                <Label className="text-foreground">{tCommon('amount')}</Label>
                 <Controller
                   control={control}
                   name="amount"
@@ -187,9 +170,9 @@ export function ExpenseDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-foreground">{tCommon.description}</Label>
+              <Label className="text-foreground">{tCommon('description')}</Label>
               <Input
-                placeholder={t.descriptionPlaceholder}
+                placeholder={t('descriptionPlaceholder')}
                 className="bg-muted border-border text-foreground"
                 {...register('description')}
               />
@@ -200,13 +183,13 @@ export function ExpenseDialog({
 
 
             <div className="space-y-2">
-              <Label className="text-foreground">{tCommon.category}</Label>
+              <Label className="text-foreground">{tCommon('category')}</Label>
               <Select
                 value={watch('category_id')}
                 onValueChange={(value) => setValue('category_id', value)}
               >
                 <SelectTrigger className="bg-muted border-border text-foreground">
-                  <SelectValue placeholder={t.selectCategory} />
+                  <SelectValue placeholder={t('selectCategory')} />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {categories.map((category) => (
@@ -229,7 +212,7 @@ export function ExpenseDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-foreground">{tCommon.date}</Label>
+              <Label className="text-foreground">{tCommon('date')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -240,7 +223,7 @@ export function ExpenseDialog({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, 'PPP', { locale: locale === 'vi' ? vi : enUS }) : <span>{t.pickDate}</span>}
+                    {selectedDate ? format(selectedDate, 'PPP', { locale: locale === 'vi' ? vi : enUS }) : <span>{t('pickDate')}</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-card border-border">
@@ -265,7 +248,7 @@ export function ExpenseDialog({
               onClick={() => onOpenChange(false)}
               className="text-muted-foreground"
             >
-              {tCommon.cancel}
+              {tCommon('cancel')}
             </Button>
             <Button
               type="submit"
@@ -275,9 +258,9 @@ export function ExpenseDialog({
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : editingExpense ? (
-                tCommon.update
+                tCommon('update')
               ) : (
-                tCommon.add
+                tCommon('add')
               )}
             </Button>
           </DialogFooter>
