@@ -409,3 +409,20 @@ export const cronApi = {
 export const searchApi = {
   search: (query: string) => api.get<SearchResult[]>('/search', { params: { q: query } }),
 };
+
+// AI API
+export interface ChatRequest {
+  message: string;
+  history?: any[];
+}
+
+export interface ChatResponse {
+  response: string;
+  is_completed: boolean;
+  expense_data?: any;
+  tool_calls: { name: string; args: any; result?: string }[];
+}
+
+export const aiApi = {
+  chat: (data: ChatRequest) => api.post<ChatResponse>('/ai/agent/chat', data),
+};

@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     
     # External Services
     EXCHANGE_RATE_API_KEY: Optional[str] = None
+
+    # AI
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_API_BASE: Optional[str] = None
+    OPENAI_MODEL_NAME: str = "gpt-3.5-turbo"
     
     class Config:
         env_file = ".env"

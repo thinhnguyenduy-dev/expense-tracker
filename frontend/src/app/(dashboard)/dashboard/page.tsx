@@ -40,6 +40,7 @@ import { useTheme } from 'next-themes';
 import { motion } from 'framer-motion';
 
 import { Greeting } from '@/components/dashboard/Greeting';
+import { AIAssistant } from '@/components/dashboard/ai-assistant';
 import { FadeIn, SlideUp, StaggerContainer, StaggerItem, ScaleHover } from '@/components/ui/motion';
 
 interface CategoryStat {
@@ -206,177 +207,179 @@ export default function DashboardPage() {
         </FadeIn>
       )}
 
-      {/* Upcoming Bills and Stats Cards */}
-      <StaggerContainer className={cn("grid gap-6", upcomingBills.length > 0 ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3")}>
-        {upcomingBills.length > 0 && (
-          <StaggerItem className="lg:col-span-1">
-            <UpcomingBills bills={upcomingBills} />
-          </StaggerItem>
-        )}
-        <div className={cn("grid gap-5 md:grid-cols-3", upcomingBills.length > 0 ? "lg:col-span-3" : "col-span-3")}>
-        <StaggerItem>
-            <ScaleHover>
-                <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('totalExpenses')}</CardTitle>
-                    <div className="p-2 bg-emerald-500/10 rounded-full">
-                        <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
+      {/* Main Grid Layout */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        
+        {/* Left Column: Stats & Charts (Span 2) */}
+        <div className="lg:col-span-2 space-y-6">
+            {/* Stats Cards */}
+            <StaggerContainer className="grid gap-4 md:grid-cols-3">
+                <StaggerItem>
+                    <ScaleHover>
+                        <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20 shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">{t('totalExpenses')}</CardTitle>
+                            <div className="p-2 bg-emerald-500/10 rounded-full">
+                                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-foreground">
+                            {formatCurrency(Number(stats?.total_expenses) || 0, currency, locale)}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                {t('allTimeSpending')}
+                            </p>
+                        </CardContent>
+                        </Card>
+                    </ScaleHover>
+                </StaggerItem>
+
+                <StaggerItem>
+                    <ScaleHover>
+                        <Card className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/20 shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisMonth')}</CardTitle>
+                            <div className="p-2 bg-pink-500/10 rounded-full">
+                                <Calendar className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-foreground">
+                            {formatCurrency(Number(stats?.total_this_month) || 0, currency, locale)}
+                            </div>
+                            <div className="flex items-center gap-1 mt-2">
+                            <TrendingUp className="h-3 w-3 text-pink-500" />
+                            <p className="text-xs text-muted-foreground">{t('monthlySpending')}</p>
+                            </div>
+                        </CardContent>
+                        </Card>
+                    </ScaleHover>
+                </StaggerItem>
+
+                <StaggerItem>
+                    <ScaleHover>
+                        <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/20 shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisWeek')}</CardTitle>
+                            <div className="p-2 bg-cyan-500/10 rounded-full">
+                                <TrendingDown className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-foreground">
+                            {formatCurrency(Number(stats?.total_this_week) || 0, currency, locale)}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                <span className="inline-block w-2 h-2 rounded-full bg-cyan-500"></span>
+                                {t('weeklySpending')}
+                            </p>
+                        </CardContent>
+                        </Card>
+                    </ScaleHover>
+                </StaggerItem>
+            </StaggerContainer>
+
+            {/* Charts Section */}
+            <div className="grid gap-6 lg:grid-cols-2">
+                {/* Monthly Trend Chart */}
+                <FadeIn delay={0.4}>
+                <Card className="bg-card border-border h-full min-h-[350px]">
+                <CardHeader>
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-emerald-500" />
+                    {t('monthlyTrend')}
+                    </CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                    {t('monthlyTrendDesc')}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-3xl font-bold text-foreground">
-                    {formatCurrency(Number(stats?.total_expenses) || 0, currency, locale)}
+                    <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={barChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                        <XAxis dataKey="month" stroke={isDark ? '#9ca3af' : '#6b7280'} fontSize={12} />
+                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} fontSize={12} tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`} />
+                            <Tooltip
+                            contentStyle={tooltipStyle}
+                            labelStyle={{ color: isDark ? '#fff' : '#1e293b' }}
+                            formatter={(value) => [formatCurrency(Number(value) || 0, currency, locale), t('monthlyTrend')]}
+                        />
+                        <Bar
+                            dataKey="total"
+                            fill="url(#colorGradient)"
+                            radius={[4, 4, 0, 0]}
+                        />
+                        <defs>
+                            <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#14b8a6" />
+                            </linearGradient>
+                        </defs>
+                        </BarChart>
+                    </ResponsiveContainer>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                        {t('allTimeSpending')}
-                    </p>
                 </CardContent>
                 </Card>
-            </ScaleHover>
-        </StaggerItem>
+                </FadeIn>
 
-        <StaggerItem>
-            <ScaleHover>
-                <Card className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/20 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisMonth')}</CardTitle>
-                    <div className="p-2 bg-pink-500/10 rounded-full">
-                        <Calendar className="h-5 w-5 text-pink-600 dark:text-pink-400" />
-                    </div>
+                {/* Category Breakdown Chart */}
+                <FadeIn delay={0.5}>
+                <Card className="bg-card border-border h-full min-h-[350px]">
+                <CardHeader>
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                    <PieChartIcon className="h-5 w-5 text-pink-500" />
+                    {t('expensesByCategory')}
+                    </CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                    {t('expensesByCategoryDesc')}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-3xl font-bold text-foreground">
-                    {formatCurrency(Number(stats?.total_this_month) || 0, currency, locale)}
-                    </div>
-                    <div className="flex items-center gap-1 mt-2">
-                    <TrendingUp className="h-3 w-3 text-pink-500" />
-                    <p className="text-xs text-muted-foreground">{t('monthlySpending')}</p>
+                    <div className="h-64">
+                    {pieChartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                            data={pieChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={2}
+                            dataKey="value"
+                            >
+                            {pieChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                            </Pie>
+                            <Tooltip
+                            contentStyle={tooltipStyle}
+                            formatter={(value) => formatCurrency(Number(value) || 0, currency, locale)}
+                            />
+                            <Legend
+                            wrapperStyle={{ color: isDark ? '#9ca3af' : '#6b7280', fontSize: '12px' }}
+                            formatter={(value) => <span className="text-muted-foreground">{value}</span>}
+                            />
+                        </PieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                        <p>{t('noData')}</p>
+                        </div>
+                    )}
                     </div>
                 </CardContent>
                 </Card>
-            </ScaleHover>
-        </StaggerItem>
-
-        <StaggerItem>
-            <ScaleHover>
-                <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/20 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('thisWeek')}</CardTitle>
-                    <div className="p-2 bg-cyan-500/10 rounded-full">
-                        <TrendingDown className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold text-foreground">
-                    {formatCurrency(Number(stats?.total_this_week) || 0, currency, locale)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-cyan-500"></span>
-                        {t('weeklySpending')}
-                    </p>
-                </CardContent>
-                </Card>
-            </ScaleHover>
-        </StaggerItem>
-        </div>
-      </StaggerContainer>
-
-      {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Monthly Trend Chart */}
-        <FadeIn delay={0.4}>
-        <Card className="bg-card border-border h-full">
-          <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-emerald-500" />
-              {t('monthlyTrend')}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {t('monthlyTrendDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
-                  <XAxis dataKey="month" stroke={isDark ? '#9ca3af' : '#6b7280'} fontSize={12} />
-                  <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} fontSize={12} tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`} />
-                    <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={{ color: isDark ? '#fff' : '#1e293b' }}
-                    formatter={(value) => [formatCurrency(Number(value) || 0, currency, locale), t('monthlyTrend')]}
-                  />
-                  <Bar
-                    dataKey="total"
-                    fill="url(#colorGradient)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <defs>
-                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#14b8a6" />
-                    </linearGradient>
-                  </defs>
-                </BarChart>
-              </ResponsiveContainer>
+                </FadeIn>
             </div>
-          </CardContent>
-        </Card>
-        </FadeIn>
-
-        {/* Category Breakdown Chart */}
-        <FadeIn delay={0.5}>
-        <Card className="bg-card border-border h-full">
-          <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5 text-pink-500" />
-              {t('expensesByCategory')}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {t('expensesByCategoryDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              {pieChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value) => formatCurrency(Number(value) || 0, currency, locale)}
-                    />
-                    <Legend
-                      wrapperStyle={{ color: isDark ? '#9ca3af' : '#6b7280' }}
-                      formatter={(value) => <span className="text-muted-foreground">{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <p>{t('noData')}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Budget Limits Section */}
-            <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-medium text-foreground">{t('budgetLimits')}</h3>
-              <div className="space-y-4">
+            
+            {/* Budget Limits Section - moved below charts */}
+            <div className="space-y-4">
+               <h3 className="text-lg font-medium text-foreground">{t('budgetLimits')}</h3>
+               <Card className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
                 {stats?.expenses_by_category.filter(c => c.monthly_limit).length ? (
                   stats.expenses_by_category.filter(c => c.monthly_limit).map((category) => {
                    const percentage = Math.min(100, (category.total / (category.monthly_limit || 1)) * 100);
@@ -399,18 +402,29 @@ export default function DashboardPage() {
                     </div>
                    );
                 })) : (
-                   <div className="text-center py-4">
+                   <div className="col-span-2 text-center py-4">
                      <p className="text-sm text-muted-foreground italic">{t('noBudgetLimits')}</p>
                      <Button variant="link" size="sm" className="text-emerald-500 mt-1" asChild>
                        <Link href="/categories">{t('setLimits')}</Link>
                      </Button>
                    </div>
                 )}
-              </div>
+               </Card>
             </div>
-          </CardContent>
-        </Card>
-        </FadeIn>
+        </div>
+
+        {/* Right Column: AI & Bills (Span 1) */}
+        <div className="space-y-6">
+            <FadeIn delay={0.6} className="h-auto">
+                <AIAssistant />
+            </FadeIn>
+
+            {upcomingBills.length > 0 && (
+                <FadeIn delay={0.7}>
+                    <UpcomingBills bills={upcomingBills} />
+                </FadeIn>
+            )}
+        </div>
       </div>
     </div>
   );

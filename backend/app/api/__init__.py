@@ -17,3 +17,4 @@ from .cron import router as cron_router
 from .rates import router as rates_router
 from .budgets import router as budgets_router
 from .search import router as search_router
+from .ai import router as ai_router

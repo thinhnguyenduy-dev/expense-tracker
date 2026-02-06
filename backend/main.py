@@ -6,7 +6,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.rate_limit import limiter
-from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router, search_router
+from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router, search_router, ai_router
 from app.middleware import LoggingMiddleware, SecurityHeadersMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.database import SessionLocal
@@ -167,6 +167,7 @@ app.include_router(ocr_router, prefix="/api", tags=["OCR"])
 app.include_router(families_router, prefix="/api", tags=["Families"])
 app.include_router(budgets_router, prefix="/api")
 app.include_router(search_router, prefix="/api/search", tags=["Search"])
+app.include_router(ai_router, prefix="/api/ai", tags=["AI"])
 
 
 @app.get("/")
