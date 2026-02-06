@@ -400,6 +400,11 @@ export interface SearchResult {
   category_color?: string;
 }
 
+// Cron API
+export const cronApi = {
+  run: () => api.post<{ status: string; expenses_created: number }>('/cron/run'),
+};
+
 export const searchApi = {
   search: (query: string) => api.get<SearchResult[]>('/search', { params: { q: query } }),
 };

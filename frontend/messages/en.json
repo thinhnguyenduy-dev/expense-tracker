@@ -293,7 +293,12 @@
     "failedDelete": "Failed to delete",
     "failedCreateExpense": "Failed to create expense",
     "confirmDelete": "Are you sure you want to delete this recurring expense?",
-    "selectDay": "Select day"
+    "selectDay": "Select day",
+    "runNow": "Run Now",
+    "autoProcessingEnabled": "Auto-processing enabled",
+    "processedExpenses": "Processed {count} expenses",
+    "noPendingExpenses": "No pending expenses",
+    "failedToProcess": "Failed to process recurring expenses"
   }
 ,"Reports": { "title": "Reports", "spendingTrend": "Spending Trend", "categoryBreakdown": "Category Breakdown", "details": "Details", "noData": "No data for selected period" },
   "Family": {

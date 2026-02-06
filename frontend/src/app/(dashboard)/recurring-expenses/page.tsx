@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { recurringExpensesApi, categoriesApi } from "@/lib/api"
+import { recurringExpensesApi, categoriesApi, cronApi } from "@/lib/api"
 import { useTranslations, useLocale } from 'next-intl';
 import { isDueSoon } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/utils";
@@ -69,6 +69,7 @@ export default function RecurringExpensesPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSubmittingRef = useRef(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   
   const [formData, setFormData] = useState({
     category_id: "",
@@ -179,6 +180,25 @@ export default function RecurringExpensesPage() {
     }
   }
 
+  const handleRunNow = async () => {
+    if (isProcessing) return
+    setIsProcessing(true)
+    try {
+      const response = await cronApi.run()
+      const count = response.data.expenses_created || 0
+      if (count > 0) {
+        toast.success(t('processedExpenses', { count }))
+        fetchData()
+      } else {
+        toast.info(t('noPendingExpenses'))
+      }
+    } catch (error) {
+      toast.error(t('failedToProcess'))
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       category_id: "",
@@ -237,10 +257,25 @@ export default function RecurringExpensesPage() {
         
         <div className="flex gap-2">
 {/* Automation Info Badge instead of Process All */}
-          <div className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-full border border-border">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-             <span className="text-xs text-muted-foreground whitespace-nowrap">Auto-processing enabled</span>
-          </div>
+           <div className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-full border border-border">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('autoProcessingEnabled')}</span>
+           </div>
+
+           <Button 
+             variant="outline" 
+             size="sm" 
+             onClick={handleRunNow}
+             disabled={isProcessing}
+             className="text-xs h-8 border-emerald-500/20 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+           >
+             {isProcessing ? (
+               <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+             ) : (
+               <Play className="mr-2 h-3 w-3" />
+             )}
+             {t('runNow')}
+           </Button>
 
           <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open)
