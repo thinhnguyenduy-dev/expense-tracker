@@ -295,7 +295,14 @@
     "failedDelete": "Xóa thất bại",
     "failedCreateExpense": "Tạo khoản chi thất bại",
     "confirmDelete": "Bạn có chắc chắn muốn xóa khoản chi định kỳ này không?",
-    "selectDay": "Chọn ngày"
+    "selectDay": "Chọn ngày",
+    "runNow": "Chạy ngay",
+    "autoProcessingEnabled": "Đã bật tự động xử lý",
+    "processedExpenses": "Đã xử lý {count} khoản chi",
+    "noPendingExpenses": "Không có khoản chi nào chờ xử lý",
+    "failedToProcess": "Xử lý chi tiêu định kỳ thất bại",
+    "totalMonthly": "Tổng hàng tháng (Ước tính)",
+    "estMonthly": "Chi phí hàng tháng ước tính cho các khoản chi định kỳ đang hoạt động"
   },
   "Reports": {
     "title": "Báo cáo",

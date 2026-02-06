@@ -298,7 +298,9 @@
     "autoProcessingEnabled": "Auto-processing enabled",
     "processedExpenses": "Processed {count} expenses",
     "noPendingExpenses": "No pending expenses",
-    "failedToProcess": "Failed to process recurring expenses"
+    "failedToProcess": "Failed to process recurring expenses",
+    "totalMonthly": "Total Monthly (Est.)",
+    "estMonthly": "Estimated monthly cost for active recurring expenses"
   }
 ,"Reports": { "title": "Reports", "spendingTrend": "Spending Trend", "categoryBreakdown": "Category Breakdown", "details": "Details", "noData": "No data for selected period" },
   "Family": {

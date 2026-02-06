@@ -429,6 +429,37 @@ export default function RecurringExpensesPage() {
         </div>
       </div>
 
+       {recurringExpenses.length > 0 && (
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20 shadow-sm">
+          <CardContent className="flex flex-col sm:flex-row items-center justify-between p-6">
+            <div className="space-y-1 text-center sm:text-left">
+              <h3 className="text-lg font-medium text-foreground">{t('totalMonthly')}</h3>
+              <p className="text-sm text-muted-foreground">
+                {t('estMonthly')}
+              </p>
+            </div>
+            <div className="text-3xl font-bold text-emerald-600 mt-4 sm:mt-0">
+               {formatCurrency(
+                  recurringExpenses
+                    .filter(e => e.is_active)
+                    .reduce((acc, curr) => {
+                      const amount = Number(curr.amount) || 0;
+                      let monthlyAmount = amount;
+                      if (curr.frequency === 'weekly') {
+                        monthlyAmount = (amount * 52) / 12;
+                      } else if (curr.frequency === 'yearly') {
+                        monthlyAmount = amount / 12;
+                      }
+                      return acc + monthlyAmount;
+                    }, 0),
+                  currency,
+                  locale
+                )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {recurringExpenses.length === 0 ? (
         <Card className="bg-card border-border">
           <CardContent className="flex flex-col items-center justify-center py-16">
