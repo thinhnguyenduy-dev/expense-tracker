@@ -88,8 +88,18 @@ async def chat_with_agent(
             expense_data = None
             tool_calls_log = []
         
-            # Analyze history to find tool calls and completion
-            for msg in messages:
+            # Find the index of the last HumanMessage to only check relevant/new Agent responses
+            last_human_idx = -1
+            for i in range(len(messages) - 1, -1, -1):
+                if isinstance(messages[i], HumanMessage):
+                    last_human_idx = i
+                    break
+            
+            # Default to checking all if no human message found (unlikely)
+            start_check_idx = last_human_idx if last_human_idx != -1 else 0
+
+            # Analyze ONLY NEW history to find tool calls and completion
+            for msg in messages[start_check_idx:]:
                 if isinstance(msg, AIMessage) and msg.tool_calls:
                     for tc in msg.tool_calls:
                         tool_calls_log.append(ToolCallLog(name=tc["name"], args=tc["args"]))

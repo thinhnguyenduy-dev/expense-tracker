@@ -4,6 +4,7 @@ from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from app.core.config import settings
+from app.core.llm import get_llm
 
 def get_analyst_agent():
     """
@@ -18,12 +19,7 @@ def get_analyst_agent():
     db = SQLDatabase.from_uri(settings.DATABASE_URL)
     
     # 2. Setup LLM
-    llm = ChatOpenAI(
-        model=settings.OPENAI_MODEL_NAME,
-        api_key=settings.OPENAI_API_KEY,
-        base_url=settings.OPENAI_API_BASE,
-        temperature=0
-    )
+    llm = get_llm(temperature=0)
     
     # 3. Setup Tools
     # SQL Tools

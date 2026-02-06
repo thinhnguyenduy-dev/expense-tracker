@@ -43,9 +43,16 @@ class Settings(BaseSettings):
     EXCHANGE_RATE_API_KEY: Optional[str] = None
 
     # AI
+    AI_PROVIDER: str = "openai" # openai, google, anthropic, groq
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_API_BASE: Optional[str] = None
     OPENAI_MODEL_NAME: str = "gpt-3.5-turbo"
+    
+    GOOGLE_API_KEY: Optional[str] = None
+    GOOGLE_MODEL_NAME: str = "gemini-2.5-flash-lite"
+    
+    ANTHROPIC_API_KEY: Optional[str] = None
+    ANTHROPIC_MODEL_NAME: str = "claude-3-sonnet-20240229"
     
     class Config:
         env_file = ".env"

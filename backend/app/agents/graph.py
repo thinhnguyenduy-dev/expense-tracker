@@ -11,27 +11,29 @@ from app.agents.tools import make_tools
 from app.core.config import settings
 from app.agents.analyst import get_analyst_agent
 
+from app.core.llm import get_llm
+
 # --- Supervisor Node ---
 def supervisor_node(state: AgentState):
     """
     Decides which agent to route to.
     """
+    print("DEBUG: Entering supervisor_node")
     messages = state["messages"]
     
-    model = ChatOpenAI(
-        model=settings.OPENAI_MODEL_NAME, 
-        api_key=settings.OPENAI_API_KEY,
-        base_url=settings.OPENAI_API_BASE,
-        temperature=0
-    )
+    model = get_llm(temperature=0)
     
     system_prompt = (
-        "You are a supervisor for a Financial App. Manage the conversation between the following workers:\n"
-        "1. `financial_agent`: Handles creating/logging expenses, checking budget health, and transactional queries about *recent* activity.\n"
-        "2. `data_analyst`: Handles complex analysis, SQL queries (aggregations, trends over time), and external web search (exchange rates, news).\n"
-        "3. `general_agent`: Handles general greetings, small talk, and non-financial questions.\n"
+        "You are a supervisor for a Financial App. Your goal is to route the conversation or finish it.\n"
+        "WORKERS:\n"
+        "1. `financial_agent`: For creating/logging expenses, checking budget health, and transactional queries.\n"
+        "2. `data_analyst`: For complex analysis, SQL queries, and external web search.\n"
+        "3. `general_agent`: For general greetings, small talk, and non-financial questions.\n"
         "\n"
-        "Given the user request, respond with the worker name to act next. If the user's request is satisfied, respond with FINISH."
+        "CRITICAL ROUTING RULES:\n"
+        "- If the last message is from an AI agent and it answers the user's question (e.g., 'Draft created', 'Here is the data'), you MUST respond with FINISH.\n"
+        "- Do NOT route back to the same agent immediately unless the user has asked a NEW follow-up question.\n"
+        "- If the user's request is satisfied, respond with FINISH."
     )
     
     # Use standard tool calling for compatibility with Groq/Llama
@@ -43,25 +45,45 @@ def supervisor_node(state: AgentState):
             description="The next worker to act. Use 'FINISH' if user is satisfied."
         )
 
+    print(f"DEBUG: Supervisor State Messages Count: {len(messages)}")
+    if messages:
+        last_msg = messages[-1]
+        print(f"DEBUG: Last Message Role: {last_msg.type}")
+        print(f"DEBUG: Last Message Content: {str(last_msg.content)[:100]}...")
+        
+        # CRITICAL FIX: Force stop if the last message was from an AI
+        # This prevents the Supervisor from routing an AI's answer back to an AI
+        if last_msg.type == "ai":
+             print("DEBUG: Last message was from AI. Forcing FINISH.")
+             return {"next": "FINISH"}
+
+        if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+             print(f"DEBUG: Last Message Tool Calls: {last_msg.tool_calls}")
+
     # Bind the tool and force it
-    # Intentional blank or comment, previous line was invalid assignment syntax 
-    # Actually, for routing we usually want to force it.
-    
     model_with_tool = model.bind_tools([RouterResponse], tool_choice="RouterResponse")
     
     # We pass the last few messages to context
-    response = model_with_tool.invoke([
-        SystemMessage(content=system_prompt),
-        *messages[-5:] # Context window
-    ])
+    print("DEBUG: Invoking Supervisor Model...")
+    try:
+        response = model_with_tool.invoke([
+            SystemMessage(content=system_prompt),
+            *messages[-5:] # Context window
+        ])
+        print(f"DEBUG: Supervisor Response Tool Calls: {response.tool_calls}")
+    except Exception as e:
+        print(f"DEBUG: Supervisor invocation failed: {e}")
+        return {"next": "FINISH"}
     
     # Extract decision
     if response.tool_calls:
         # Standard tool call extraction
         args = response.tool_calls[0]["args"]
         next_node = args.get("next")
+        print(f"DEBUG: Supervisor Decided: {next_node}")
     else:
         # Fallback if model just chats
+        print("DEBUG: Supervisor made no decision (no tool call)")
         next_node = "FINISH"
     
     if next_node == "FINISH":
@@ -71,15 +93,13 @@ def supervisor_node(state: AgentState):
 
 # --- Financial Agent ---
 def financial_agent_node(state: AgentState, config: RunnableConfig):
+    print("DEBUG: Entering financial_agent_node")
     user_id = config.get("configurable", {}).get("user_id")
+    print(f"DEBUG: User ID: {user_id}")
     tools = make_tools(user_id)
     
-    model = ChatOpenAI(
-        model=settings.OPENAI_MODEL_NAME, 
-        api_key=settings.OPENAI_API_KEY,
-        base_url=settings.OPENAI_API_BASE,
-        temperature=0
-    ).bind_tools(tools)
+    print("DEBUG: Binding tools...")
+    model = get_llm(temperature=0).bind_tools(tools)
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, and submit drafts. Current Date: {date}"),
@@ -88,7 +108,13 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     from datetime import date
     chain = prompt.partial(date=str(date.today())) | model
     
+    print("DEBUG: Invoking financial chain...")
     response = chain.invoke(state["messages"])
+    print(f"DEBUG: Financial response content: {str(response.content)[:100]}...")
+    if response.tool_calls:
+        print(f"DEBUG: Financial response tool_calls: {response.tool_calls}")
+    
+    print("DEBUG: Financial chain returned")
     return {"messages": [response]}
 
 def financial_tools_node(state: AgentState, config: RunnableConfig):
@@ -100,20 +126,13 @@ def financial_tools_node(state: AgentState, config: RunnableConfig):
 # --- Data Analyst Agent Wrapper ---
 async def data_analyst_node(state: AgentState):
     analyst_agent = get_analyst_agent()
+    # Note: Analyst agent inside 'get_analyst_agent' should also ideally use get_llm if possible,
+    # or be passed the model. We might need to refactor 'analyst.py' too if we care about consistency there.
+    # For now, let's assuming analyst.py uses ChatOpenAI or we refactor it next.
     response = await analyst_agent.ainvoke(state)
     
-    # The sub-graph returns a state with 'messages'. 
-    # We want to take the LAST message (Answer) and append it to our main graph.
-    # LangGraph subgraphs usually return the full state.
-    
-    # We just return the messages update
     new_messages = response["messages"]
     if new_messages:
-         # To avoid duplicating the *entire* history if the subgraph includes it,
-         # we should ideally only return the *new* messages.
-         # But simpler: ReAct agent outputs the reasoning trace + final answer.
-         # We might want to just grab the final AIMessage?
-         # Check last message.
          last = new_messages[-1]
          return {"messages": [last]}
          
@@ -122,12 +141,7 @@ async def data_analyst_node(state: AgentState):
 # --- General Agent ---
 def general_agent_node(state: AgentState, config: RunnableConfig):
     """Handles general chitchat and non-financial questions."""
-    model = ChatOpenAI(
-        model=settings.OPENAI_MODEL_NAME, 
-        api_key=settings.OPENAI_API_KEY,
-        base_url=settings.OPENAI_API_BASE,
-        temperature=0.5
-    )
+    model = get_llm(temperature=0.5)
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are a helpful AI Assistant for an Expense Tracker app. You can help users manage their finances, but you are also polite and conversational. If the user greets you, greet them back."),

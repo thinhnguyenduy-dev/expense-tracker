@@ -23,6 +23,8 @@ langchain-community>=0.0.20
 langchain-experimental>=0.0.52
 duckduckgo-search>=5.0.0
 langgraph-checkpoint-postgres>=1.0.0
+langchain-google-genai>=0.0.9
+langchain-anthropic>=0.1.4
 psycopg-pool>=3.2.0
 numexpr>=2.9.0
 
