@@ -40,7 +40,6 @@ import { useTheme } from 'next-themes';
 import { motion } from 'framer-motion';
 
 import { Greeting } from '@/components/dashboard/Greeting';
-import { AIAssistant } from '@/components/dashboard/ai-assistant';
 import { FadeIn, SlideUp, StaggerContainer, StaggerItem, ScaleHover } from '@/components/ui/motion';
 
 interface CategoryStat {
@@ -208,12 +207,21 @@ export default function DashboardPage() {
       )}
 
       {/* Main Grid Layout */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className={cn(
+        "grid gap-6",
+         upcomingBills.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-1"
+      )}>
         
-        {/* Left Column: Stats & Charts (Span 2) */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Left Column: Stats & Charts */}
+        <div className={cn(
+          "space-y-6",
+          upcomingBills.length > 0 ? "lg:col-span-2" : "col-span-1"
+        )}>
             {/* Stats Cards */}
-            <StaggerContainer className="grid gap-4 md:grid-cols-3">
+            <StaggerContainer className={cn(
+                "grid gap-4",
+                upcomingBills.length > 0 ? "md:grid-cols-3" : "md:grid-cols-3 lg:grid-cols-4"
+            )}>
                 <StaggerItem>
                     <ScaleHover>
                         <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20 shadow-sm hover:shadow-md transition-shadow">
@@ -282,7 +290,10 @@ export default function DashboardPage() {
             </StaggerContainer>
 
             {/* Charts Section */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className={cn(
+                "grid gap-6",
+                upcomingBills.length > 0 ? "lg:grid-cols-2" : "lg:grid-cols-2" // Keep 2 cols for charts usually looks best, maybe 3 if full width?
+            )}>
                 {/* Monthly Trend Chart */}
                 <FadeIn delay={0.4}>
                 <Card className="bg-card border-border h-full min-h-[350px]">
@@ -376,7 +387,7 @@ export default function DashboardPage() {
                 </FadeIn>
             </div>
             
-            {/* Budget Limits Section - moved below charts */}
+            {/* Budget Limits Section */}
             <div className="space-y-4">
                <h3 className="text-lg font-medium text-foreground">{t('budgetLimits')}</h3>
                <Card className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -413,18 +424,14 @@ export default function DashboardPage() {
             </div>
         </div>
 
-        {/* Right Column: AI & Bills (Span 1) */}
-        <div className="space-y-6">
-            <FadeIn delay={0.6} className="h-auto">
-                <AIAssistant />
-            </FadeIn>
-
-            {upcomingBills.length > 0 && (
+        {/* Right Column: Bills (Span 1) */}
+        {upcomingBills.length > 0 && (
+            <div className="space-y-6">
                 <FadeIn delay={0.7}>
                     <UpcomingBills bills={upcomingBills} />
                 </FadeIn>
-            )}
-        </div>
+            </div>
+        )}
       </div>
     </div>
   );

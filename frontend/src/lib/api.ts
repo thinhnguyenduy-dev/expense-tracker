@@ -64,6 +64,15 @@ export const authApi = {
 };
 
 // Categories API
+export interface Category {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+  jar_id?: number;
+  monthly_limit?: number;
+}
+
 export const categoriesApi = {
   getAll: () => api.get('/categories'),
   
@@ -413,6 +422,7 @@ export const searchApi = {
 // AI API
 export interface ChatRequest {
   message: string;
+  thread_id?: string;
   history?: any[];
 }
 
@@ -421,8 +431,10 @@ export interface ChatResponse {
   is_completed: boolean;
   expense_data?: any;
   tool_calls: { name: string; args: any; result?: string }[];
+  thread_id?: string;
 }
 
 export const aiApi = {
   chat: (data: ChatRequest) => api.post<ChatResponse>('/ai/agent/chat', data),
+  getHistory: (threadId: string) => api.get<{role: 'user' | 'agent', content: string}[]>(`/ai/agent/history/${threadId}`),
 };

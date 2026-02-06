@@ -56,6 +56,7 @@ export const viewport = {
 
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { GlobalChatWidget } from "@/components/ai/GlobalChatWidget";
 
 export default async function RootLayout({
   children,
@@ -71,7 +72,10 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <GlobalChatWidget />
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

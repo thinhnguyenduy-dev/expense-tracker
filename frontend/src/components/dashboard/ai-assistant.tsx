@@ -57,7 +57,24 @@ export function AIAssistant() {
               console.error("Failed to load categories for AI Assistant", error);
           }
       };
+      
+      const loadHistory = async () => {
+          const storedThreadId = localStorage.getItem("ai_thread_id");
+          if (!storedThreadId) return;
+          
+          try {
+              const { data } = await aiApi.getHistory(storedThreadId);
+              if (data && data.length > 0) {
+                  setConversation(data);
+              }
+          } catch (error) {
+              console.error("Failed to load chat history", error);
+              // Optional: Clear thread_id if invalid?
+          }
+      };
+
       fetchCategories();
+      loadHistory();
   }, []);
 
   const handleSend = async () => {
@@ -69,8 +86,13 @@ export function AIAssistant() {
     setIsChatLoading(true);
 
     try {
-        const response = await aiApi.chat({ message });
+        const storedThreadId = localStorage.getItem("ai_thread_id") || undefined;
+        const response = await aiApi.chat({ message, thread_id: storedThreadId });
         const data = response.data;
+        
+        if (data.thread_id) {
+            localStorage.setItem("ai_thread_id", data.thread_id);
+        }
 
         // Add agent response
         setConversation(prev => [...prev, { role: "agent", content: data.response }]);
@@ -98,8 +120,9 @@ export function AIAssistant() {
         }
     } catch (error: any) {
         console.error(error);
-        setConversation(prev => [...prev, { role: "agent", content: "Something went wrong. Please try again.", isError: true }]);
-        toast.error("Failed to communicate with AI Agent.");
+        const errorMsg = error.response?.data?.detail || "Something went wrong. Please try again.";
+        setConversation(prev => [...prev, { role: "agent", content: errorMsg, isError: true }]);
+        // toast.error("Failed to communicate with AI Agent."); // Redundant if we show in chat
     } finally {
         setIsChatLoading(false);
     }
@@ -203,7 +226,7 @@ export function AIAssistant() {
           <div className="flex gap-2 relative mt-auto pt-2">
             <Textarea 
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..." 
               className="resize-none min-h-[50px] pr-12 rounded-xl border-gray-200 dark:border-gray-800 focus-visible:ring-indigo-500"

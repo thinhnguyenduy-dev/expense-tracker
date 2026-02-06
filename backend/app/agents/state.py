@@ -16,6 +16,8 @@ class AgentState(TypedDict):
     
     # If the agent needs to ask the user a question
     clarification_needed: Optional[str]
+    # For supervisor routing
+    next: Optional[str] = None
     
     # Final ready-to-save payload
     final_payload: Optional[dict]

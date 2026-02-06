@@ -1,100 +1,185 @@
-from typing import Literal, Annotated
+from typing import Literal, Annotated, TypedDict
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph, END, START
 from langgraph.prebuilt import ToolNode
 from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage
 
 from app.agents.state import AgentState
 from app.agents.tools import make_tools
 from app.core.config import settings
+from app.agents.analyst import get_analyst_agent
 
-def get_agent_graph():
+# --- Supervisor Node ---
+def supervisor_node(state: AgentState):
     """
-    Builds the financial agent graph.
+    Decides which agent to route to.
     """
+    messages = state["messages"]
     
-    # Define the Agent Node
-    def agent_node(state: AgentState, config: RunnableConfig):
-        user_id = config.get("configurable", {}).get("user_id")
-        if not user_id:
-            raise ValueError("user_id is required in configurable")
-            
-        # Get tools for this user
-        tools = make_tools(user_id)
-        
-        # Initialize Model (GPT-3.5-turbo is fast and good enough for this)
-        # Using functional calling
-        model = ChatOpenAI(
-            model=settings.OPENAI_MODEL_NAME, 
-            api_key=settings.OPENAI_API_KEY,
-            base_url=settings.OPENAI_API_BASE,
-            temperature=0
-        ).bind_tools(tools)
-        
-        # System Prompt
-        system_prompt = (
-            "You are a helpful Financial Assistant for an Expense Tracker app.\n"
-            "Your goal is to help the user log expenses accurately and check their budget health.\n"
-            "\n"
-            "PROCESS:\n"
-            "1. Extract expense details from the user's message.\n"
-            "2. If the category is vague, use `lookup_categories_tool` to find the best match.\n"
-            "3. ALWAYS check the budget using `check_budget_tool` before finalizing, unless the user explicitly skips it.\n"
-            "4. If budget is exceeded, warn the user but proceed if they insist.\n"
-            "5. Once you have Amount, Category, and confirmed details, call `submit_expense_tool`.\n"
-            "\n"
-            "Current Date: {date}\n"
-        )
-        
-        from datetime import date
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt.format(date=date.today())),
-            MessagesPlaceholder(variable_name="messages"),
-        ])
-        
-        chain = prompt | model
-        response = chain.invoke({"messages": state["messages"]})
-        
-        return {"messages": [response]}
-
-    # Define the Tools Node
-    def tools_node(state: AgentState, config: RunnableConfig):
-        user_id = config.get("configurable", {}).get("user_id")
-        tools = make_tools(user_id)
-        # We use the prebuilt ToolNode but we need to pass the instantiated tools
-        # However, ToolNode expects a list of tools.
-        node = ToolNode(tools)
-        return node.invoke(state, config)
-
-    # Define Edges
-    def should_continue(state: AgentState) -> Literal["tools", END]:
-        messages = state["messages"]
-        last_message = messages[-1]
-        
-        # If there are no tool calls, stop
-        if not last_message.tool_calls:
-            return END
-        
-        # If the tool call is 'submit_expense_tool', we are effectively done with the *agent* part,
-        # but we still need to run the tool to get the output in the history.
-        # So we go to 'tools', then next loop agent sees "Draft Created" and stops?
-        # A simpler pattern: Text -> Agent -> Tool -> Agent (sees result) -> END
-        return "tools"
-
-    # Build Graph
-    workflow = StateGraph(AgentState)
-    
-    workflow.add_node("agent", agent_node)
-    workflow.add_node("tools", tools_node)
-    
-    workflow.set_entry_point("agent")
-    
-    workflow.add_conditional_edges(
-        "agent",
-        should_continue,
+    model = ChatOpenAI(
+        model=settings.OPENAI_MODEL_NAME, 
+        api_key=settings.OPENAI_API_KEY,
+        base_url=settings.OPENAI_API_BASE,
+        temperature=0
     )
     
-    workflow.add_edge("tools", "agent")
+    system_prompt = (
+        "You are a supervisor for a Financial App. Manage the conversation between the following workers:\n"
+        "1. `financial_agent`: Handles creating/logging expenses, checking budget health, and transactional queries about *recent* activity.\n"
+        "2. `data_analyst`: Handles complex analysis, SQL queries (aggregations, trends over time), and external web search (exchange rates, news).\n"
+        "3. `general_agent`: Handles general greetings, small talk, and non-financial questions.\n"
+        "\n"
+        "Given the user request, respond with the worker name to act next. If the user's request is satisfied, respond with FINISH."
+    )
     
-    return workflow.compile()
+    # Use standard tool calling for compatibility with Groq/Llama
+    from pydantic import BaseModel, Field
+    
+    class RouterResponse(BaseModel):
+        """Select the next agent to handle the request."""
+        next: Literal["financial_agent", "data_analyst", "general_agent", "FINISH"] = Field(
+            description="The next worker to act. Use 'FINISH' if user is satisfied."
+        )
+
+    # Bind the tool and force it
+    # Intentional blank or comment, previous line was invalid assignment syntax 
+    # Actually, for routing we usually want to force it.
+    
+    model_with_tool = model.bind_tools([RouterResponse], tool_choice="RouterResponse")
+    
+    # We pass the last few messages to context
+    response = model_with_tool.invoke([
+        SystemMessage(content=system_prompt),
+        *messages[-5:] # Context window
+    ])
+    
+    # Extract decision
+    if response.tool_calls:
+        # Standard tool call extraction
+        args = response.tool_calls[0]["args"]
+        next_node = args.get("next")
+    else:
+        # Fallback if model just chats
+        next_node = "FINISH"
+    
+    if next_node == "FINISH":
+        return {"next": "FINISH"}
+        
+    return {"next": next_node}
+
+# --- Financial Agent ---
+def financial_agent_node(state: AgentState, config: RunnableConfig):
+    user_id = config.get("configurable", {}).get("user_id")
+    tools = make_tools(user_id)
+    
+    model = ChatOpenAI(
+        model=settings.OPENAI_MODEL_NAME, 
+        api_key=settings.OPENAI_API_KEY,
+        base_url=settings.OPENAI_API_BASE,
+        temperature=0
+    ).bind_tools(tools)
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, and submit drafts. Current Date: {date}"),
+        MessagesPlaceholder(variable_name="messages"),
+    ])
+    from datetime import date
+    chain = prompt.partial(date=str(date.today())) | model
+    
+    response = chain.invoke(state["messages"])
+    return {"messages": [response]}
+
+def financial_tools_node(state: AgentState, config: RunnableConfig):
+    user_id = config.get("configurable", {}).get("user_id")
+    tools = make_tools(user_id)
+    node = ToolNode(tools)
+    return node.invoke(state, config)
+
+# --- Data Analyst Agent Wrapper ---
+async def data_analyst_node(state: AgentState):
+    analyst_agent = get_analyst_agent()
+    response = await analyst_agent.ainvoke(state)
+    
+    # The sub-graph returns a state with 'messages'. 
+    # We want to take the LAST message (Answer) and append it to our main graph.
+    # LangGraph subgraphs usually return the full state.
+    
+    # We just return the messages update
+    new_messages = response["messages"]
+    if new_messages:
+         # To avoid duplicating the *entire* history if the subgraph includes it,
+         # we should ideally only return the *new* messages.
+         # But simpler: ReAct agent outputs the reasoning trace + final answer.
+         # We might want to just grab the final AIMessage?
+         # Check last message.
+         last = new_messages[-1]
+         return {"messages": [last]}
+         
+    return {}
+
+# --- General Agent ---
+def general_agent_node(state: AgentState, config: RunnableConfig):
+    """Handles general chitchat and non-financial questions."""
+    model = ChatOpenAI(
+        model=settings.OPENAI_MODEL_NAME, 
+        api_key=settings.OPENAI_API_KEY,
+        base_url=settings.OPENAI_API_BASE,
+        temperature=0.5
+    )
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a helpful AI Assistant for an Expense Tracker app. You can help users manage their finances, but you are also polite and conversational. If the user greets you, greet them back."),
+        MessagesPlaceholder(variable_name="messages"),
+    ])
+    
+    chain = prompt | model
+    response = chain.invoke(state["messages"])
+    return {"messages": [response]}
+
+# --- Main Graph ---
+def get_agent_graph():
+    workflow = StateGraph(AgentState)
+    
+    workflow.add_node("supervisor", supervisor_node)
+    workflow.add_node("financial_agent", financial_agent_node)
+    workflow.add_node("financial_tools", financial_tools_node)
+    workflow.add_node("data_analyst", data_analyst_node)
+    workflow.add_node("general_agent", general_agent_node)
+    
+    workflow.set_entry_point("supervisor")
+    
+    # Conditional Edge from Supervisor
+    workflow.add_conditional_edges(
+        "supervisor",
+        lambda state: state["next"],
+        {
+            "financial_agent": "financial_agent",
+            "data_analyst": "data_analyst",
+            "general_agent": "general_agent",
+            "FINISH": END
+        }
+    )
+    
+    # Conditional Edge from Financial Agent (Loop for Tools)
+    def should_continue_financial(state: AgentState) -> Literal["financial_tools", "supervisor"]:
+        last_message = state["messages"][-1]
+        if last_message.tool_calls:
+            return "financial_tools"
+        return "supervisor" # Go back to supervisor after acting
+
+    workflow.add_conditional_edges("financial_agent", should_continue_financial)
+    workflow.add_edge("financial_tools", "financial_agent")
+    
+    # Edge from Analyst
+    workflow.add_edge("data_analyst", "supervisor")
+    
+    # Edge from General Agent
+    workflow.add_edge("general_agent", "supervisor")
+    
+    return workflow
+
+def compile_graph(checkpointer=None):
+    workflow = get_agent_graph()
+    return workflow.compile(checkpointer=checkpointer)
