@@ -56,6 +56,7 @@ class BudgetService:
             
             if cat.monthly_limit and cat.monthly_limit > 0:
                 categories_status.append({
+                    "category_id": cat.id,
                     "category_name": cat.name,
                     "limit": cat.monthly_limit,
                     "spent": cat_spent,

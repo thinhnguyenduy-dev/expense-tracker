@@ -377,6 +377,7 @@ export interface BudgetStatus {
 }
 
 export interface CategoryBudgetStatus extends BudgetStatus {
+  category_id: number;
   category_name: string;
 }
 

@@ -62,6 +62,7 @@ export default function BudgetsPage() {
             categories={data.categories} 
             currency={currency}
             locale={locale}
+            onUpdate={fetchBudgets}
         />
       </div>
     </div>

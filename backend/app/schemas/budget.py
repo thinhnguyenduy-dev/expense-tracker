@@ -10,6 +10,7 @@ class BudgetStatus(BaseModel):
     is_warning: bool
 
 class CategoryBudgetStatus(BudgetStatus):
+    category_id: int
     category_name: str
 
 class BudgetResponse(BaseModel):
