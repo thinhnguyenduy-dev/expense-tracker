@@ -1,4 +1,4 @@
-from typing import Literal, Annotated, TypedDict
+from typing import Literal, Annotated, TypedDict, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph, END, START
@@ -10,15 +10,18 @@ from app.agents.state import AgentState
 from app.agents.tools import make_tools
 from app.core.config import settings
 from app.agents.analyst import get_analyst_agent
+from app.core.logging import get_logger
 
 from app.core.llm import get_llm
+
+logger = get_logger()
 
 # --- Supervisor Node ---
 def supervisor_node(state: AgentState):
     """
     Decides which agent to route to.
     """
-    print("DEBUG: Entering supervisor_node")
+    logger.debug("Entering supervisor_node")
     messages = state["messages"]
     
     model = get_llm(temperature=0)
@@ -31,6 +34,7 @@ def supervisor_node(state: AgentState):
         "3. `general_agent`: For general greetings, small talk, and non-financial questions.\n"
         "\n"
         "CRITICAL ROUTING RULES:\n"
+        "- **RELEVANCY FILTER**: If the user asks about topics completely unrelated to finance, expense tracking, or this app (e.g., general history, coding, science, sports), you MUST respond with FINISH and a polite refusal. Do NOT route to `general_agent` for random topics. `general_agent` is ONLY for greetings and politeness.\n"
         "- If the last message is from an AI agent and it answers the user's question (e.g., 'Draft created', 'Here is the data'), you MUST respond with FINISH.\n"
         "- Do NOT route back to the same agent immediately unless the user has asked a NEW follow-up question.\n"
         "- If the user's request is satisfied, respond with FINISH."
@@ -44,77 +48,86 @@ def supervisor_node(state: AgentState):
         next: Literal["financial_agent", "data_analyst", "general_agent", "FINISH"] = Field(
             description="The next worker to act. Use 'FINISH' if user is satisfied."
         )
+        reason: Optional[str] = Field(
+            default=None, 
+            description="The final message to the user if returning FINISH (e.g., answer, refusal, or clarification)."
+        )
 
-    print(f"DEBUG: Supervisor State Messages Count: {len(messages)}")
+    logger.debug(f"Supervisor State Messages Count: {len(messages)}")
     if messages:
         last_msg = messages[-1]
-        print(f"DEBUG: Last Message Role: {last_msg.type}")
-        print(f"DEBUG: Last Message Content: {str(last_msg.content)[:100]}...")
+        logger.debug(f"Last Message Role: {last_msg.type}")
+        logger.debug(f"Last Message Content: {str(last_msg.content)[:100]}...")
         
         # CRITICAL FIX: Force stop if the last message was from an AI
         # This prevents the Supervisor from routing an AI's answer back to an AI
         if last_msg.type == "ai":
-             print("DEBUG: Last message was from AI. Forcing FINISH.")
+             logger.debug("Last message was from AI. Forcing FINISH.")
              return {"next": "FINISH"}
 
         if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-             print(f"DEBUG: Last Message Tool Calls: {last_msg.tool_calls}")
+             logger.debug(f"Last Message Tool Calls: {last_msg.tool_calls}")
 
     # Bind the tool and force it
     model_with_tool = model.bind_tools([RouterResponse], tool_choice="RouterResponse")
     
     # We pass the last few messages to context
-    print("DEBUG: Invoking Supervisor Model...")
+    logger.debug("Invoking Supervisor Model...")
     try:
         response = model_with_tool.invoke([
             SystemMessage(content=system_prompt),
             *messages[-5:] # Context window
         ])
-        print(f"DEBUG: Supervisor Response Tool Calls: {response.tool_calls}")
+        logger.debug(f"Supervisor Response Tool Calls: {response.tool_calls}")
     except Exception as e:
-        print(f"DEBUG: Supervisor invocation failed: {e}")
+        logger.debug(f"Supervisor invocation failed: {e}")
         return {"next": "FINISH"}
     
     # Extract decision
+    to_return = {}
     if response.tool_calls:
         # Standard tool call extraction
         args = response.tool_calls[0]["args"]
         next_node = args.get("next")
-        print(f"DEBUG: Supervisor Decided: {next_node}")
+        reason = args.get("reason")
+        logger.debug(f"Supervisor Decided: {next_node}, Reason: {reason}")
+        
+        if reason:
+            # Add the reasoning as an AIMessage so the UI sees it
+            to_return["messages"] = [AIMessage(content=reason)]
+            
     else:
         # Fallback if model just chats
-        print("DEBUG: Supervisor made no decision (no tool call)")
+        logger.debug("Supervisor made no decision (no tool call)")
         next_node = "FINISH"
     
-    if next_node == "FINISH":
-        return {"next": "FINISH"}
-        
-    return {"next": next_node}
+    to_return["next"] = next_node
+    return to_return
 
 # --- Financial Agent ---
 def financial_agent_node(state: AgentState, config: RunnableConfig):
-    print("DEBUG: Entering financial_agent_node")
+    logger.debug("Entering financial_agent_node")
     user_id = config.get("configurable", {}).get("user_id")
-    print(f"DEBUG: User ID: {user_id}")
+    logger.debug(f"User ID: {user_id}")
     tools = make_tools(user_id)
     
-    print("DEBUG: Binding tools...")
+    logger.debug("Binding tools...")
     model = get_llm(temperature=0).bind_tools(tools)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, and submit drafts. Current Date: {date}"),
+        ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, provide monthly summaries, and submit drafts. Current Date: {date}"),
         MessagesPlaceholder(variable_name="messages"),
     ])
     from datetime import date
     chain = prompt.partial(date=str(date.today())) | model
     
-    print("DEBUG: Invoking financial chain...")
+    logger.debug("Invoking financial chain...")
     response = chain.invoke(state["messages"])
-    print(f"DEBUG: Financial response content: {str(response.content)[:100]}...")
+    logger.debug(f"Financial response content: {str(response.content)[:100]}...")
     if response.tool_calls:
-        print(f"DEBUG: Financial response tool_calls: {response.tool_calls}")
+        logger.debug(f"Financial response tool_calls: {response.tool_calls}")
     
-    print("DEBUG: Financial chain returned")
+    logger.debug("Financial chain returned")
     return {"messages": [response]}
 
 def financial_tools_node(state: AgentState, config: RunnableConfig):

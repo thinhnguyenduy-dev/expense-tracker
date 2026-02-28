@@ -107,4 +107,40 @@ def make_tools(user_id: int):
         # In a real agent, this might log to state, but here it marks completion.
         return "Draft Created"
 
-    return [check_budget_tool, get_recent_expenses_tool, lookup_categories_tool, submit_expense_tool]
+    @tool
+    def get_monthly_summary_tool() -> str:
+        """
+        Get the total spending for the current month and a breakdown by category.
+        Use this when the user asks for "total expenses", "spending this month", or "monthly summary".
+        """
+        db = SessionLocal()
+        try:
+            today = date.today()
+            first_day = today.replace(day=1)
+            
+            # Total spending
+            total_spent = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+                Expense.user_id == user_id,
+                Expense.date >= first_day
+            ).scalar()
+            
+            # Category breakdown
+            cat_stats = db.query(
+                Category.name,
+                func.sum(Expense.amount).label('total')
+            ).join(Expense).filter(
+                Expense.user_id == user_id,
+                Expense.date >= first_day
+            ).group_by(Category.name).all()
+            
+            breakdown = "\n".join([f"- {name}: ${total:,.2f}" for name, total in cat_stats])
+            
+            return (
+                f"📊 **Monthly Summary ({today.strftime('%B %Y')})**\n"
+                f"**Total Spent:** ${total_spent:,.2f}\n\n"
+                f"**Breakdown by Category:**\n{breakdown}"
+            )
+        finally:
+            db.close()
+
+    return [check_budget_tool, get_recent_expenses_tool, lookup_categories_tool, submit_expense_tool, get_monthly_summary_tool]

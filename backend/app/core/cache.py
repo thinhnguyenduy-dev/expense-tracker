@@ -127,3 +127,70 @@ def invalidate_cache_pattern(pattern: str):
             logger.debug(f"Cache invalidated: {len(keys)} keys matching {pattern}:*")
     except Exception as e:
         logger.warning(f"Cache pattern invalidation error: {e}")
+
+
+def acached(prefix: str, ttl: Optional[int] = None):
+    """
+    Decorator to cache async function results in Redis.
+    Uses redis.asyncio if available.
+    """
+    if ttl is None:
+        ttl = settings.CACHE_TTL_SECONDS
+        
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Try to use async redis client
+            try:
+                import redis.asyncio as redis_async
+                # We need a way to get or create an async client.
+                # Since get_redis_client() returns a sync client, we often need a separate async one.
+                # For simplicity in this codebase which uses both, we might need a separate managed async client.
+                # However, creating one per call is expensive.
+                # Let's use a global async client similar to the sync one.
+                pass
+            except ImportError:
+                # If redis.asyncio not available, just rename invoke
+                return await func(*args, **kwargs)
+
+            # Lazy init global async client
+            global _async_redis_client
+            if '_async_redis_client' not in globals():
+                _async_redis_client = None
+            
+            if settings.REDIS_URL is None:
+                return await func(*args, **kwargs)
+
+            if _async_redis_client is None:
+                try:
+                    _async_redis_client = redis_async.from_url(
+                        settings.REDIS_URL,
+                        decode_responses=True,
+                        socket_timeout=5,
+                        socket_connect_timeout=5
+                    )
+                except Exception as e:
+                    logger.warning(f"Async redis init failed: {e}")
+                    return await func(*args, **kwargs)
+            
+            # Use the async client
+            client = _async_redis_client
+            key = f"{prefix}:{cache_key(*args, **kwargs)}"
+            
+            try:
+                cached_value = await client.get(key)
+                if cached_value is not None:
+                    logger.debug(f"Async Cache hit: {key}")
+                    return json.loads(cached_value)
+                
+                result = await func(*args, **kwargs)
+                
+                await client.setex(key, ttl, json.dumps(result, default=str))
+                logger.debug(f"Async Cache set: {key}")
+                return result
+            except Exception as e:
+                logger.warning(f"Async cache error: {e}")
+                return await func(*args, **kwargs)
+                
+        return wrapper
+    return decorator
