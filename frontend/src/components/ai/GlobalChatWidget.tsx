@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Sparkles, Loader2, MessageCircle, X } from "lucide-react";
+import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { ExpenseDialog, ExpenseFormData } from "@/components/expenses/ExpenseDialog";
 import { usePathname } from "next/navigation";
+import React, { memo } from "react";
 
 // Define Conversation Message Type
 type Message = {
@@ -23,8 +24,69 @@ type Message = {
     isError?: boolean;
 };
 
+// Lightweight inline markdown renderer (no external library needed)
+function renderInline(text: string): React.ReactNode {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**")
+            ? <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+            : part
+    );
+}
+
+function renderMarkdown(text: string): React.ReactNode {
+    const lines = text.split("\n");
+    const nodes: React.ReactNode[] = [];
+    let i = 0;
+    while (i < lines.length) {
+        const line = lines[i];
+        if (line.startsWith("* ") || line.startsWith("- ")) {
+            const items: string[] = [];
+            while (i < lines.length && (lines[i].startsWith("* ") || lines[i].startsWith("- "))) {
+                items.push(lines[i].slice(2));
+                i++;
+            }
+            nodes.push(
+                <ul key={i} className="list-disc pl-4 my-1 space-y-0.5">
+                    {items.map((item, j) => <li key={j} className="leading-relaxed">{renderInline(item)}</li>)}
+                </ul>
+            );
+        } else if (line === "") {
+            i++;
+        } else {
+            nodes.push(<p key={i} className="mb-1 last:mb-0 leading-relaxed">{renderInline(line)}</p>);
+            i++;
+        }
+    }
+    return <>{nodes}</>;
+}
+
+const ChatMessageItem = memo(({ msg }: { msg: Message }) => {
+    return (
+        <div className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
+            <div className={cn(
+                "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                msg.role === "user"
+                    ? "bg-indigo-600 text-white rounded-br-none"
+                    : cn("bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-bl-none",
+                        msg.isError && "bg-red-50 text-red-600 border-red-100")
+            )}>
+                {msg.role === "agent" && !msg.isError ? (
+                    <div className="text-gray-800 dark:text-gray-200">
+                        {renderMarkdown(msg.content)}
+                    </div>
+                ) : (
+                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                )}
+            </div>
+        </div>
+    );
+});
+ChatMessageItem.displayName = "ChatMessageItem";
+
 export function GlobalChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<Message[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -182,7 +244,12 @@ export function GlobalChatWidget() {
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
         {isOpen && (
-            <Card className="w-[350px] shadow-2xl border-indigo-200 dark:border-indigo-800 transition-all duration-300 origin-bottom-right h-[500px] flex flex-col">
+            <Card className={cn(
+              "shadow-2xl border-indigo-200 dark:border-indigo-800 transition-all duration-300 origin-bottom-right flex flex-col",
+              isExpanded 
+                ? "w-[90vw] sm:w-[600px] md:w-[700px] h-[80vh] sm:h-[700px]" 
+                : "w-[350px] sm:w-[400px] h-[500px]"
+            )}>
                 <CardHeader className="p-3 pb-2 bg-indigo-50/50 dark:bg-indigo-950/20 border-b relative">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -192,6 +259,9 @@ export function GlobalChatWidget() {
                              <span className="font-semibold text-sm">AI Assistant</span>
                         </div>
                         <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" onClick={() => setIsExpanded(!isExpanded)}>
+                                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-red-500" onClick={() => setIsOpen(false)}>
                                 <X className="h-4 w-4" />
                             </Button>
@@ -210,19 +280,7 @@ export function GlobalChatWidget() {
                         )}
                         
                         {conversation.map((msg, i) => (
-                            <div key={i} className={cn(
-                            "flex w-full",
-                            msg.role === "user" ? "justify-end" : "justify-start"
-                            )}>
-                            <div className={cn(
-                                "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                                msg.role === "user" 
-                                ? "bg-indigo-600 text-white rounded-br-none" 
-                                : cn("bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-bl-none", msg.isError && "bg-red-50 text-red-600 border-red-100")
-                            )}>
-                                {msg.content}
-                            </div>
-                            </div>
+                            <ChatMessageItem key={i} msg={msg} />
                         ))}
                         
                         {isChatLoading && (

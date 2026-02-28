@@ -93,10 +93,21 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
     from psycopg_pool import AsyncConnectionPool
     from app.core.config import settings
+    from app.core.database import SessionLocal
+    from app.models.user import User
     import uuid
 
     # We need the connection string.
     db_url = settings.DATABASE_URL.replace("postgresql://", "postgresql://") # Ensure scheme
+    
+    # Fetch user preferences
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        user_lang = user.language if user else "vi"
+        user_currency = user.currency if user else "VND"
+    finally:
+        db.close()
     
     async with AsyncConnectionPool(conninfo=db_url) as pool:
         checkpointer = AsyncPostgresSaver(pool)
@@ -116,7 +127,9 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
         config = {
             "configurable": {
                 "user_id": user_id,
-                "thread_id": final_thread_id
+                "thread_id": final_thread_id,
+                "user_lang": user_lang,
+                "user_currency": user_currency
             }
         }
         
@@ -131,7 +144,17 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 # To avoid echoing, we provide a fallback response.
                 response_text = "I'm here to help! You can ask me to add expenses, check your budget, or analyze your spending habits."
             else:
-                response_text = last_message.content
+                content = last_message.content
+                if isinstance(content, list):
+                    text_parts = []
+                    for item in content:
+                        if isinstance(item, dict) and "text" in item:
+                            text_parts.append(item["text"])
+                        elif isinstance(item, str):
+                            text_parts.append(item)
+                    response_text = "\n".join(text_parts) if text_parts else str(content)
+                else:
+                    response_text = str(content)
             
             is_completed = False
             expense_data = None
@@ -228,9 +251,21 @@ async def get_chat_history(
             else:
                 continue # Skip tool messages for simple display, or handle if needed
                 
+            content = msg.content
+            if isinstance(content, list):
+                text_parts = []
+                for item in content:
+                    if isinstance(item, dict) and "text" in item:
+                        text_parts.append(item["text"])
+                    elif isinstance(item, str):
+                        text_parts.append(item)
+                content = "\n".join(text_parts) if text_parts else str(content)
+            else:
+                content = str(content)
+                
             formatted_history.append({
                 "role": role,
-                "content": msg.content
+                "content": content
             })
             
         return formatted_history

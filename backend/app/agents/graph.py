@@ -108,18 +108,20 @@ def supervisor_node(state: AgentState):
 def financial_agent_node(state: AgentState, config: RunnableConfig):
     logger.debug("Entering financial_agent_node")
     user_id = config.get("configurable", {}).get("user_id")
-    logger.debug(f"User ID: {user_id}")
+    user_lang = config.get("configurable", {}).get("user_lang", "vi")
+    user_currency = config.get("configurable", {}).get("user_currency", "VND")
+    logger.debug(f"User ID: {user_id}, Lang: {user_lang}, Currency: {user_currency}")
     tools = make_tools(user_id)
     
     logger.debug("Binding tools...")
     model = get_llm(temperature=0).bind_tools(tools)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, provide monthly summaries, and submit drafts. Current Date: {date}"),
+        ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, provide monthly summaries, and submit drafts. Current Date: {date}. IMPORTANT: Always respond in the user's preferred language: {user_lang}. All monetary amounts MUST be properly formatted based on this currency: {user_currency}."),
         MessagesPlaceholder(variable_name="messages"),
     ])
     from datetime import date
-    chain = prompt.partial(date=str(date.today())) | model
+    chain = prompt.partial(date=str(date.today()), user_lang=user_lang, user_currency=user_currency) | model
     
     logger.debug("Invoking financial chain...")
     response = chain.invoke(state["messages"])
@@ -154,14 +156,16 @@ async def data_analyst_node(state: AgentState):
 # --- General Agent ---
 def general_agent_node(state: AgentState, config: RunnableConfig):
     """Handles general chitchat and non-financial questions."""
+    user_lang = config.get("configurable", {}).get("user_lang", "vi")
+    
     model = get_llm(temperature=0.5)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful AI Assistant for an Expense Tracker app. You can help users manage their finances, but you are also polite and conversational. If the user greets you, greet them back."),
+        ("system", "You are a helpful AI Assistant for an Expense Tracker app. You can help users manage their finances, but you are also polite and conversational. If the user greets you, greet them back. IMPORTANT: Always respond in the user's preferred language: {user_lang}."),
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    chain = prompt | model
+    chain = prompt.partial(user_lang=user_lang) | model
     response = chain.invoke(state["messages"])
     return {"messages": [response]}
 
