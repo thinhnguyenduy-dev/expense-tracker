@@ -6,6 +6,7 @@ from app.core.database import SessionLocal
 from app.core.budget_service import BudgetService
 from app.models.category import Category
 from app.models.expense import Expense
+from app.models.income import Income
 from app.schemas.ai import BudgetCheckResult
 
 def make_tools(user_id: int):
@@ -78,6 +79,28 @@ def make_tools(user_id: int):
             db.close()
 
     @tool
+    def get_recent_incomes_tool(days: int = 30) -> str:
+        """
+        Get a summary of incomes from the last N days (default 30).
+        Useful when the user asks to list their incomes or earnings.
+        """
+        db = SessionLocal()
+        try:
+            start_date = date.today() - timedelta(days=days)
+            incomes = db.query(Income).filter(
+                Income.user_id == user_id,
+                Income.date >= start_date
+            ).order_by(Income.date.desc()).limit(20).all()
+            
+            if not incomes:
+                return f"No incomes found in the last {days} days."
+            
+            summary = [f"- {i.date}: {i.source} (+${i.amount})" for i in incomes]
+            return "\n".join(summary)
+        finally:
+            db.close()
+
+    @tool
     def lookup_categories_tool() -> str:
         """
         Get a list of all available categories for the user.
@@ -106,6 +129,18 @@ def make_tools(user_id: int):
         """
         # In a real agent, this might log to state, but here it marks completion.
         return "Draft Created"
+
+    @tool
+    def submit_income_tool(
+        amount: float,
+        source: str,
+        date: Optional[str] = None
+    ) -> str:
+        """
+        Call this tool when you have gathered all necessary information to create an income draft.
+        This signals that the conversation is complete.
+        """
+        return "Draft Income Created"
 
     @tool
     def get_monthly_summary_tool() -> str:
@@ -143,4 +178,4 @@ def make_tools(user_id: int):
         finally:
             db.close()
 
-    return [check_budget_tool, get_recent_expenses_tool, lookup_categories_tool, submit_expense_tool, get_monthly_summary_tool]
+    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, lookup_categories_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool]

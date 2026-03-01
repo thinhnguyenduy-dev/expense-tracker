@@ -25,11 +25,10 @@ def supervisor_node(state: AgentState):
     messages = state["messages"]
     
     model = get_llm(temperature=0)
-    
     system_prompt = (
         "You are a supervisor for a Financial App. Your goal is to route the conversation or finish it.\n"
         "WORKERS:\n"
-        "1. `financial_agent`: For creating/logging expenses, checking budget health, and transactional queries.\n"
+        "1. `financial_agent`: For creating/logging expenses and incomes, checking budget health, and transactional queries.\n"
         "2. `data_analyst`: For complex analysis, SQL queries, and external web search.\n"
         "3. `general_agent`: For general greetings, small talk, and non-financial questions.\n"
         "\n"
@@ -117,7 +116,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     model = get_llm(temperature=0).bind_tools(tools)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful Financial Assistant. Extract expense details, check budgets, provide monthly summaries, and submit drafts. Current Date: {date}. IMPORTANT: Always respond in the user's preferred language: {user_lang}. All monetary amounts MUST be properly formatted based on this currency: {user_currency}."),
+        ("system", "You are a helpful Financial Assistant. Extract expense and income details, check budgets, provide monthly summaries, and submit drafts. Current Date: {date}. IMPORTANT: Always respond in the user's preferred language: {user_lang}. All monetary amounts MUST be properly formatted based on this currency: {user_currency}."),
         MessagesPlaceholder(variable_name="messages"),
     ])
     from datetime import date
