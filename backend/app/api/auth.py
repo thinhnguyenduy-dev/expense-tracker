@@ -90,3 +90,10 @@ def get_current_user_info(
 ):
     """Get current authenticated user info."""
     return current_user
+
+
+@router.post("/logout")
+def logout(current_user: User = Depends(get_current_user)):
+    """Logout endpoint (client should discard token)."""
+    return {"message": "Successfully logged out"}
+

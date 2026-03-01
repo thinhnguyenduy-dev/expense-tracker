@@ -143,20 +143,29 @@ def make_tools(user_id: int):
         return "Draft Income Created"
 
     @tool
-    def get_monthly_summary_tool() -> str:
+    def get_monthly_summary_tool(month: Optional[int] = None, year: Optional[int] = None) -> str:
         """
-        Get the total spending for the current month and a breakdown by category.
-        Use this when the user asks for "total expenses", "spending this month", or "monthly summary".
+        Get the total spending for a specific month and a breakdown by category.
+        If no month or year is provided, it defaults to the current month.
+        Use this when the user asks for "total expenses", "spending this month", "last month", or "monthly summary".
         """
         db = SessionLocal()
         try:
+            import calendar
             today = date.today()
-            first_day = today.replace(day=1)
+            
+            target_year = year if year else today.year
+            target_month = month if month else today.month
+            
+            # Start and End Dates formulation
+            first_day = date(target_year, target_month, 1)
+            last_day = date(target_year, target_month, calendar.monthrange(target_year, target_month)[1])
             
             # Total spending
             total_spent = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
                 Expense.user_id == user_id,
-                Expense.date >= first_day
+                Expense.date >= first_day,
+                Expense.date <= last_day
             ).scalar()
             
             # Category breakdown
@@ -165,13 +174,14 @@ def make_tools(user_id: int):
                 func.sum(Expense.amount).label('total')
             ).join(Expense).filter(
                 Expense.user_id == user_id,
-                Expense.date >= first_day
+                Expense.date >= first_day,
+                Expense.date <= last_day
             ).group_by(Category.name).all()
             
-            breakdown = "\n".join([f"- {name}: ${total:,.2f}" for name, total in cat_stats])
+            breakdown = "\n".join([f"- {name}: ${total:,.2f}" for name, total in cat_stats]) if cat_stats else "- No expenses recorded."
             
             return (
-                f"📊 **Monthly Summary ({today.strftime('%B %Y')})**\n"
+                f"📊 **Monthly Summary ({first_day.strftime('%B %Y')})**\n"
                 f"**Total Spent:** ${total_spent:,.2f}\n\n"
                 f"**Breakdown by Category:**\n{breakdown}"
             )

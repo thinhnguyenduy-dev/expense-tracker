@@ -24,9 +24,9 @@ from app.models.transfer import Transfer
 
 # Demo users
 DEMO_USERS = [
-    {"email": "demo@expense-tracker.com", "password": "Demo123!", "name": "Demo User", "currency": "USD"},
-    {"email": "test@expense-tracker.com", "password": "Test123!", "name": "Test User", "currency": "USD"},
-    {"email": "demo-vi@gmail.com", "password": "Demo123", "name": "Demo User VN", "currency": "VND"},
+    {"email": "demo@expense-tracker.com", "password": "Demo123!", "name": "Người dùng Demo", "currency": "VND"},
+    {"email": "test@expense-tracker.com", "password": "Test123!", "name": "Người dùng Thử nghiệm", "currency": "VND"},
+    {"email": "demo-vi@gmail.com", "password": "Demo123", "name": "Người dùng VN", "currency": "VND"},
 ]
 
 CATEGORIES = [
@@ -199,7 +199,7 @@ def get_currency_multiplier(user_email: str) -> int:
 
 def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list[User]:
     """Create demo users if they don't exist"""
-    log(f"\n{Colors.BOLD}📥 Seeding Users{Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}📥 Đang tạo Người dùng{Colors.RESET}", verbose=verbose)
     
     users = []
     created_count = 0
@@ -208,11 +208,11 @@ def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list
         existing = db.query(User).filter(User.email == user_data["email"]).first()
         
         if existing:
-            log(f"  ⏭️  User '{user_data['email']}' already exists (ID: {existing.id})", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User '{user_data['email']}' đã tồn tại (ID: {existing.id})", Colors.YELLOW, verbose)
             users.append(existing)
         else:
             if dry_run:
-                log(f"  [DRY RUN] Would create user: {user_data['email']}", Colors.CYAN, verbose)
+                log(f"  [CHẠY THỬ] Sẽ tạo người dùng: {user_data['email']}", Colors.CYAN, verbose)
             else:
                 user = User(
                     email=user_data["email"],
@@ -225,10 +225,10 @@ def seed_users(db: Session, verbose: bool = True, dry_run: bool = False) -> list
                 db.refresh(user)
                 users.append(user)
                 created_count += 1
-                log(f"  ✅ Created user: {user.email} (ID: {user.id})", Colors.GREEN, verbose)
+                log(f"  ✅ Đã tạo người dùng: {user.email} (ID: {user.id})", Colors.GREEN, verbose)
     
     if not dry_run and created_count > 0:
-        log(f"  {Colors.BOLD}Created {created_count} new user(s){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {created_count} người dùng mới{Colors.RESET}", Colors.GREEN, verbose)
     
     return users
 
@@ -254,7 +254,7 @@ JARS_DATA_VI = [
 
 def seed_jars(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> None:
     """Create default jars for users"""
-    log(f"\n{Colors.BOLD}🏺 Seeding Jars{Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}🏺 Đang tạo Hũ{Colors.RESET}", verbose=verbose)
     
     total_created = 0
     
@@ -262,18 +262,18 @@ def seed_jars(db: Session, users: list[User], verbose: bool = True, dry_run: boo
         created_count = 0
         
         # Use Vietnamese jars for VN users
-        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        is_vietnamese = True
         jars_data = JARS_DATA_VI if is_vietnamese else JARS_DATA
         
         # Check if user already has jars (any jars)
         existing_jars = db.query(Jar).filter(Jar.user_id == user.id).count()
         if existing_jars > 0:
-            log(f"  ⏭️  User {user.email} already has {existing_jars} jars, skipping", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User {user.email} đã có {existing_jars} hũ, bỏ qua", Colors.YELLOW, verbose)
             continue
         
         for jar_data in jars_data:
             if dry_run:
-                log(f"  [DRY RUN] Would create jar '{jar_data['name']}' for {user.email}", Colors.CYAN, verbose)
+                log(f"  [CHẠY THỬ] Sẽ tạo hũ '{jar_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:
                 jar = Jar(
                     name=jar_data["name"],
@@ -286,15 +286,15 @@ def seed_jars(db: Session, users: list[User], verbose: bool = True, dry_run: boo
         if not dry_run and created_count > 0:
             db.commit()
             total_created += created_count
-            log(f"  ✅ Created {created_count} jars for {user.email}", Colors.GREEN, verbose)
+            log(f"  ✅ Đã tạo {created_count} hũ cho {user.email}", Colors.GREEN, verbose)
             
     if not dry_run and total_created > 0:
-        log(f"  {Colors.BOLD}Created {total_created} new jar(s){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {total_created} hũ mới{Colors.RESET}", Colors.GREEN, verbose)
 
 
 def seed_categories(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> dict[int, list[Category]]:
     """Create categories for each user if they don't exist"""
-    log(f"\n{Colors.BOLD}🏷️  Seeding Categories{Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}🏷️  Đang tạo Danh mục{Colors.RESET}", verbose=verbose)
     
     user_categories = {}
     total_created = 0
@@ -304,19 +304,19 @@ def seed_categories(db: Session, users: list[User], verbose: bool = True, dry_ru
         created_count = 0
         
         # Use Vietnamese categories for VN users
-        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        is_vietnamese = True
         categories_data = CATEGORIES_VI if is_vietnamese else CATEGORIES
         
         # Check if user already has categories
         existing_cats = db.query(Category).filter(Category.user_id == user.id).all()
         if existing_cats:
             user_categories[user.id] = existing_cats
-            log(f"  ⏭️  User {user.email} already has {len(existing_cats)} categories, skipping", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User {user.email} đã có {len(existing_cats)} danh mục, bỏ qua", Colors.YELLOW, verbose)
             continue
         
         for cat_data in categories_data:
             if dry_run:
-                log(f"  [DRY RUN] Would create category '{cat_data['name']}' for {user.email}", Colors.CYAN, verbose)
+                log(f"  [CHẠY THỬ] Sẽ tạo danh mục '{cat_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:
                 category = Category(
                     name=cat_data["name"],
@@ -331,11 +331,11 @@ def seed_categories(db: Session, users: list[User], verbose: bool = True, dry_ru
                 created_count += 1
         
         if not dry_run and created_count > 0:
-            log(f"  ✅ Created {created_count} categories for {user.email}", Colors.GREEN, verbose)
+            log(f"  ✅ Đã tạo {created_count} danh mục cho {user.email}", Colors.GREEN, verbose)
             total_created += created_count
     
     if not dry_run and total_created > 0:
-        log(f"  {Colors.BOLD}Created {total_created} new category(ies){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {total_created} danh mục mới{Colors.RESET}", Colors.GREEN, verbose)
     
     return user_categories
 
@@ -349,7 +349,7 @@ def seed_expenses(
     dry_run: bool = False
 ):
     """Generate realistic expenses for users"""
-    log(f"\n{Colors.BOLD}💰 Seeding Expenses ({months} months){Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}💰 Đang tạo Chi phí ({months} tháng){Colors.RESET}", verbose=verbose)
     
     total_created = 0
     end_date = date.today()
@@ -359,11 +359,11 @@ def seed_expenses(
         multiplier = get_currency_multiplier(user.email)
         categories = user_categories[user.id]
         if not categories:
-            log(f"  ⚠️  No categories found for {user.email}, skipping", Colors.RED, verbose)
+            log(f"  ⚠️  Không tìm thấy danh mục cho {user.email}, skipping", Colors.RED, verbose)
             continue
         
         # Use Vietnamese data for VN users
-        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        is_vietnamese = True
         recurring_expenses = RECURRING_EXPENSES_VI if is_vietnamese else RECURRING_EXPENSES
         random_expenses = RANDOM_EXPENSES_VI if is_vietnamese else RANDOM_EXPENSES
         weekly_grocery = WEEKLY_GROCERY_VI if is_vietnamese else WEEKLY_GROCERY_EN
@@ -376,7 +376,7 @@ def seed_expenses(
         # Check if user already has expenses
         existing_count = db.query(Expense).filter(Expense.user_id == user.id).count()
         if existing_count > 0:
-            log(f"  ⏭️  User {user.email} already has {existing_count} expenses, skipping", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User {user.email} đã có {existing_count} chi phí, bỏ qua", Colors.YELLOW, verbose)
             continue
         
         expenses_to_create = []
@@ -434,7 +434,7 @@ def seed_expenses(
         
         # Create expenses in database
         if dry_run:
-            log(f"  [DRY RUN] Would create {len(expenses_to_create)} expenses for {user.email}", Colors.CYAN, verbose)
+            log(f"  [CHẠY THỬ] Sẽ tạo {len(expenses_to_create)} chi phí cho {user.email}", Colors.CYAN, verbose)
         else:
             for exp_data in expenses_to_create:
                 expense = Expense(**exp_data)
@@ -442,10 +442,10 @@ def seed_expenses(
             db.commit()
             created_count = len(expenses_to_create)
             total_created += created_count
-            log(f"  ✅ Created {created_count} expenses for {user.email}", Colors.GREEN, verbose)
+            log(f"  ✅ Đã tạo {created_count} chi phí cho {user.email}", Colors.GREEN, verbose)
     
     if not dry_run and total_created > 0:
-        log(f"  {Colors.BOLD}Created {total_created} new expense(s){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {total_created} chi phí mới{Colors.RESET}", Colors.GREEN, verbose)
 
 
 def seed_incomes(
@@ -456,7 +456,7 @@ def seed_incomes(
     dry_run: bool = False
 ):
     """Generate realistic incomes for users"""
-    log(f"\n{Colors.BOLD}💵 Seeding Incomes ({months} months){Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}💵 Đang tạo Thu nhập ({months} tháng){Colors.RESET}", verbose=verbose)
     
     total_created = 0
     end_date = date.today()
@@ -466,11 +466,11 @@ def seed_incomes(
         # Check if user already has incomes
         existing_count = db.query(Income).filter(Income.user_id == user.id).count()
         if existing_count > 0:
-            log(f"  ⏭️  User {user.email} already has {existing_count} incomes, skipping", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User {user.email} đã có {existing_count} thu nhập, bỏ qua", Colors.YELLOW, verbose)
             continue
         
         # Use Vietnamese data for VN users
-        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        is_vietnamese = True
         income_sources = INCOME_SOURCES_VI if is_vietnamese else INCOME_SOURCES
             
         # Get user jars for distribution
@@ -498,7 +498,7 @@ def seed_incomes(
                 current = date(current.year, current.month + 1, 1)
         
         if dry_run:
-            log(f"  [DRY RUN] Would create {len(incomes_to_create)} incomes for {user.email}", Colors.CYAN, verbose)
+            log(f"  [CHẠY THỬ] Sẽ tạo {len(incomes_to_create)} thu nhập cho {user.email}", Colors.CYAN, verbose)
         else:
             for inc_data in incomes_to_create:
                 # Create income
@@ -519,10 +519,10 @@ def seed_incomes(
             db.commit()
             created_count = len(incomes_to_create)
             total_created += created_count
-            log(f"  ✅ Created {created_count} incomes for {user.email}", Colors.GREEN, verbose)
+            log(f"  ✅ Đã tạo {created_count} thu nhập cho {user.email}", Colors.GREEN, verbose)
             
     if not dry_run and total_created > 0:
-        log(f"  {Colors.BOLD}Created {total_created} new income(s){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {total_created} thu nhập mới{Colors.RESET}", Colors.GREEN, verbose)
 
 
 def seed_recurring_expenses(
@@ -533,7 +533,7 @@ def seed_recurring_expenses(
     dry_run: bool = False
 ):
     """Seed recurring expenses setup"""
-    log(f"\n{Colors.BOLD}🔄 Seeding Recurring Expenses{Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}🔄 Đang tạo Chi phí Định kỳ{Colors.RESET}", verbose=verbose)
     
     total_created = 0
     today = date.today()
@@ -544,7 +544,7 @@ def seed_recurring_expenses(
             continue
         
         # Use Vietnamese data for VN users
-        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        is_vietnamese = True
         recurring_templates = RECURRING_EXPENSES_VI if is_vietnamese else RECURRING_EXPENSES
             
         cat_map = {cat.name: cat for cat in categories}
@@ -553,13 +553,13 @@ def seed_recurring_expenses(
         # Check existing
         existing_count = db.query(RecurringExpense).filter(RecurringExpense.user_id == user.id).count()
         if existing_count > 0:
-            log(f"  ⏭️  User {user.email} already has {existing_count} recurring expenses, skipping", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User {user.email} đã có {existing_count} chi phí định kỳ, bỏ qua", Colors.YELLOW, verbose)
             continue
             
         for template in recurring_templates:
             if template["category"] in cat_map:
                 if dry_run:
-                    log(f"  [DRY RUN] Would create recurring expense '{template['description']}' for {user.email}", Colors.CYAN, verbose)
+                    log(f"  [CHẠY THỬ] Sẽ tạo chi phí định kỳ '{template['description']}' for {user.email}", Colors.CYAN, verbose)
                 else:
                     amount = Decimal(str(template["amount_range"][0] * get_currency_multiplier(user.email))) # use min amount for template
                     
@@ -579,15 +579,15 @@ def seed_recurring_expenses(
         if not dry_run and created_count > 0:
             db.commit()
             total_created += created_count
-            log(f"  ✅ Created {created_count} recurring expenses for {user.email}", Colors.GREEN, verbose)
+            log(f"  ✅ Đã tạo {created_count} chi phí định kỳ cho {user.email}", Colors.GREEN, verbose)
             
     if not dry_run and total_created > 0:
-        log(f"  {Colors.BOLD}Created {total_created} new recurring expense(s){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {total_created} chi phí định kỳ mới{Colors.RESET}", Colors.GREEN, verbose)
 
 
 def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bool = False) -> None:
     """Create demo goals for users"""
-    log(f"\n{Colors.BOLD}🎯 Seeding Goals{Colors.RESET}", verbose=verbose)
+    log(f"\n{Colors.BOLD}🎯 Đang tạo Mục tiêu{Colors.RESET}", verbose=verbose)
     
     total_created = 0
     today = date.today()
@@ -596,18 +596,18 @@ def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bo
         created_count = 0
         
         # Use Vietnamese data for VN users
-        is_vietnamese = user.language == "vi" or user.email == "demo-vi@gmail.com"
+        is_vietnamese = True
         goals_data = GOALS_VI if is_vietnamese else GOALS
         
         # Check if user already has goals
         existing_count = db.query(Goal).filter(Goal.user_id == user.id).count()
         if existing_count > 0:
-            log(f"  ⏭️  User {user.email} already has {existing_count} goals, skipping", Colors.YELLOW, verbose)
+            log(f"  ⏭️  User {user.email} đã có {existing_count} mục tiêu, bỏ qua", Colors.YELLOW, verbose)
             continue
         
         for goal_data in goals_data:
             if dry_run:
-                log(f"  [DRY RUN] Would create goal '{goal_data['name']}' for {user.email}", Colors.CYAN, verbose)
+                log(f"  [CHẠY THỬ] Sẽ tạo mục tiêu '{goal_data['name']}' for {user.email}", Colors.CYAN, verbose)
             else:
                 multiplier = get_currency_multiplier(user.email)
                 deadline = today + timedelta(days=goal_data["deadline_months"] * 30)
@@ -627,10 +627,10 @@ def seed_goals(db: Session, users: list[User], verbose: bool = True, dry_run: bo
         if not dry_run and created_count > 0:
             db.commit()
             total_created += created_count
-            log(f"  ✅ Created {created_count} goals for {user.email}", Colors.GREEN, verbose)
+            log(f"  ✅ Đã tạo {created_count} mục tiêu cho {user.email}", Colors.GREEN, verbose)
             
     if not dry_run and total_created > 0:
-        log(f"  {Colors.BOLD}Created {total_created} new goal(s){Colors.RESET}", Colors.GREEN, verbose)
+        log(f"  {Colors.BOLD}Đã tạo {total_created} mục tiêu mới{Colors.RESET}", Colors.GREEN, verbose)
 
 
 def main():
@@ -646,16 +646,16 @@ def main():
     num_users = min(args.users, len(DEMO_USERS))
     
     log(f"\n{Colors.BOLD}{Colors.BLUE}{'='*60}", verbose=True)
-    log(f"  💰 Expense Tracker Database Seeder", verbose=True)
+    log(f"  💰 Trình tạo dữ liệu Expense Tracker", verbose=True)
     log(f"{'='*60}{Colors.RESET}", verbose=True)
     
     if args.dry_run:
-        log(f"\n{Colors.YELLOW}{Colors.BOLD}🔍 DRY RUN MODE - No changes will be made{Colors.RESET}\n", verbose=True)
+        log(f"\n{Colors.YELLOW}{Colors.BOLD}🔍 CHẾ ĐỘ CHẠY THỬ - Không thay đổi dữ liệu{Colors.RESET}\n", verbose=True)
     
-    log(f"Configuration:", verbose=True)
-    log(f"  Users: {num_users}", verbose=True)
-    log(f"  Months: {args.months}", verbose=True)
-    log(f"  Verbose: {args.verbose}", verbose=True)
+    log(f"Cấu hình:", verbose=True)
+    log(f"  Người dùng: {num_users}", verbose=True)
+    log(f"  Tháng: {args.months}", verbose=True)
+    log(f"  Chi tiết: {args.verbose}", verbose=True)
     
     db = SessionLocal()
     
@@ -684,17 +684,17 @@ def main():
         
         # Summary
         log(f"\n{Colors.BOLD}{Colors.GREEN}{'='*60}", verbose=True)
-        log(f"  ✅ Seeding Complete!", verbose=True)
+        log(f"  ✅ Hoàn tất tạo dữ liệu!", verbose=True)
         log(f"{'='*60}{Colors.RESET}", verbose=True)
         
         if not args.dry_run:
-            log(f"\n{Colors.BOLD}Demo Credentials:{Colors.RESET}", verbose=True)
+            log(f"\n{Colors.BOLD}Thông tin đăng nhập Demo:{Colors.RESET}", verbose=True)
             for user_data in users_to_seed:
                 log(f"  📧 Email: {user_data['email']}", verbose=True)
-                log(f"  🔑 Password: {user_data['password']}\n", verbose=True)
+                log(f"  🔑 Mật khẩu: {user_data['password']}\n", verbose=True)
         
     except Exception as e:
-        log(f"\n{Colors.RED}❌ Error during seeding: {e}{Colors.RESET}", verbose=True)
+        log(f"\n{Colors.RED}❌ Lỗi khi tạo dữ liệu: {e}{Colors.RESET}", verbose=True)
         db.rollback()
         sys.exit(1)
     finally:

@@ -99,9 +99,8 @@ export function DataTab() {
     setDeleting(true);
     try {
       await usersApi.deleteAccount();
-      logout();
-      router.push('/login');
       toast.success('Account deleted successfully');
+      await logout();
     } catch (error) {
       console.error(error);
       toast.error('Failed to delete account');

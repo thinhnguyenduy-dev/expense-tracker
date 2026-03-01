@@ -19,7 +19,7 @@ interface AuthState {
   
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   setToken: (token: string) => void;
   updateUser: (data: Partial<User>) => void;
@@ -49,9 +49,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await authApi.register({ email, password, name });
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+  logout: async () => {
+    try {
+      if (get().isAuthenticated) {
+        await authApi.logout();
+      }
+    } catch (error) {
+      console.error('Logout error', error);
+    } finally {
+      localStorage.removeItem('token');
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
   },
 
   loadUser: async () => {

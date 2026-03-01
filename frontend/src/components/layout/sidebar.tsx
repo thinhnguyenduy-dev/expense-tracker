@@ -160,9 +160,8 @@ export function Sidebar({ className, onClose, staticMode = false }: SidebarProps
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-              onClick={() => {
-                logout();
-                router.push('/login');
+              onClick={async () => {
+                await logout();
               }}
             >
               <LogOut className="h-5 w-5" />

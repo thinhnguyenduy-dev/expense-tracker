@@ -91,7 +91,7 @@ def supervisor_node(state: AgentState):
         reason = args.get("reason")
         logger.debug(f"Supervisor Decided: {next_node}, Reason: {reason}")
         
-        if reason:
+        if reason and next_node == "FINISH":
             # Add the reasoning as an AIMessage so the UI sees it
             to_return["messages"] = [AIMessage(content=reason)]
             
@@ -110,6 +110,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     user_lang = config.get("configurable", {}).get("user_lang", "vi")
     user_currency = config.get("configurable", {}).get("user_currency", "VND")
     logger.debug(f"User ID: {user_id}, Lang: {user_lang}, Currency: {user_currency}")
+    lang_name = {"vi": "Vietnamese", "en": "English"}.get(user_lang, user_lang)
     tools = make_tools(user_id)
     
     logger.debug("Binding tools...")
@@ -120,7 +121,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
         MessagesPlaceholder(variable_name="messages"),
     ])
     from datetime import date
-    chain = prompt.partial(date=str(date.today()), user_lang=user_lang, user_currency=user_currency) | model
+    chain = prompt.partial(date=str(date.today()), user_lang=lang_name, user_currency=user_currency) | model
     
     logger.debug("Invoking financial chain...")
     response = chain.invoke(state["messages"])
@@ -156,6 +157,7 @@ async def data_analyst_node(state: AgentState):
 def general_agent_node(state: AgentState, config: RunnableConfig):
     """Handles general chitchat and non-financial questions."""
     user_lang = config.get("configurable", {}).get("user_lang", "vi")
+    lang_name = {"vi": "Vietnamese", "en": "English"}.get(user_lang, user_lang)
     
     model = get_llm(temperature=0.5)
     
@@ -164,7 +166,7 @@ def general_agent_node(state: AgentState, config: RunnableConfig):
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    chain = prompt.partial(user_lang=user_lang) | model
+    chain = prompt.partial(user_lang=lang_name) | model
     response = chain.invoke(state["messages"])
     return {"messages": [response]}
 
