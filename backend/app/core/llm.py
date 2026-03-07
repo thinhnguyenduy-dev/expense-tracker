@@ -4,6 +4,9 @@ from langchain_anthropic import ChatAnthropic
 from app.core.config import settings
 
 from app.core.ai_logging import AILoggingCallbackHandler
+from app.core.logging import get_logger
+
+logger = get_logger()
 
 def get_llm(temperature: float = 0):
     """
@@ -15,8 +18,18 @@ def get_llm(temperature: float = 0):
     if provider == "google":
         if not settings.GOOGLE_API_KEY:
             raise ValueError("GOOGLE_API_KEY is not set.")
+        model_name = settings.GOOGLE_MODEL_NAME
+        
+        # Langchain's ChatGoogleGenerativeAI relies on generateContent
+        # Models with "-native-audio-" usually only support bidiGenerateContent (Live API via WebSockets)
+        # Here we intelligently fallback to the standard flash model to prevent 404/NOT_FOUND crashes 
+        # while using the text-based Chat UI.
+        if "native-audio" in model_name:
+            logger.warning(f"Model '{model_name}' does not support generateContent via REST. Falling back to 'gemini-2.5-flash'.")
+            model_name = "gemini-2.5-flash"
+            
         return ChatGoogleGenerativeAI(
-            model=settings.GOOGLE_MODEL_NAME,
+            model=model_name,
             google_api_key=settings.GOOGLE_API_KEY,
             temperature=temperature,
             max_retries=3,

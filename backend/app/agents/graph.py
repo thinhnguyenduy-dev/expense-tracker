@@ -28,14 +28,13 @@ def supervisor_node(state: AgentState):
     system_prompt = (
         "You are a supervisor for a Financial App. Your goal is to route the conversation or finish it.\n"
         "WORKERS:\n"
-        "1. `financial_agent`: For creating/logging expenses and incomes, checking budget health, and transactional queries.\n"
-        "2. `data_analyst`: For complex analysis, SQL queries, and external web search.\n"
-        "3. `general_agent`: For general greetings, small talk, and non-financial questions.\n"
+        "1. `financial_agent`: For specific transactional tasks: creating/logging expenses/incomes, checking budget alerts for a specific amount, and listing categories.\n"
+        "2. `data_analyst`: For AGGREGATION, ANALYTICS, and COMPARISON: 'How many total...', 'What is the sum...', 'Compare last month...', 'Search the web for rates'. Use this for anything requires SQL or external research.\n"
+        "3. `general_agent`: For simple greetings and politeness.\n"
         "\n"
         "CRITICAL ROUTING RULES:\n"
-        "- **RELEVANCY FILTER**: If the user asks about topics completely unrelated to finance, expense tracking, or this app (e.g., general history, coding, science, sports), you MUST respond with FINISH and a polite refusal. Do NOT route to `general_agent` for random topics. `general_agent` is ONLY for greetings and politeness.\n"
-        "- If the last message is from an AI agent and it answers the user's question (e.g., 'Draft created', 'Here is the data'), you MUST respond with FINISH.\n"
-        "- Do NOT route back to the same agent immediately unless the user has asked a NEW follow-up question.\n"
+        "- If the user asks for 'total expenses', 'summary', or 'trend', you MUST route to `data_analyst`.\n"
+        "- If the user provides specific expense details (amount, category) to log, route to `financial_agent`.\n"
         "- If the user's request is satisfied, respond with FINISH."
     )
     
@@ -91,6 +90,11 @@ def supervisor_node(state: AgentState):
         reason = args.get("reason")
         logger.debug(f"Supervisor Decided: {next_node}, Reason: {reason}")
         
+        valid_nodes = ["financial_agent", "data_analyst", "general_agent", "FINISH"]
+        if next_node not in valid_nodes:
+            logger.debug(f"Invalid next_node '{next_node}', defaulting to FINISH")
+            next_node = "FINISH"
+            
         if reason and next_node == "FINISH":
             # Add the reasoning as an AIMessage so the UI sees it
             to_return["messages"] = [AIMessage(content=reason)]
@@ -117,7 +121,18 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     model = get_llm(temperature=0).bind_tools(tools)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful Financial Assistant. Extract expense and income details, check budgets, provide monthly summaries, and submit drafts. Current Date: {date}. IMPORTANT: Always respond in the user's preferred language: {user_lang}. All monetary amounts MUST be properly formatted based on this currency: {user_currency}."),
+        ("system", (
+            "You are a helpful Financial Assistant. Current Date: {date}.\n"
+            "AVAILABLE TOOLS:\n"
+            "- `submit_expense_tool`: To log a new expense.\n"
+            "- `submit_income_tool`: To log a new income.\n"
+            "- `check_budget_tool`: To check budget limit for a category.\n"
+            "- `lookup_categories_tool`: To list user categories.\n"
+            "- `get_monthly_summary_tool`: To get a text summary of a specific month.\n"
+            "\n"
+            "IMPORTANT: Do NOT call tools that are not listed above (like 'get_total_expenses_tool'). Use 'get_monthly_summary_tool' for totals.\n"
+            "Always respond in {user_lang}. Currency: {user_currency}."
+        )),
         MessagesPlaceholder(variable_name="messages"),
     ])
     from datetime import date

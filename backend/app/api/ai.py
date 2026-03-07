@@ -86,7 +86,7 @@ async def chat_with_agent(
 from app.core.cache import acached
 from loguru import logger
 
-@acached(prefix="ai_chat", ttl=60)
+# @acached(prefix="ai_chat", ttl=60)
 async def process_chat(user_id: int, message: str, thread_id: Optional[str] = None) -> Dict[str, Any]:
     # Import here to avoid circular dependencies if any
     from app.agents.graph import compile_graph
@@ -190,7 +190,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                          # Let's verify if we can match them.
                          # Simplified: Just don't attach result for now or improved logic.
                          # The original code attached result to tool_calls_log[-1].
-                         tool_calls_log[-1]["result"] = msg.content
+                         tool_calls_log[-1]["result"] = str(msg.content)
         
             return {
                 "response": str(response_text) if response_text else "I've processed that.",

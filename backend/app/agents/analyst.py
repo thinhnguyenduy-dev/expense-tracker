@@ -1,10 +1,9 @@
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
-from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from app.core.config import settings
 from app.core.llm import get_llm
+from app.core.database import engine
 
 def get_analyst_agent():
     """
@@ -14,19 +13,19 @@ def get_analyst_agent():
     """
     
     # 1. Setup Database
-    # We use the existing DATABASE_URL.
-    # Note: modifying connection string (e.g. changing user) would happen here if we had a dedicated read-only user.
-    db = SQLDatabase.from_uri(settings.DATABASE_URL)
+    # Use the shared engine to avoid connection overhead and pool exhaustion
+    db = SQLDatabase(
+        engine,
+        include_tables=['expenses', 'categories', 'incomes', 'users', 'jars', 'recurring_expenses']
+    )
     
     # 2. Setup LLM
     llm = get_llm(temperature=0)
     
     # 3. Setup Tools
-    # SQL Tools
     sql_toolkit = SQLDatabaseToolkit(db=db, llm=llm)
     sql_tools = sql_toolkit.get_tools()
     
-    # Search Tool
     search_tool = DuckDuckGoSearchRun()
     
     tools = sql_tools + [search_tool]
@@ -49,9 +48,9 @@ def get_analyst_agent():
         "\n"
         "When answering, be concise and data-driven.\n"
     )
-
+    
     # 5. Create Agent (ReAct)
     # create_react_agent returns a CompiledStateGraph
-    agent = create_react_agent(llm, tools, state_modifier=system_prompt)
+    agent = create_react_agent(llm, tools, prompt=system_prompt)
     
     return agent

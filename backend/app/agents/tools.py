@@ -188,4 +188,18 @@ def make_tools(user_id: int):
         finally:
             db.close()
 
-    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, lookup_categories_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool]
+    @tool
+    def search_web_tool(query: str) -> str:
+        """
+        Search the web for real-time information.
+        Use this tool EXACTLY when you need to find current exchange rates (e.g., '1000 USD to VND exchange rate today') 
+        or other real-time financial data before submitting a draft expense or income.
+        """
+        from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
+        search = DuckDuckGoSearchRun()
+        try:
+            return search.invoke(query)
+        except Exception as e:
+            return f"Search failed: {e}. Please try another query or proceed with your best estimate."
+
+    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, lookup_categories_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, search_web_tool]
