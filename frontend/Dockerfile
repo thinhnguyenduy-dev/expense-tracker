@@ -12,6 +12,11 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code and build
 COPY . .
+
+# Pass build arg for Next.js to bake into the standalone build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN pnpm build
 
 # Production stage
