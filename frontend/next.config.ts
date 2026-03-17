@@ -20,6 +20,7 @@ const withNextIntl = createNextIntlPlugin();
  
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone",
   reactCompiler: true,
   // Trigger restart for UI update
 };
