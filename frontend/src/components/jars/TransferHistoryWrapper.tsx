@@ -1,4 +1,4 @@
-
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -20,8 +20,10 @@ import { Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
 import { useLocale } from "next-intl";
-import { Income } from "@/lib/api";
+import { Income, incomesApi } from "@/lib/api";
 import { IncomeCard } from "@/components/incomes/IncomeCard";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 interface TransferHistoryWrapperProps {
   incomes: Income[];
@@ -32,6 +34,7 @@ interface TransferHistoryWrapperProps {
   setEditingIncome: (income: Income) => void;
   setOpenIncomeModal: (open: boolean) => void;
   deleteIncome: (id: number) => void;
+  onRefresh: () => void;
 }
 
 export function TransferHistoryWrapper({ 
@@ -42,9 +45,52 @@ export function TransferHistoryWrapper({
   formatCurrency, 
   setEditingIncome, 
   setOpenIncomeModal, 
-  deleteIncome 
+  deleteIncome,
+  onRefresh
 }: TransferHistoryWrapperProps) {
   const locale = useLocale();
+  const [selectedIncomes, setSelectedIncomes] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const toggleSelectAll = () => {
+    if (selectedIncomes.length === incomes.length) {
+      setSelectedIncomes([]);
+    } else {
+      setSelectedIncomes(incomes.map(i => i.id));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    if (selectedIncomes.includes(id)) {
+      setSelectedIncomes(selectedIncomes.filter(i => i !== id));
+    } else {
+      setSelectedIncomes([...selectedIncomes, id]);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIncomes.length === 0) return;
+    
+    // Using translation for confirmBulkDelete from common namespace or fallback
+    const msg = tCommon('confirmBulkDelete')?.replace('{count}', selectedIncomes.length.toString()) 
+                || `Are you sure you want to delete ${selectedIncomes.length} items?`;
+                
+    if (!confirm(msg)) return;
+
+    setIsDeleting(true);
+    try {
+      await incomesApi.bulkDelete(selectedIncomes);
+      toast.success(tCommon('successBulkDelete')?.replace('{count}', selectedIncomes.length.toString()) || `${selectedIncomes.length} incomes deleted`);
+      setSelectedIncomes([]);
+      onRefresh(); // Trigger a refetch
+    } catch (error) {
+      console.error(error);
+      toast.error(tCommon('failedBulkDelete') || "Failed to delete incomes");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <>
       <div className="md:hidden space-y-4">
@@ -64,11 +110,24 @@ export function TransferHistoryWrapper({
       </div>
 
       <Card className="hidden md:block bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">{t('incomeHistory')}</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            {t('incomeHistoryDesc')}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-foreground">{t('incomeHistory')}</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              {t('incomeHistoryDesc')}
+            </CardDescription>
+          </div>
+          {selectedIncomes.length > 0 && (
+             <Button
+               variant="destructive"
+               size="sm"
+               onClick={handleDeleteSelected}
+               disabled={isDeleting}
+             >
+               <Trash2 className="h-4 w-4 mr-2" />
+               {tCommon('deleteSelected') || "Delete Selected"} ({selectedIncomes.length})
+             </Button>
+          )}
         </CardHeader>
         <CardContent>
            {loading ? (
@@ -81,6 +140,13 @@ export function TransferHistoryWrapper({
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-muted">
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={incomes.length > 0 && selectedIncomes.length === incomes.length}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
                     <TableHead className="text-muted-foreground">{tCommon('date')}</TableHead>
                     <TableHead className="text-muted-foreground">{t('source')}</TableHead>
                     <TableHead className="text-right text-muted-foreground">{tCommon('amount')}</TableHead>
@@ -90,13 +156,20 @@ export function TransferHistoryWrapper({
                 <TableBody>
                   {incomes.length === 0 ? (
                     <TableRow className="border-border hover:bg-muted/50">
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
                         {t('noIncome')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     incomes.map((income) => (
                       <TableRow key={income.id} className="border-border hover:bg-muted/50">
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIncomes.includes(income.id)}
+                            onCheckedChange={() => toggleSelect(income.id)}
+                            aria-label={`Select ${income.source}`}
+                          />
+                        </TableCell>
                         <TableCell className="text-foreground">
                           {format(new Date(income.date), "MMM d, yyyy", { locale: locale === 'vi' ? vi : enUS })}
                         </TableCell>

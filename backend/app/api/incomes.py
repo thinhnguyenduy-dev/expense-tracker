@@ -9,6 +9,7 @@ from ..models.user import User
 from ..models.income import Income
 from ..models.jar import Jar
 from ..schemas.income import IncomeResponse, IncomeCreate
+from .. import schemas
 from ..core.exchange_rate import exchange_rate_service
 
 router = APIRouter()
@@ -211,4 +212,38 @@ def delete_income(
             jar.balance -= share
 
     db.delete(income)
+    db.commit()
+
+
+@router.post("/bulk-delete", status_code=status.HTTP_204_NO_CONTENT)
+def bulk_delete_incomes(
+    request: schemas.income.IncomeBulkDelete,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete multiple incomes and reverse the distribution from jars."""
+    incomes = db.query(Income).filter(
+        Income.id.in_(request.income_ids),
+        Income.user_id == current_user.id
+    ).all()
+
+    if not incomes:
+        return
+
+    # To reverse distribution, recalculate for each income
+    jars = db.query(Jar).filter(Jar.user_id == current_user.id).all()
+    if jars:
+        for income in incomes:
+            amount = income.amount
+            for jar in jars:
+                # Skip if jar was created AFTER the income
+                if jar.created_at and income.created_at and jar.created_at > income.created_at:
+                    continue
+
+                share = (amount * Decimal(str(jar.percentage))) / Decimal('100.0')
+                jar.balance -= share
+
+    for income in incomes:
+        db.delete(income)
+        
     db.commit()

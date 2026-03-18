@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 
 
@@ -12,6 +12,10 @@ class IncomeBase(BaseModel):
 
 class IncomeCreate(IncomeBase):
     currency: Optional[str] = None
+
+
+class IncomeBulkDelete(BaseModel):
+    income_ids: List[int]
 
 
 class IncomeResponse(IncomeBase):

@@ -31,6 +31,8 @@ import { TransferHistoryWrapper } from "@/components/jars/TransferHistoryWrapper
 import { Jar, Income, jarsApi, incomesApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { JarCustomizationModal } from "@/components/jars/JarCustomizationModal";
+
 export default function JarsPage() {
   const [jars, setJars] = useState<Jar[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -39,6 +41,7 @@ export default function JarsPage() {
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [editingJar, setEditingJar] = useState<Jar | null>(null);
   const [openTransfer, setOpenTransfer] = useState(false);
+  const [openCustomize, setOpenCustomize] = useState(false);
 
   const t = useTranslations('Jars');
   const tCommon = useTranslations('Common');
@@ -90,6 +93,9 @@ export default function JarsPage() {
         <h2 className="text-3xl font-bold tracking-tight text-foreground">{t('title')}</h2>
         <div className="flex items-center gap-2">
           {/* Actions: Add Income and Transfer */}
+          <Button onClick={() => setOpenCustomize(true)} variant="outline">
+            <Pencil className="h-4 w-4 mr-2" /> {t('customizeJars')}
+          </Button>
           <Button onClick={() => { setEditingIncome(null); setOpenIncomeModal(true); }} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
             <Plus className="h-4 w-4 mr-2" /> {t('addIncome')}
           </Button>
@@ -131,6 +137,7 @@ export default function JarsPage() {
           setEditingIncome={setEditingIncome}
           setOpenIncomeModal={setOpenIncomeModal}
           deleteIncome={deleteIncome}
+          onRefresh={fetchData}
         />
         <TransfersHistory /> 
       </div>
@@ -155,6 +162,15 @@ export default function JarsPage() {
         open={openTransfer}
         onOpenChange={setOpenTransfer}
         onSuccess={fetchData}
+      />
+
+      <JarCustomizationModal
+        isOpen={openCustomize}
+        onClose={() => {
+          setOpenCustomize(false);
+          fetchData();
+        }}
+        existingJars={jars}
       />
     </div>
   );

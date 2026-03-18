@@ -32,6 +32,7 @@ import { incomesApi, authApi, familiesApi, Income } from '@/lib/api';
 import { IncomeModal } from '@/components/incomes/IncomeModal';
 import { cn } from '@/lib/utils';
 import { IncomeCard } from '@/components/incomes/IncomeCard';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const MotionTableRow = motion(TableRow);
 
@@ -58,6 +59,8 @@ export default function IncomesPage() {
   const [hasFamily, setHasFamily] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<number | undefined>(undefined);
+  const [selectedIncomes, setSelectedIncomes] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const t = useTranslations('Incomes');
   const tCommon = useTranslations('Common');
@@ -116,6 +119,48 @@ export default function IncomesPage() {
       toast.error(t('failedDelete'));
     } finally {
       isSubmittingRef.current = false;
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIncomes.length === 0) return;
+    
+    const msg = tCommon('confirmBulkDelete')?.replace('{count}', selectedIncomes.length.toString()) 
+                || `Are you sure you want to delete ${selectedIncomes.length} items?`;
+                
+    if (!confirm(msg)) return;
+    if (isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
+    setIsDeleting(true);
+    try {
+      await incomesApi.bulkDelete(selectedIncomes);
+      // fallback to Common translations since Incomes translation might not exist or be loaded
+      toast.success(t('successBulkDelete') || tCommon('successBulkDelete')?.replace('{count}', selectedIncomes.length.toString()) || `${selectedIncomes.length} incomes deleted`);
+      setSelectedIncomes([]);
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast.error(t('failedBulkDelete') || tCommon('failedBulkDelete') || "Failed to delete incomes");
+    } finally {
+      isSubmittingRef.current = false;
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIncomes.length === filteredIncomes.length) {
+      setSelectedIncomes([]);
+    } else {
+      setSelectedIncomes(filteredIncomes.map(i => i.id));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    if (selectedIncomes.includes(id)) {
+      setSelectedIncomes(selectedIncomes.filter(i => i !== id));
+    } else {
+      setSelectedIncomes([...selectedIncomes, id]);
     }
   };
 
@@ -179,6 +224,16 @@ export default function IncomesPage() {
                 </Select>
               )}
             </>
+          )}
+          {selectedIncomes.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {tCommon('deleteSelected') || "Delete Selected"} ({selectedIncomes.length})
+            </Button>
           )}
           <Button
             onClick={handleOpenCreate}
@@ -273,6 +328,13 @@ export default function IncomesPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-muted">
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={filteredIncomes.length > 0 && selectedIncomes.length === filteredIncomes.length}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead className="text-muted-foreground">{tCommon('date')}</TableHead>
                   <TableHead className="text-muted-foreground">{t('source')}</TableHead>
                     {scope === 'family' && <TableHead className="text-muted-foreground">{t('by')}</TableHead>}
@@ -289,6 +351,13 @@ export default function IncomesPage() {
                     transition={{ duration: 0.2, delay: index * 0.05 }}
                     className="border-border hover:bg-muted/50"
                   >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIncomes.includes(income.id)}
+                        onCheckedChange={() => toggleSelect(income.id)}
+                        aria-label={`Select ${income.source}`}
+                      />
+                    </TableCell>
                     <TableCell className="text-foreground">
                       {format(new Date(income.date), 'MMM dd, yyyy', { locale: locale === 'vi' ? vi : enUS })}
                     </TableCell>

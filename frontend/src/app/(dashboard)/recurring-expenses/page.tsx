@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { recurringExpensesApi, categoriesApi, cronApi } from "@/lib/api"
 import { useTranslations, useLocale } from 'next-intl';
 import { isDueSoon } from "@/lib/date-utils";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getApiErrorMessage } from "@/lib/utils";
 import { format } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -142,8 +142,7 @@ export default function RecurringExpensesPage() {
       resetForm()
       setTimeout(() => fetchData(), 100)
     } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any)?.response?.data?.detail || t('failedSave'))
+      toast.error(getApiErrorMessage(error, t('failedSave')))
     } finally {
       setIsSubmitting(false)
       isSubmittingRef.current = false
@@ -175,8 +174,7 @@ export default function RecurringExpensesPage() {
       toast.success(t('successExpenseCreated', { date: response.data.date }))
       fetchData()
     } catch (error) {
-       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any)?.response?.data?.detail || t('failedCreateExpense'))
+      toast.error(getApiErrorMessage(error, t('failedCreateExpense')))
     }
   }
 

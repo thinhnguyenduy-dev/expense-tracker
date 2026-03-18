@@ -20,6 +20,16 @@ class JarUpdate(BaseModel):
     balance: Optional[Decimal] = None
 
 
+class JarBulkUpdateItem(BaseModel):
+    id: Optional[int] = None
+    name: str
+    percentage: float
+
+
+class JarBulkUpdate(BaseModel):
+    jars: List[JarBulkUpdateItem]
+
+
 class JarResponse(JarBase):
     id: int
     user_id: int

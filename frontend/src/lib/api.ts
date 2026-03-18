@@ -270,10 +270,10 @@ export const jarsApi = {
   getAll: () => api.get<Jar[]>('/jars'),
   create: (data: JarCreate) => api.post<Jar>('/jars', data),
   update: (id: number, data: JarUpdate) => api.put<Jar>(`/jars/${id}`, data),
+  bulkUpdate: (data: { jars: { id?: number; name: string; percentage: number }[] }) => api.put<Jar[]>('/jars/bulk', data),
   transfer: (data: { from_jar_id: number; to_jar_id: number; amount: number; note?: string }) => api.post<Transfer>('/transfers', data),
   getTransfers: () => api.get<Transfer[]>('/transfers'),
 };
-
 // Incomes API
 export interface Income {
   id: number;
@@ -301,6 +301,7 @@ export const incomesApi = {
   create: (data: IncomeCreate) => api.post<Income>('/incomes', data),
   update: (id: number, data: IncomeCreate) => api.put<Income>(`/incomes/${id}`, data),
   delete: (id: number) => api.delete(`/incomes/${id}`),
+  bulkDelete: (incomeIds: number[]) => api.post('/incomes/bulk-delete', { income_ids: incomeIds }),
 };
 
 export interface ReportResponse {

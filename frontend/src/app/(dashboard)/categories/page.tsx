@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getApiErrorMessage } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -155,8 +156,7 @@ export default function CategoriesPage() {
       setIsDialogOpen(false);
       setTimeout(() => fetchCategories(), 100);
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedSave'));
+      toast.error(getApiErrorMessage(error, t('failedSave')));
     } finally {
       setIsSubmitting(false);
       isSubmittingRef.current = false;
@@ -176,8 +176,7 @@ export default function CategoriesPage() {
       toast.success(t('successDelete'));
       fetchCategories();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      toast.error(axiosError.response?.data?.detail || t('failedDelete'));
+      toast.error(getApiErrorMessage(error, t('failedDelete')));
     }
   };
 
