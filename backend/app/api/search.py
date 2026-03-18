@@ -24,7 +24,7 @@ class SearchResult(BaseModel):
     category_name: str
     category_color: Optional[str] = None
 
-@router.get("/", response_model=List[SearchResult])
+@router.get("", response_model=List[SearchResult])
 def search_transactions(
     q: str = Query(..., min_length=2, description="Search query"),
     limit: int = Query(20, le=50, description="Max results"),

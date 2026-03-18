@@ -12,7 +12,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/", response_model=List[GoalResponse])
+@router.get("", response_model=List[GoalResponse])
 def get_goals(
     scope: str = "personal",
     db: Session = Depends(get_db),
@@ -50,7 +50,7 @@ def get_goals(
     # Personal scope (default)
     return db.query(Goal).filter(Goal.user_id == current_user.id).all()
 
-@router.post("/", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)
 def create_goal(
     goal: GoalCreate,
     db: Session = Depends(get_db),

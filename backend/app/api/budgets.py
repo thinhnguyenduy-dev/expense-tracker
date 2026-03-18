@@ -8,7 +8,7 @@ from ..schemas.budget import BudgetResponse
 
 router = APIRouter(prefix="/budgets", tags=["Budgets"])
 
-@router.get("/", response_model=BudgetResponse)
+@router.get("", response_model=BudgetResponse)
 def get_my_budget_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

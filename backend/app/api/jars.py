@@ -10,7 +10,7 @@ from ..schemas.jar import JarResponse, JarCreate, JarUpdate, JarBulkUpdate
 router = APIRouter()
 
 
-@router.get("/", response_model=List[JarResponse])
+@router.get("", response_model=List[JarResponse])
 def get_jars(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -19,7 +19,7 @@ def get_jars(
     return db.query(Jar).filter(Jar.user_id == current_user.id).all()
 
 
-@router.post("/", response_model=JarResponse)
+@router.post("", response_model=JarResponse)
 def create_jar(
     jar: JarCreate,
     db: Session = Depends(get_db),

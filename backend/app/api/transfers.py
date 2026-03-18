@@ -10,7 +10,7 @@ from ..schemas.jar import TransferCreate, TransferResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=List[TransferResponse])
+@router.get("", response_model=List[TransferResponse])
 def get_transfers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -37,7 +37,7 @@ def get_transfers(
         })
     return result
 
-@router.post("/", response_model=TransferResponse)
+@router.post("", response_model=TransferResponse)
 def transfer_funds(
     transfer: TransferCreate,
     db: Session = Depends(get_db),

@@ -18,7 +18,7 @@ import io
 
 router = APIRouter()
 
-@router.get("/", response_model=ReportResponse)
+@router.get("", response_model=ReportResponse)
 def get_reports(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,

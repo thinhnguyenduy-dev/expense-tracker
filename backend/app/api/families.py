@@ -15,7 +15,7 @@ def generate_invite_code():
     # e.g. AB12CD
     return secrets.token_hex(3).upper()
 
-@router.post("/", response_model=FamilyResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=FamilyResponse, status_code=status.HTTP_201_CREATED)
 def create_family(
     family_in: FamilyCreate,
     db: Session = Depends(get_db),

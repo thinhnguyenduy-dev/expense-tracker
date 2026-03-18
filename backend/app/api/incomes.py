@@ -15,7 +15,7 @@ from ..core.exchange_rate import exchange_rate_service
 router = APIRouter()
 
 
-@router.get("/", response_model=List[IncomeResponse])
+@router.get("", response_model=List[IncomeResponse])
 def get_incomes(
     scope: str = "personal",
     member_id: int | None = None,
@@ -59,7 +59,7 @@ def get_incomes(
     return db.query(Income).filter(Income.user_id == current_user.id).order_by(Income.date.desc()).all()
 
 
-@router.post("/", response_model=IncomeResponse)
+@router.post("", response_model=IncomeResponse)
 async def create_income(
     income: IncomeCreate,
     db: Session = Depends(get_db),
