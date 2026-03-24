@@ -1,12 +1,59 @@
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
+import httpx
 from app.core.config import settings
 
 from app.core.ai_logging import AILoggingCallbackHandler
 from app.core.logging import get_logger
 
 logger = get_logger()
+_AUTO_MODEL_CACHE: str | None = None
+
+
+def _resolve_openai_model_name() -> str:
+    """Resolve model name for OpenAI-compatible providers.
+    Priority:
+    1) OPENAI_MODEL_NAME if explicitly set
+    2) auto-discover from {OPENAI_API_BASE}/models
+    """
+    global _AUTO_MODEL_CACHE
+
+    if settings.OPENAI_MODEL_NAME and settings.OPENAI_MODEL_NAME.strip():
+        return settings.OPENAI_MODEL_NAME.strip()
+
+    if _AUTO_MODEL_CACHE:
+        return _AUTO_MODEL_CACHE
+
+    if not settings.OPENAI_API_BASE or not settings.OPENAI_API_KEY:
+        raise ValueError(
+            "OPENAI_MODEL_NAME is not set, and auto-discovery requires OPENAI_API_BASE and OPENAI_API_KEY."
+        )
+
+    models_url = f"{settings.OPENAI_API_BASE.rstrip('/')}/models"
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            resp = client.get(
+                models_url,
+                headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+    except Exception as e:
+        raise ValueError(
+            f"OPENAI_MODEL_NAME is not set and auto-discovery from {models_url} failed: {e}"
+        ) from e
+
+    data = payload.get("data", [])
+    model_ids = [item.get("id") for item in data if isinstance(item, dict) and item.get("id")]
+    if not model_ids:
+        raise ValueError(f"OPENAI_MODEL_NAME is not set and no models returned from {models_url}.")
+
+    preferred = ["gpt-5.4", "gpt-5.3-codex", "gpt-5.1", "gpt-5"]
+    selected = next((m for m in preferred if m in model_ids), model_ids[0])
+    _AUTO_MODEL_CACHE = selected
+    logger.info(f"Auto-selected OpenAI model: {selected}")
+    return selected
 
 def get_llm(temperature: float = 0):
     """
@@ -52,7 +99,7 @@ def get_llm(temperature: float = 0):
         if not settings.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY is not set (required for Groq).")
         return ChatOpenAI(
-            model=settings.OPENAI_MODEL_NAME, # e.g. llama-3.3-70b-versatile
+            model=_resolve_openai_model_name(),
             api_key=settings.OPENAI_API_KEY,
             base_url="https://api.groq.com/openai/v1",
             temperature=temperature,
@@ -61,7 +108,7 @@ def get_llm(temperature: float = 0):
 
     # Default to OpenAI
     return ChatOpenAI(
-        model=settings.OPENAI_MODEL_NAME,
+        model=_resolve_openai_model_name(),
         api_key=settings.OPENAI_API_KEY,
         base_url=settings.OPENAI_API_BASE,
         temperature=temperature,

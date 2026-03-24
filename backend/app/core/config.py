@@ -46,7 +46,9 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "openai" # openai, google, anthropic, groq
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_API_BASE: Optional[str] = None
-    OPENAI_MODEL_NAME: str = "gpt-3.5-turbo"
+    # Optional when using an OpenAI-compatible proxy (e.g. CLIProxy).
+    # If unset, model can be auto-discovered from /models.
+    OPENAI_MODEL_NAME: Optional[str] = None
     
     GOOGLE_API_KEY: Optional[str] = None
     GOOGLE_MODEL_NAME: str = "gemini-2.5-flash-lite"
