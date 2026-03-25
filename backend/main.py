@@ -16,6 +16,13 @@ from app.core.reminder_service import ReminderService
 # Setup logging first
 setup_logging()
 logger = get_logger()
+
+# Enable verbose LLM debugging via httpx to show HTTP requests sent to LLM
+from langchain_core.globals import set_debug
+set_debug(True)
+import logging
+logging.getLogger("httpx").setLevel(logging.DEBUG)
+
 scheduler = AsyncIOScheduler()
 
 async def process_recurring_expenses_job():

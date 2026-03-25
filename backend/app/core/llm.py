@@ -106,11 +106,23 @@ def get_llm(temperature: float = 0):
             callbacks=callbacks
         )
 
+    def log_request_payload(request: httpx.Request):
+        try:
+            body = request.read().decode('utf-8')
+            print(f"\n=======================> [LLM_API_REQUEST] <=======================\nURL: {request.url}\nBODY: {body}\n===================================================================\n")
+        except Exception:
+            pass
+
+    http_client = httpx.Client(event_hooks={'request': [log_request_payload]})
+    http_async_client = httpx.AsyncClient(event_hooks={'request': [log_request_payload]})
+
     # Default to OpenAI
     return ChatOpenAI(
         model=_resolve_openai_model_name(),
         api_key=settings.OPENAI_API_KEY,
         base_url=settings.OPENAI_API_BASE,
         temperature=temperature,
-        callbacks=callbacks
+        callbacks=callbacks,
+        http_client=http_client,
+        http_async_client=http_async_client
     )
