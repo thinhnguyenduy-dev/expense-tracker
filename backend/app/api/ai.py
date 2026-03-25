@@ -124,13 +124,15 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             "messages": [HumanMessage(content=message)]
         }
         
+        from app.core.ai_logging import AILoggingCallbackHandler
         config = {
             "configurable": {
                 "user_id": user_id,
                 "thread_id": final_thread_id,
                 "user_lang": user_lang,
                 "user_currency": user_currency
-            }
+            },
+            "callbacks": [AILoggingCallbackHandler()]
         }
         
         try:
