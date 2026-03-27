@@ -4,7 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph, END, START
 from langgraph.prebuilt import ToolNode
 from langchain_core.runnables import RunnableConfig
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage
 
 from app.agents.state import AgentState
 from app.agents.tools import make_tools
@@ -15,6 +15,57 @@ from app.core.logging import get_logger
 from app.core.llm import get_llm
 
 logger = get_logger()
+
+
+def _sanitize_messages_for_model(messages: list[BaseMessage]) -> list[BaseMessage]:
+    """
+    Remove dangling tool-call segments that would trigger
+    OpenAI invalid_request_error: "No tool output found for function call ..."
+    """
+    cleaned: list[BaseMessage] = []
+    i = 0
+    n = len(messages)
+    while i < n:
+        m = messages[i]
+
+        if isinstance(m, AIMessage):
+            tool_calls = getattr(m, "tool_calls", None) or []
+            invalid_tool_calls = getattr(m, "invalid_tool_calls", None) or []
+            finish_reason = (getattr(m, "response_metadata", None) or {}).get("finish_reason")
+
+            if invalid_tool_calls or (finish_reason == "tool_calls" and not tool_calls):
+                i += 1
+                while i < n and isinstance(messages[i], ToolMessage):
+                    i += 1
+                continue
+
+            if not tool_calls:
+                cleaned.append(m)
+                i += 1
+                continue
+            call_ids = [tc.get("id") for tc in tool_calls if isinstance(tc, dict) and tc.get("id")]
+
+            j = i + 1
+            tool_msgs: list[ToolMessage] = []
+            while j < n and isinstance(messages[j], ToolMessage):
+                tool_msgs.append(messages[j])
+                j += 1
+
+            tool_msg_ids = {getattr(tm, "tool_call_id", None) for tm in tool_msgs}
+
+            # Keep the tool-call turn only when every call id has a corresponding tool output.
+            if call_ids and all(cid in tool_msg_ids for cid in call_ids):
+                cleaned.append(m)
+                cleaned.extend(tool_msgs)
+            # else: drop incomplete tool call segment silently
+
+            i = j
+            continue
+
+        cleaned.append(m)
+        i += 1
+
+    return cleaned
 
 # --- Supervisor Node ---
 def supervisor_node(state: AgentState):
@@ -74,7 +125,7 @@ def supervisor_node(state: AgentState):
     try:
         response = model_with_tool.invoke([
             SystemMessage(content=system_prompt),
-            *messages[-5:] # Context window
+            *_sanitize_messages_for_model(messages)[-10:] # Context window (sanitized)
         ])
         logger.debug(f"Supervisor Response Tool Calls: {response.tool_calls}")
     except Exception as e:
@@ -139,7 +190,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     chain = prompt.partial(date=str(date.today()), user_lang=lang_name, user_currency=user_currency) | model
     
     logger.debug("Invoking financial chain...")
-    response = chain.invoke(state["messages"])
+    response = chain.invoke(_sanitize_messages_for_model(state["messages"]))
     logger.debug(f"Financial response content: {str(response.content)[:100]}...")
     if response.tool_calls:
         logger.debug(f"Financial response tool_calls: {response.tool_calls}")
@@ -182,7 +233,7 @@ def general_agent_node(state: AgentState, config: RunnableConfig):
     ])
     
     chain = prompt.partial(user_lang=lang_name) | model
-    response = chain.invoke(state["messages"])
+    response = chain.invoke(_sanitize_messages_for_model(state["messages"]))
     return {"messages": [response]}
 
 # --- Main Graph ---
