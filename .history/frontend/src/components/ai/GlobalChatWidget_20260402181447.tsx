@@ -259,12 +259,6 @@ export function GlobalChatWidget() {
                              <span className="font-semibold text-sm">AI Assistant</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" title="New chat" onClick={() => {
-                                setConversation([]);
-                                localStorage.removeItem("ai_thread_id");
-                            }}>
-                                <SquarePen className="h-4 w-4" />
-                            </Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" onClick={() => setIsExpanded(!isExpanded)}>
                                 {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                             </Button>

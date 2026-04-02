@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2, SquarePen } from "lucide-react";
+import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -259,12 +259,6 @@ export function GlobalChatWidget() {
                              <span className="font-semibold text-sm">AI Assistant</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" title="New chat" onClick={() => {
-                                setConversation([]);
-                                localStorage.removeItem("ai_thread_id");
-                            }}>
-                                <SquarePen className="h-4 w-4" />
-                            </Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" onClick={() => setIsExpanded(!isExpanded)}>
                                 {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                             </Button>
