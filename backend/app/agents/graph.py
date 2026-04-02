@@ -17,6 +17,16 @@ from app.core.llm import get_llm
 logger = get_logger()
 
 
+MAX_CONTEXT_MESSAGES = 20
+
+def _trim_messages(messages: list[BaseMessage], max_messages: int = MAX_CONTEXT_MESSAGES) -> list[BaseMessage]:
+    """Keep only the last N messages to prevent context overflow."""
+    if len(messages) <= max_messages:
+        return messages
+    # Always keep the first message if it's a SystemMessage
+    trimmed = messages[-max_messages:]
+    return trimmed
+
 def _sanitize_messages_for_model(messages: list[BaseMessage]) -> list[BaseMessage]:
     """
     Remove dangling tool-call segments that would trigger
@@ -190,7 +200,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     chain = prompt.partial(date=str(date.today()), user_lang=lang_name, user_currency=user_currency) | model
     
     logger.debug("Invoking financial chain...")
-    response = chain.invoke(_sanitize_messages_for_model(state["messages"]))
+    response = chain.invoke(_sanitize_messages_for_model(_trim_messages(state["messages"])))
     logger.debug(f"Financial response content: {str(response.content)[:100]}...")
     if response.tool_calls:
         logger.debug(f"Financial response tool_calls: {response.tool_calls}")
@@ -233,10 +243,9 @@ def general_agent_node(state: AgentState, config: RunnableConfig):
     ])
     
     chain = prompt.partial(user_lang=lang_name) | model
-    response = chain.invoke(_sanitize_messages_for_model(state["messages"]))
+    response = chain.invoke(_sanitize_messages_for_model(_trim_messages(state["messages"])))
     return {"messages": [response]}
 
-# --- Main Graph ---
 def get_agent_graph():
     workflow = StateGraph(AgentState)
     

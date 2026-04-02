@@ -5,7 +5,7 @@ import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2, Square
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { aiApi, categoriesApi, expensesApi, Category } from "@/lib/api";
+import { aiApi, categoriesApi, expensesApi, incomesApi, Category } from "@/lib/api";
 import { cn, getApiErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -90,6 +90,8 @@ export function GlobalChatWidget() {
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<Message[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
+  const [pendingIncome, setPendingIncome] = useState<{ amount: number; source: string; date?: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -178,13 +180,10 @@ export function GlobalChatWidget() {
         if (data.is_completed && data.expense_data) {
             const d = data.expense_data;
             let categoryId = "";
-            
-            // Try to match category name
             if (d.category) {
                 const match = categories.find(c => c.name.toLowerCase() === d.category.toLowerCase());
                 if (match) categoryId = match.id.toString();
             }
-
             form.reset({
                 amount: d.amount || 0,
                 description: d.description || d.merchant || "",
@@ -192,9 +191,15 @@ export function GlobalChatWidget() {
                 category_id: categoryId,
                 currency: d.currency || "VND"
             });
-
             setIsDialogOpen(true);
             toast.info("Draft ready for review");
+        }
+
+        if (data.is_completed && data.income_data) {
+            const d = data.income_data;
+            setPendingIncome({ amount: d.amount || 0, source: d.source || "", date: d.date });
+            setIsIncomeDialogOpen(true);
+            toast.info("Income draft ready for review");
         }
     } catch (error: any) {
         console.error(error);
@@ -222,16 +227,30 @@ export function GlobalChatWidget() {
         category_id: parseInt(data.category_id),
         currency: data.currency,
       };
-
       await expensesApi.create(payload);
       toast.success(t('successAdd'));
-      
       setIsDialogOpen(false);
-      // Optional: don't clear conversation so user sees context
-      // setConversation([]); 
-        
     } catch (error: unknown) {
       toast.error(getApiErrorMessage(error, t('failedSave')));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmitIncome = async () => {
+    if (!pendingIncome) return;
+    setIsSubmitting(true);
+    try {
+      await incomesApi.create({
+        amount: pendingIncome.amount,
+        source: pendingIncome.source,
+        date: pendingIncome.date || format(new Date(), 'yyyy-MM-dd'),
+      });
+      toast.success("Income added successfully");
+      setIsIncomeDialogOpen(false);
+      setPendingIncome(null);
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Failed to save income"));
     } finally {
       setIsSubmitting(false);
     }
@@ -343,6 +362,26 @@ export function GlobalChatWidget() {
         isSubmitting={isSubmitting}
         onSubmit={onSubmit}
       />
+
+      {/* Income confirmation dialog */}
+      {isIncomeDialogOpen && pendingIncome && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-6 w-[320px] space-y-4">
+            <h3 className="font-semibold text-base">Confirm Income</h3>
+            <div className="text-sm space-y-1 text-muted-foreground">
+              <p>Amount: <span className="font-medium text-foreground">{pendingIncome.amount.toLocaleString()} VND</span></p>
+              <p>Source: <span className="font-medium text-foreground">{pendingIncome.source}</span></p>
+              {pendingIncome.date && <p>Date: <span className="font-medium text-foreground">{pendingIncome.date}</span></p>}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => { setIsIncomeDialogOpen(false); setPendingIncome(null); }}>Cancel</Button>
+              <Button size="sm" disabled={isSubmitting} onClick={onSubmitIncome} className="bg-indigo-600 hover:bg-indigo-700">
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

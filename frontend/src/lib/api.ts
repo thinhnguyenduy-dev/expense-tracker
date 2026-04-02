@@ -433,6 +433,7 @@ export interface ChatResponse {
   response: string;
   is_completed: boolean;
   expense_data?: any;
+  income_data?: any;
   tool_calls: { name: string; args: any; result?: string }[];
   thread_id?: string;
 }

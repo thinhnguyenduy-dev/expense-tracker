@@ -24,6 +24,7 @@ class ChatResponse(BaseModel):
     response: str
     is_completed: bool = False
     expense_data: Optional[Dict[str, Any]] = None
+    income_data: Optional[Dict[str, Any]] = None
     tool_calls: List[ToolCallLog] = []
     thread_id: Optional[str] = None # Added thread_id
 
@@ -160,6 +161,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             
             is_completed = False
             expense_data = None
+            income_data = None
             tool_calls_log = []
         
             # Find the index of the last HumanMessage to only check relevant/new Agent responses
@@ -182,6 +184,10 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                         if tc["name"] == "submit_expense_tool":
                             is_completed = True
                             expense_data = tc["args"]
+                        
+                        elif tc["name"] == "submit_income_tool":
+                            is_completed = True
+                            income_data = tc["args"]
                 
                 if isinstance(msg, ToolMessage):
                      if tool_calls_log:
@@ -198,6 +204,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "response": str(response_text) if response_text else "I've processed that.",
                 "is_completed": is_completed,
                 "expense_data": expense_data,
+                "income_data": income_data,
                 "tool_calls": tool_calls_log,
                 "thread_id": final_thread_id
             }
