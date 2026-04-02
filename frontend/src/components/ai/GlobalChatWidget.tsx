@@ -104,6 +104,7 @@ export function GlobalChatWidget() {
   
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
+  const tAI = useTranslations('AI');
 
   // Schema Definition
   const expenseSchema = z.object({
@@ -192,14 +193,14 @@ export function GlobalChatWidget() {
                 currency: d.currency || "VND"
             });
             setIsDialogOpen(true);
-            toast.info("Draft ready for review");
+            toast.info(tAI('draftReady'));
         }
 
         if (data.is_completed && data.income_data) {
             const d = data.income_data;
             setPendingIncome({ amount: d.amount || 0, source: d.source || "", date: d.date });
             setIsIncomeDialogOpen(true);
-            toast.info("Income draft ready for review");
+            toast.info(tAI('incomeDraftReady'));
         }
     } catch (error: any) {
         console.error(error);
@@ -246,11 +247,11 @@ export function GlobalChatWidget() {
         source: pendingIncome.source,
         date: pendingIncome.date || format(new Date(), 'yyyy-MM-dd'),
       });
-      toast.success("Income added successfully");
+      toast.success(tAI('incomeAdded'));
       setIsIncomeDialogOpen(false);
       setPendingIncome(null);
     } catch (error: unknown) {
-      toast.error(getApiErrorMessage(error, "Failed to save income"));
+      toast.error(getApiErrorMessage(error, tAI('failedSaveIncome')));
     } finally {
       setIsSubmitting(false);
     }
@@ -275,10 +276,10 @@ export function GlobalChatWidget() {
                              <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
                                 <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                              </div>
-                             <span className="font-semibold text-sm">AI Assistant</span>
+                             <span className="font-semibold text-sm">{tAI('title')}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" title="New chat" onClick={() => {
+                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" title={tAI('newChat')} onClick={() => {
                                 setConversation([]);
                                 localStorage.removeItem("ai_thread_id");
                             }}>
@@ -298,9 +299,9 @@ export function GlobalChatWidget() {
                     <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
                         {conversation.length === 0 && (
                             <div className="text-center text-muted-foreground text-xs py-8 px-4 border-2 border-dashed rounded-lg border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20">
-                                <p>Try saying:</p>
-                                <p className="italic mt-2">"Lunch for $15"</p>
-                                <p className="italic">"Spending report"</p>
+                                <p>{tAI('trySaying')}</p>
+                                <p className="italic mt-2">{tAI('emptySuggestion1')}</p>
+                                <p className="italic">{tAI('emptySuggestion2')}</p>
                             </div>
                         )}
                         
@@ -312,7 +313,7 @@ export function GlobalChatWidget() {
                             <div className="flex justify-start">
                                 <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-none px-3 py-2 shadow-sm flex items-center gap-2">
                                     <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
-                                    <span className="text-xs text-muted-foreground">Thinking...</span>
+                                    <span className="text-xs text-muted-foreground">{tAI('thinking')}</span>
                                 </div>
                             </div>
                         )}
@@ -324,7 +325,7 @@ export function GlobalChatWidget() {
                         value={input}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Type a message..." 
+                        placeholder={tAI('placeholder')} 
                         className="resize-none min-h-[40px] pr-10 rounded-xl border-gray-200 dark:border-gray-800 focus-visible:ring-indigo-500 text-sm py-2"
                         rows={1}
                         />
@@ -367,16 +368,16 @@ export function GlobalChatWidget() {
       {isIncomeDialogOpen && pendingIncome && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-6 w-[320px] space-y-4">
-            <h3 className="font-semibold text-base">Confirm Income</h3>
+            <h3 className="font-semibold text-base">{tAI('confirmIncome')}</h3>
             <div className="text-sm space-y-1 text-muted-foreground">
-              <p>Amount: <span className="font-medium text-foreground">{pendingIncome.amount.toLocaleString()} VND</span></p>
-              <p>Source: <span className="font-medium text-foreground">{pendingIncome.source}</span></p>
-              {pendingIncome.date && <p>Date: <span className="font-medium text-foreground">{pendingIncome.date}</span></p>}
+              <p>{tAI('amount')}: <span className="font-medium text-foreground">{pendingIncome.amount.toLocaleString()} VND</span></p>
+              <p>{tAI('source')}: <span className="font-medium text-foreground">{pendingIncome.source}</span></p>
+              {pendingIncome.date && <p>{tAI('date')}: <span className="font-medium text-foreground">{pendingIncome.date}</span></p>}
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => { setIsIncomeDialogOpen(false); setPendingIncome(null); }}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => { setIsIncomeDialogOpen(false); setPendingIncome(null); }}>{tAI('cancel')}</Button>
               <Button size="sm" disabled={isSubmitting} onClick={onSubmitIncome} className="bg-indigo-600 hover:bg-indigo-700">
-                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : tAI('confirm')}
               </Button>
             </div>
           </div>

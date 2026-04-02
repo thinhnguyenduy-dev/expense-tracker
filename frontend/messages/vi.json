@@ -340,5 +340,24 @@
     "personalOnly": "Chỉ cá nhân",
     "by": "bởi {name}",
     "allMembers": "Tất cả thành viên"
+  },
+  "AI": {
+    "title": "Trợ lý AI",
+    "placeholder": "Nhập tin nhắn...",
+    "thinking": "Đang xử lý...",
+    "newChat": "Cuộc trò chuyện mới",
+    "draftReady": "Bản nháp sẵn sàng để xem xét",
+    "incomeDraftReady": "Bản nháp thu nhập sẵn sàng",
+    "confirmIncome": "Xác nhận thu nhập",
+    "amount": "Số tiền",
+    "source": "Nguồn",
+    "date": "Ngày",
+    "confirm": "Xác nhận",
+    "cancel": "Hủy",
+    "incomeAdded": "Đã thêm thu nhập thành công",
+    "failedSaveIncome": "Không thể lưu thu nhập",
+    "emptySuggestion1": "\"Ăn trưa 50k\"",
+    "emptySuggestion2": "\"Báo cáo chi tiêu\"",
+    "trySaying": "Thử nói:"
   }
 }

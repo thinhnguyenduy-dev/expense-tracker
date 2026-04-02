@@ -323,5 +323,24 @@
     "personalOnly": "Personal Only",
     "by": "by {name}",
     "allMembers": "All Members"
+  },
+  "AI": {
+    "title": "AI Assistant",
+    "placeholder": "Type a message...",
+    "thinking": "Thinking...",
+    "newChat": "New chat",
+    "draftReady": "Draft ready for review",
+    "incomeDraftReady": "Income draft ready for review",
+    "confirmIncome": "Confirm Income",
+    "amount": "Amount",
+    "source": "Source",
+    "date": "Date",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "incomeAdded": "Income added successfully",
+    "failedSaveIncome": "Failed to save income",
+    "emptySuggestion1": "\"Lunch for $15\"",
+    "emptySuggestion2": "\"Spending report\"",
+    "trySaying": "Try saying:"
   }
 }
