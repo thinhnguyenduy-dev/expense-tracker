@@ -22,7 +22,10 @@ class JarService:
 
         jar = db.query(Jar).filter(Jar.id == jar_id).first()
         if jar:
-            # Convert to Decimal if needed to avoid type errors with Numeric column
-            # SQLAlchemy handles float to Numeric usually, but explicit is better if mixed
-            jar.balance += Decimal(str(amount_delta))
+            new_balance = jar.balance + Decimal(str(amount_delta))
+            if new_balance < 0:
+                # Clamp to 0 instead of going negative
+                jar.balance = Decimal('0')
+            else:
+                jar.balance = new_balance
             # No commit here, let the caller commit transaction

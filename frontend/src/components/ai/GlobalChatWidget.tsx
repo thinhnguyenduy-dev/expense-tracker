@@ -241,14 +241,31 @@ export function GlobalChatWidget() {
   const onSubmit = async (data: ExpenseFormData) => {
     setIsSubmitting(true);
     try {
-      const payload = {
+      const dateStr = format(data.date, 'yyyy-MM-dd');
+
+      // Check for duplicate: same amount + category on same date
+      const { data: existing } = await expensesApi.getAll({
+        start_date: dateStr,
+        end_date: dateStr,
+        category_id: parseInt(data.category_id),
+        min_amount: data.amount,
+        max_amount: data.amount,
+        page_size: 1,
+      });
+      if (existing?.items?.length > 0) {
+        const confirmed = window.confirm(
+          `Bạn đã có khoản chi ${data.amount.toLocaleString()} VND trong danh mục này hôm nay. Vẫn tiếp tục?`
+        );
+        if (!confirmed) { setIsSubmitting(false); return; }
+      }
+
+      await expensesApi.create({
         amount: data.amount,
         description: data.description,
-        date: format(data.date, 'yyyy-MM-dd'),
+        date: dateStr,
         category_id: parseInt(data.category_id),
         currency: data.currency,
-      };
-      await expensesApi.create(payload);
+      });
       toast.success(t('successAdd'));
       setIsDialogOpen(false);
     } catch (error: unknown) {
