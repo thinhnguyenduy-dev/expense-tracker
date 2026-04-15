@@ -61,7 +61,7 @@ function renderMarkdown(text: string): React.ReactNode {
     return <>{nodes}</>;
 }
 
-const ChatMessageItem = memo(({ msg }: { msg: Message }) => {
+const ChatMessageItem = memo(({ msg, onRetry }: { msg: Message; onRetry?: () => void }) => {
     return (
         <div className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div className={cn(
@@ -69,14 +69,24 @@ const ChatMessageItem = memo(({ msg }: { msg: Message }) => {
                 msg.role === "user"
                     ? "bg-indigo-600 text-white rounded-br-none"
                     : cn("bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-bl-none",
-                        msg.isError && "bg-red-50 text-red-600 border-red-100")
+                        msg.isError && "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/20")
             )}>
                 {msg.role === "agent" && !msg.isError ? (
                     <div className="text-gray-800 dark:text-gray-200">
                         {renderMarkdown(msg.content)}
                     </div>
                 ) : (
-                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                    <div className="space-y-1">
+                        <span className="whitespace-pre-wrap">{msg.content}</span>
+                        {msg.isError && onRetry && (
+                            <button
+                                onClick={onRetry}
+                                className="block text-xs text-red-500 hover:text-red-700 underline mt-1"
+                            >
+                                Thử lại
+                            </button>
+                        )}
+                    </div>
                 )}
             </div>
         </div>
@@ -89,6 +99,7 @@ export function GlobalChatWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<Message[]>([]);
+  const [lastUserMessage, setLastUserMessage] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
   const [pendingIncome, setPendingIncome] = useState<{ amount: number; source: string; date?: string } | null>(null);
@@ -163,6 +174,7 @@ export function GlobalChatWidget() {
     
     const message = input;
     setInput("");
+    setLastUserMessage(message);
     setConversation(prev => [...prev, { role: "user", content: message }]);
     setIsChatLoading(true);
 
@@ -209,6 +221,14 @@ export function GlobalChatWidget() {
     } finally {
         setIsChatLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    if (!lastUserMessage || isChatLoading) return;
+    // Remove last error message and resend
+    setConversation(prev => prev.filter((_, i) => i !== prev.length - 1));
+    setInput(lastUserMessage);
+    setTimeout(() => handleSend(), 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -306,7 +326,7 @@ export function GlobalChatWidget() {
                         )}
                         
                         {conversation.map((msg, i) => (
-                            <ChatMessageItem key={i} msg={msg} />
+                            <ChatMessageItem key={i} msg={msg} onRetry={msg.isError ? handleRetry : undefined} />
                         ))}
                         
                         {isChatLoading && (

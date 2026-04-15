@@ -30,6 +30,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
+        // Dynamically import to avoid circular dependency
+        import('@/lib/stores/auth-store').then(({ useAuthStore }) => {
+          useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+        });
         window.location.href = '/login';
       }
     }

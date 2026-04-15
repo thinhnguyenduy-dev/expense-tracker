@@ -133,7 +133,8 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "user_lang": user_lang,
                 "user_currency": user_currency
             },
-            "callbacks": [AILoggingCallbackHandler()]
+            "callbacks": [AILoggingCallbackHandler()],
+            "recursion_limit": 12
         }
         
         try:
@@ -209,8 +210,16 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "thread_id": final_thread_id
             }
         except Exception as e:
-            # We re-raise to be handled by the caller (and thus NOT cached if it fails?)
-            # Usually we don't want to cache failures.
+            from langgraph.errors import GraphRecursionError
+            if isinstance(e, GraphRecursionError):
+                return {
+                    "response": "Xin lỗi, yêu cầu quá phức tạp để xử lý. Vui lòng thử lại với câu hỏi đơn giản hơn.",
+                    "is_completed": False,
+                    "expense_data": None,
+                    "income_data": None,
+                    "tool_calls": [],
+                    "thread_id": final_thread_id
+                }
             raise e
 
 @router.get("/agent/history/{thread_id}", response_model=List[Dict[str, Any]])
