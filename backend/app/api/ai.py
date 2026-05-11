@@ -146,7 +146,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             if isinstance(last_message, HumanMessage):
                 # Supervisor decided to FINISH immediately without any agent output.
                 # To avoid echoing, we provide a fallback response.
-                response_text = "I'm here to help! You can ask me to add expenses, check your budget, or analyze your spending habits."
+                response_text = "Mình luôn sẵn sàng giúp bạn! Bạn có thể yêu cầu mình thêm khoản chi, kiểm tra ngân sách hoặc phân tích thói quen chi tiêu của bạn."
             else:
                 content = last_message.content
                 if isinstance(content, list):
