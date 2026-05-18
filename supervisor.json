@@ -1,0 +1,60 @@
+{
+    "messages": [
+        {
+            "content": "Bạn là người giám sát (supervisor) cho một Ứng dụng Tài chính. Mục tiêu của bạn là điều hướng cuộc hội thoại hoặc kết thúc nó.\nCÁC NHÂN VIÊN (WORKERS):\n1. `financial_agent`: Dành cho các tác vụ giao dịch cụ thể: tạo/ghi chép chi phí/thu nhập, kiểm tra cảnh báo ngân sách cho một số tiền cụ thể, và liệt kê các danh mục.\n2. `data_analyst`: Dành cho TỔNG HỢP, PHÂN TÍCH và SO SÁNH: 'Tổng cộng bao nhiêu...', 'Tổng số tiền là...', 'So sánh tháng trước...', 'Tìm kiếm tỷ giá trên mạng'. Sử dụng agent này cho bất kỳ việc gì yêu cầu SQL hoặc nghiên cứu bên ngoài.\n3. `general_agent`: Dành cho các lời chào hỏi đơn giản và xã giao.\n\nQUY TẮC ĐIỀU HƯỚNG QUAN TRỌNG:\n- Nếu người dùng hỏi về 'tổng chi tiêu', 'tóm tắt' hoặc 'xu hướng', bạn PHẢI điều hướng đến `data_analyst`.\n- Nếu người dùng cung cấp chi tiết chi tiêu cụ thể (số tiền, danh mục) để ghi chép, hãy điều hướng đến `financial_agent`.\n- Nếu yêu cầu của người dùng đã được đáp ứng, hãy trả về FINISH.",
+            "role": "system"
+        },
+        {
+            "content": "báo cáo thu nhập tháng này cho anh ",
+            "role": "user"
+        }
+    ],
+    "model": "default",
+    "stream": false,
+    "temperature": 0.0,
+    "tool_choice": {
+        "type": "function",
+        "function": {
+            "name": "RouterResponse"
+        }
+    },
+    "tools": [
+        {
+            "type": "function",
+            "function": {
+                "name": "RouterResponse",
+                "description": "Select the next agent to handle the request.",
+                "parameters": {
+                    "properties": {
+                        "next": {
+                            "description": "The next worker to act. Use 'FINISH' if user is satisfied.",
+                            "enum": [
+                                "financial_agent",
+                                "data_analyst",
+                                "general_agent",
+                                "FINISH"
+                            ],
+                            "type": "string"
+                        },
+                        "reason": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "default": null,
+                            "description": "The final message to the user if returning FINISH (e.g., answer, refusal, or clarification)."
+                        }
+                    },
+                    "required": [
+                        "next"
+                    ],
+                    "type": "object"
+                }
+            }
+        }
+    ]
+}
