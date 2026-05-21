@@ -10,11 +10,9 @@ from app.agents.state import AgentState
 from app.agents.tools import make_tools
 from app.core.config import settings
 from app.agents.analyst import get_analyst_agent
-from app.core.logging import get_logger
+from app.core.logging import app_logger as logger
 
 from app.core.llm import get_llm
-
-logger = get_logger()
 
 
 MAX_CONTEXT_MESSAGES = 20

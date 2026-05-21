@@ -2,9 +2,7 @@ from typing import Any, Dict, List, Union
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import LLMResult
-from app.core.logging import get_logger
-
-logger = get_logger()
+from app.core.logging import app_logger as logger
 
 class AILoggingCallbackHandler(BaseCallbackHandler):
     """Callback Handler that logs Chain and Tool events cleanly."""

@@ -5,9 +5,7 @@ import httpx
 from app.core.config import settings
 
 from app.core.ai_logging import AILoggingCallbackHandler
-from app.core.logging import get_logger
-
-logger = get_logger()
+from app.core.logging import app_logger as logger
 _AUTO_MODEL_CACHE: str | None = None
 
 

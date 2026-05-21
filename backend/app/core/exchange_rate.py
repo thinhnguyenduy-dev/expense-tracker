@@ -2,9 +2,7 @@ import httpx
 from decimal import Decimal
 from typing import Optional, Dict, Any
 from .config import settings
-from .logging import get_logger
-
-logger = get_logger()
+from .logging import app_logger as logger
 
 # Simple mock rates for MVP if no API key is present
 # Base is USD

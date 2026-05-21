@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     
     # External Services
     EXCHANGE_RATE_API_KEY: Optional[str] = None
+    
+    # ELK Stack (optional - if not set, ELK logging is disabled)
+    ELASTICSEARCH_URL: Optional[str] = None
+    ELASTICSEARCH_USERNAME: Optional[str] = "elastic"
+    ELASTICSEARCH_PASSWORD: Optional[str] = None
+    KIBANA_URL: Optional[str] = None
+    ELK_ENABLED: bool = False
 
     # AI
     AI_PROVIDER: str = "openai" # openai, google, anthropic, groq

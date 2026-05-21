@@ -9,10 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from app.core.database import SessionLocal
 from app.core.recurring_expense_service import RecurringExpenseService
 from app.core.reminder_service import ReminderService
-from app.core.logging import setup_logging, get_logger
-
-setup_logging()
-logger = get_logger()
+from app.core.logging import app_logger as logger
 
 async def run_cron_jobs():
     logger.info("⏳ Starting daily cron jobs...")

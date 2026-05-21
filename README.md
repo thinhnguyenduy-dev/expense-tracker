@@ -28,6 +28,7 @@ A modern full-stack expense management application built with FastAPI and Next.j
 - **Migrations**: Alembic
 - **Auth**: JWT (python-jose)
 - **Validation**: Pydantic
+- **Logging**: ELK Stack (Elasticsearch, Kibana)
 
 ### Frontend
 - **Framework**: Next.js 16 (App Router)
@@ -152,6 +153,38 @@ For detailed API endpoints and usage, please visit the interactive documentation
 
 - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+## 📊 ELK Stack Integration
+
+The application includes integrated logging with Elasticsearch and Kibana for advanced log management and analytics.
+
+### Quick Setup
+
+1. Configure ELK in `.env`:
+```bash
+ELASTICSEARCH_URL=https://your-elasticsearch-url.com
+ELASTICSEARCH_USERNAME=elastic
+ELASTICSEARCH_PASSWORD=your_password
+KIBANA_URL=https://your-kibana-url.com
+ELK_ENABLED=true
+```
+
+2. Setup Elasticsearch indices:
+```bash
+cd backend
+python scripts/setup_elk.py
+```
+
+3. Access Kibana dashboard at your configured URL
+
+### Features
+- 📝 Automatic HTTP request logging
+- 📊 Business event tracking (transactions, budgets, AI queries)
+- 🔍 Advanced search and filtering in Kibana
+- 📈 Custom dashboards and visualizations
+- ⚠️ Real-time alerts for errors and anomalies
+
+For detailed setup instructions, see [ELK Quick Start Guide](backend/docs/ELK_QUICKSTART.md)
 
 ## 🎨 Screenshots
 

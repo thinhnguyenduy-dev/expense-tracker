@@ -1,55 +1,58 @@
 """
-Request logging middleware using Loguru.
+Logging middleware for FastAPI
 """
 import time
-import uuid
+import traceback
+from typing import Callable
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
-from loguru import logger
+from app.core.logging import log_request, app_logger as logger
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware to log all incoming requests and outgoing responses."""
+    """Middleware to log all HTTP requests"""
     
-    async def dispatch(self, request: Request, call_next) -> Response:
-        # Generate unique request ID
-        request_id = str(uuid.uuid4())[:8]
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Start timer
+        start_time = time.time()
         
-        # Bind request_id to logger context
-        request_logger = logger.bind(request_id=request_id)
+        # Get user_id if authenticated
+        user_id = None
+        if hasattr(request.state, "user") and request.state.user:
+            user_id = request.state.user.id
         
-        # Get client IP
-        client_ip = request.client.host if request.client else "unknown"
-        
-        # Log incoming request
-        request_logger.info(
-            f"→ {request.method} {request.url.path}"
-            f"{('?' + str(request.query_params)) if request.query_params else ''}"
-            f" | IP: {client_ip}"
-        )
-        
-        # Process request and measure duration
-        start_time = time.perf_counter()
+        # Process request
+        response = None
+        error = None
+        error_type = None
         
         try:
             response = await call_next(request)
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            
-            # Log response
-            status_emoji = "✓" if response.status_code < 400 else "✗"
-            request_logger.info(
-                f"← {response.status_code} {status_emoji} | {duration_ms:.1f}ms"
-            )
-            
-            # Add request ID to response headers for debugging
-            response.headers["X-Request-ID"] = request_id
-            
             return response
-            
         except Exception as e:
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            request_logger.exception(
-                f"← 500 ✗ | {duration_ms:.1f}ms | Error: {str(e)}"
+            # Capture detailed error information
+            error_type = type(e).__name__
+            error = str(e)
+            
+            # Log detailed error to console
+            logger.error(
+                f"❌ Error in {request.method} {request.url.path}\n"
+                f"   Error Type: {error_type}\n"
+                f"   Error Message: {error}\n"
+                f"   User ID: {user_id}\n"
+                f"   Traceback:\n{traceback.format_exc()}"
             )
             raise
+        finally:
+            # Calculate duration
+            duration_ms = (time.time() - start_time) * 1000
+            
+            # Log request with error details
+            log_request(
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code if response else 500,
+                duration_ms=duration_ms,
+                user_id=user_id,
+                error=f"{error_type}: {error}" if error_type else error
+            )

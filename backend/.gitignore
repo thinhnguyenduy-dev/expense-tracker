@@ -45,6 +45,7 @@ ENV/
 
 # Logs
 *.log
+logs/
 
 # Coverage
 htmlcov/

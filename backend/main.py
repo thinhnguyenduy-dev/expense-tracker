@@ -4,18 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
-from app.core.logging import setup_logging, get_logger
+from app.core.logging import app_logger as logger
 from app.core.rate_limit import limiter
 from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router, search_router, ai_router
-from app.middleware import LoggingMiddleware, SecurityHeadersMiddleware
+from app.middleware import SecurityHeadersMiddleware
+from app.middleware.logging import LoggingMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.database import SessionLocal
 from app.core.recurring_expense_service import RecurringExpenseService
 from app.core.reminder_service import ReminderService
 
-# Setup logging first
-setup_logging()
-logger = get_logger()
+# Logging is initialized automatically when importing app_logger
+logger.info("🔧 Application starting...")
 
 scheduler = AsyncIOScheduler()
 
