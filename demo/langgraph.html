@@ -280,6 +280,73 @@
     .cm  { color: #546e7a; font-style: italic; }
     .cls { color: #ffcb6b; }
 
+    /* ── CHECKPOINT TABLES ── */
+    .ckpt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+    .ckpt-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform .2s, border-color .2s;
+    }
+    .ckpt-card:hover { transform: translateY(-3px); }
+    .ckpt-header {
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ckpt-icon { font-size: 1.3rem; }
+    .ckpt-name { font-size: .95rem; font-weight: 700; font-family: 'JetBrains Mono','Fira Code',monospace; }
+    .ckpt-body { padding: 14px 18px; }
+    .ckpt-role {
+      font-size: .85rem; color: var(--text); margin-bottom: 12px; line-height: 1.5;
+    }
+    .ckpt-cols { list-style: none; padding: 0; }
+    .ckpt-cols li {
+      display: flex; align-items: baseline; gap: 8px;
+      padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: .8rem;
+    }
+    .ckpt-cols li:last-child { border-bottom: none; }
+    .col-name { font-family: 'JetBrains Mono','Fira Code',monospace; color: #82aaff; min-width: 120px; flex-shrink: 0; }
+    .col-desc { color: var(--text-muted); }
+    .ckpt-badge {
+      display: inline-block; margin-top: 10px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    }
+    .ckpt-rows { color: var(--text-muted); font-size: .8rem; margin-top: 8px; }
+
+    /* flow timeline */
+    .flow-timeline { position: relative; padding-left: 28px; }
+    .flow-timeline::before {
+      content: ''; position: absolute; left: 9px; top: 6px; bottom: 6px;
+      width: 2px; background: var(--border);
+    }
+    .ft-step {
+      position: relative; margin-bottom: 18px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .ft-dot {
+      position: absolute; left: -24px; top: 3px;
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid; flex-shrink: 0;
+      background: var(--bg);
+    }
+    .ft-content { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; flex: 1; }
+    .ft-content strong { color: var(--text); font-size: .9rem; display: block; margin-bottom: 3px; }
+    .ft-content span { color: var(--text-muted); font-size: .82rem; }
+    .ft-table-tag {
+      display: inline-block; margin-top: 6px;
+      padding: 2px 8px; border-radius: 4px;
+      font-size: .72rem; font-family: 'JetBrains Mono','Fira Code',monospace; font-weight: 600;
+    }
+
     /* ── FOOTER ── */
     footer {
       text-align: center;
@@ -726,7 +793,276 @@ graph = builder.compile(
     </div>
   </section>
 
-  <!-- ══════════════════ 7. TÓM TẮT ══════════════════ -->
+  <!-- ══════════════════ 7. CHECKPOINT TABLES ══════════════════ -->
+  <section>
+    <h2><span class="icon">🗄️</span> Checkpoint Tables – Bộ nhớ dài hạn của Agent</h2>
+    <p style="margin-bottom: 8px">
+      Khi gọi <code style="color:#c792ea">AsyncPostgresSaver(pool)</code>, LangGraph tự động tạo 4 bảng này trong PostgreSQL.
+      Chúng <strong style="color:var(--text)">không phải do bạn viết migration</strong> — LangGraph quản lý hoàn toàn.
+    </p>
+    <p style="margin-bottom:24px">
+      Nhờ 4 bảng này, AI agent <strong style="color:var(--accent2)">nhớ được lịch sử hội thoại</strong> giữa các request khác nhau
+      và có thể <strong style="color:var(--accent2)">resume từ giữa chừng</strong> nếu server crash.
+    </p>
+
+    <!-- 4 table cards -->
+    <div class="ckpt-grid">
+
+      <!-- checkpoints -->
+      <div class="ckpt-card" style="border-color: rgba(108,99,255,.4)">
+        <div class="ckpt-header" style="background: rgba(108,99,255,.08)">
+          <span class="ckpt-icon">📸</span>
+          <span class="ckpt-name" style="color:#a78bfa">checkpoints</span>
+          <span class="ckpt-badge" style="background:rgba(108,99,255,.15); color:#a78bfa; margin-left:auto">17 rows</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-role">
+            <strong style="color:var(--accent)">Snapshot toàn bộ State</strong> sau mỗi lần một node chạy xong.
+            Mỗi row = 1 checkpoint, tạo thành chuỗi lịch sử của cuộc hội thoại.
+          </p>
+          <ul class="ckpt-cols">
+            <li><span class="col-name">thread_id</span><span class="col-desc">ID cuộc hội thoại (1 session = 1 thread)</span></li>
+            <li><span class="col-name">checkpoint_id</span><span class="col-desc">UUID của snapshot này</span></li>
+            <li><span class="col-name">parent_checkpoint_id</span><span class="col-desc">Trỏ về bước trước → tạo chuỗi lịch sử</span></li>
+            <li><span class="col-name">checkpoint</span><span class="col-desc">JSONB: toàn bộ state (messages, metadata...)</span></li>
+            <li><span class="col-name">metadata</span><span class="col-desc">step#, source, user_id, user_lang, currency</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- checkpoint_blobs -->
+      <div class="ckpt-card" style="border-color: rgba(255,165,0,.35)">
+        <div class="ckpt-header" style="background: rgba(255,165,0,.07)">
+          <span class="ckpt-icon">🗜️</span>
+          <span class="ckpt-name" style="color:#ffa500">checkpoint_blobs</span>
+          <span class="ckpt-badge" style="background:rgba(255,165,0,.12); color:#ffa500; margin-left:auto">11 rows</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-role">
+            <strong style="color:#ffa500">Data lớn lưu tách riêng</strong> dưới dạng binary nén.
+            Tránh bảng <code style="color:#82aaff">checkpoints</code> bị quá nặng khi messages dài.
+          </p>
+          <ul class="ckpt-cols">
+            <li><span class="col-name">thread_id</span><span class="col-desc">Khoá liên kết với checkpoints</span></li>
+            <li><span class="col-name">channel</span><span class="col-desc">Tên channel ("messages", "agent_outcome"...)</span></li>
+            <li><span class="col-name">version</span><span class="col-desc">Phiên bản của blob này</span></li>
+            <li><span class="col-name">type</span><span class="col-desc">Kiểu encode: "msgpack", "json"</span></li>
+            <li><span class="col-name">blob</span><span class="col-desc">bytea: dữ liệu được nén/serialize</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- checkpoint_writes -->
+      <div class="ckpt-card" style="border-color: rgba(0,212,170,.35)">
+        <div class="ckpt-header" style="background: rgba(0,212,170,.07)">
+          <span class="ckpt-icon">✍️</span>
+          <span class="ckpt-name" style="color:#00d4aa">checkpoint_writes</span>
+          <span class="ckpt-badge" style="background:rgba(0,212,170,.12); color:#00d4aa; margin-left:auto">25 rows</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-role">
+            <strong style="color:var(--accent2)">Ghi trung gian</strong> trong khi 1 node đang chạy.
+            Nếu server crash giữa chừng, LangGraph đọc bảng này để <strong style="color:var(--text)">resume chính xác</strong> thay vì chạy lại từ đầu.
+          </p>
+          <ul class="ckpt-cols">
+            <li><span class="col-name">checkpoint_id</span><span class="col-desc">Checkpoint đang được xử lý</span></li>
+            <li><span class="col-name">task_id</span><span class="col-desc">Task con đang ghi</span></li>
+            <li><span class="col-name">idx</span><span class="col-desc">Thứ tự ghi trong cùng 1 checkpoint</span></li>
+            <li><span class="col-name">channel</span><span class="col-desc">State channel bị ghi vào</span></li>
+            <li><span class="col-name">blob</span><span class="col-desc">Giá trị đang được ghi (binary)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- checkpoint_migrations -->
+      <div class="ckpt-card" style="border-color: rgba(255,107,107,.3)">
+        <div class="ckpt-header" style="background: rgba(255,107,107,.07)">
+          <span class="ckpt-icon">🔢</span>
+          <span class="ckpt-name" style="color:#ff6b6b">checkpoint_migrations</span>
+          <span class="ckpt-badge" style="background:rgba(255,107,107,.12); color:#ff6b6b; margin-left:auto">10 rows</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-role">
+            <strong style="color:#ff6b6b">Version schema</strong> của LangGraph — giống <code style="color:#82aaff">alembic_version</code> nhưng dành riêng cho 3 bảng trên.
+            Khi nâng cấp LangGraph, bảng này xác định migration nào cần chạy.
+          </p>
+          <ul class="ckpt-cols">
+            <li><span class="col-name">v</span><span class="col-desc">Số thứ tự version (hiện tại: 10 = đã qua 10 migration)</span></li>
+          </ul>
+          <p style="font-size:.82rem; color:var(--text-muted); margin-top:10px">
+            Tương tự <code style="color:#82aaff">alembic_version</code> nhưng do LangGraph tự quản lý, không cần bạn tạo tay.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- How they work together: flow diagram -->
+    <h3 style="color:var(--text); font-size:1.1rem; margin-bottom:16px">Luồng hoạt động thực tế trong Expense Tracker</h3>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px">
+      <!-- Timeline -->
+      <div class="card">
+        <div class="flow-timeline">
+
+          <div class="ft-step">
+            <div class="ft-dot" style="border-color:#00d4aa; background:#0f2a20"></div>
+            <div class="ft-content">
+              <strong>User gửi tin nhắn</strong>
+              <span>ai.py tạo hoặc tái sử dụng <code style="color:#82aaff">thread_id</code> cho session này.</span>
+            </div>
+          </div>
+
+          <div class="ft-step">
+            <div class="ft-dot" style="border-color:#a78bfa; background:#1e1a3a"></div>
+            <div class="ft-content">
+              <strong>LangGraph đọc lịch sử</strong>
+              <span>Tìm checkpoint mới nhất theo <code style="color:#82aaff">thread_id</code> → khôi phục toàn bộ messages cũ vào State.</span>
+              <div><span class="ft-table-tag" style="background:rgba(108,99,255,.12);color:#a78bfa">READ checkpoints</span></div>
+            </div>
+          </div>
+
+          <div class="ft-step">
+            <div class="ft-dot" style="border-color:#ffa500; background:#1a1505"></div>
+            <div class="ft-content">
+              <strong>Agent Node chạy (LLM)</strong>
+              <span>LLM phân tích context, quyết định gọi tool hay trả lời. Kết quả ghi tạm vào state trung gian.</span>
+              <div><span class="ft-table-tag" style="background:rgba(0,212,170,.1);color:#00d4aa">WRITE checkpoint_writes</span></div>
+            </div>
+          </div>
+
+          <div class="ft-step">
+            <div class="ft-dot" style="border-color:#ffa500; background:#1a1505"></div>
+            <div class="ft-content">
+              <strong>Tool Node chạy (SQL / Search)</strong>
+              <span>Truy vấn database hoặc DuckDuckGo. Kết quả cập nhật vào State, data lớn lưu vào blob.</span>
+              <div>
+                <span class="ft-table-tag" style="background:rgba(255,165,0,.1);color:#ffa500">WRITE checkpoint_blobs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ft-step">
+            <div class="ft-dot" style="border-color:#a78bfa; background:#1e1a3a"></div>
+            <div class="ft-content">
+              <strong>Snapshot được commit</strong>
+              <span>Sau mỗi node hoàn thành, LangGraph lưu 1 snapshot đầy đủ. Chuỗi checkpoint tạo nên lịch sử hội thoại.</span>
+              <div><span class="ft-table-tag" style="background:rgba(108,99,255,.12);color:#a78bfa">WRITE checkpoints</span></div>
+            </div>
+          </div>
+
+          <div class="ft-step">
+            <div class="ft-dot" style="border-color:#00d4aa; background:#0f2a20"></div>
+            <div class="ft-content">
+              <strong>Trả kết quả cho user</strong>
+              <span>Response gửi về. Lần sau user nhắn tiếp, agent sẽ đọc lại checkpoint → <strong style="color:var(--accent2)">nhớ toàn bộ context</strong>.</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Diagram SVG -->
+      <div class="diagram-wrapper" style="padding:20px">
+        <svg viewBox="0 0 340 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:340px;display:block;margin:0 auto">
+          <defs>
+            <marker id="ca" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#6c63ff"/>
+            </marker>
+            <marker id="ca2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#00d4aa"/>
+            </marker>
+            <marker id="ca3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#ffa500"/>
+            </marker>
+          </defs>
+
+          <!-- thread label -->
+          <text x="170" y="16" text-anchor="middle" fill="#546e7a" font-size="10">thread_id: dd365241-9c9c-...</text>
+
+          <!-- User -->
+          <rect x="110" y="22" width="120" height="36" rx="18" fill="#0d1a12" stroke="#00d4aa" stroke-width="1.5"/>
+          <text x="170" y="44" text-anchor="middle" fill="#00d4aa" font-size="12" font-weight="700">👤 User</text>
+
+          <line x1="170" y1="58" x2="170" y2="78" stroke="#6c63ff" stroke-width="1.5" marker-end="url(#ca)"/>
+
+          <!-- Checkpoint READ -->
+          <rect x="20" y="80" width="140" height="36" rx="8" fill="#1a1530" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4 2"/>
+          <text x="90" y="98" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">READ checkpoints</text>
+          <text x="90" y="110" text-anchor="middle" fill="#546e7a" font-size="9">Khôi phục State cũ</text>
+
+          <line x1="170" y1="80" x2="130" y2="98" stroke="#6c63ff" stroke-width="1" stroke-dasharray="3 2"/>
+
+          <!-- Agent Node -->
+          <rect x="85" y="136" width="170" height="44" rx="10" fill="#1e1a3a" stroke="#6c63ff" stroke-width="1.5"/>
+          <text x="170" y="155" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">🤖 Agent Node</text>
+          <text x="170" y="170" text-anchor="middle" fill="#6c63ff" font-size="10">LLM quyết định</text>
+
+          <!-- checkpoint_writes -->
+          <rect x="240" y="142" width="90" height="30" rx="6" fill="#0d1f12" stroke="#00d4aa" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="285" y="158" text-anchor="middle" fill="#00d4aa" font-size="9" font-weight="600">checkpoint_writes</text>
+          <text x="285" y="168" text-anchor="middle" fill="#546e7a" font-size="8">ghi tạm trung gian</text>
+          <line x1="255" y1="158" x2="241" y2="158" stroke="#00d4aa" stroke-width="1" stroke-dasharray="2 1" marker-end="url(#ca2)"/>
+
+          <line x1="170" y1="180" x2="170" y2="204" stroke="#6c63ff" stroke-width="1.5" marker-end="url(#ca)"/>
+
+          <!-- Tool Node -->
+          <rect x="85" y="206" width="170" height="44" rx="10" fill="#1a1505" stroke="#ffa500" stroke-width="1.5"/>
+          <text x="170" y="225" text-anchor="middle" fill="#ffa500" font-size="12" font-weight="700">🔧 Tool Node</text>
+          <text x="170" y="240" text-anchor="middle" fill="#a0854a" font-size="10">SQL / DuckDuckGo</text>
+
+          <!-- checkpoint_blobs -->
+          <rect x="240" y="212" width="90" height="30" rx="6" fill="#1a1005" stroke="#ffa500" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="285" y="228" text-anchor="middle" fill="#ffa500" font-size="9" font-weight="600">checkpoint_blobs</text>
+          <text x="285" y="238" text-anchor="middle" fill="#546e7a" font-size="8">data lớn (binary)</text>
+          <line x1="255" y1="227" x2="241" y2="227" stroke="#ffa500" stroke-width="1" stroke-dasharray="2 1" marker-end="url(#ca3)"/>
+
+          <line x1="170" y1="250" x2="170" y2="274" stroke="#6c63ff" stroke-width="1.5" marker-end="url(#ca)"/>
+
+          <!-- Snapshot commit -->
+          <rect x="20" y="276" width="300" height="44" rx="10" fill="#1a1530" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="170" y="295" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">💾 Snapshot commit → checkpoints</text>
+          <text x="170" y="311" text-anchor="middle" fill="#546e7a" font-size="9">parent_id → checkpoint_id mới → lịch sử liên kết</text>
+
+          <!-- Chain visualization -->
+          <rect x="30" y="340" width="60" height="22" rx="4" fill="#16122a" stroke="#4a4570" stroke-width="1"/>
+          <text x="60" y="355" text-anchor="middle" fill="#6c63ff" font-size="8">step 1</text>
+
+          <line x1="90" y1="351" x2="108" y2="351" stroke="#4a4570" stroke-width="1" marker-end="url(#ca)"/>
+
+          <rect x="110" y="340" width="60" height="22" rx="4" fill="#16122a" stroke="#4a4570" stroke-width="1"/>
+          <text x="140" y="355" text-anchor="middle" fill="#6c63ff" font-size="8">step 2</text>
+
+          <line x1="170" y1="351" x2="188" y2="351" stroke="#4a4570" stroke-width="1" marker-end="url(#ca)"/>
+
+          <rect x="190" y="340" width="60" height="22" rx="4" fill="#16122a" stroke="#4a4570" stroke-width="1"/>
+          <text x="220" y="355" text-anchor="middle" fill="#6c63ff" font-size="8">step 3</text>
+
+          <line x1="250" y1="351" x2="268" y2="351" stroke="#4a4570" stroke-width="1" marker-end="url(#ca)"/>
+
+          <rect x="270" y="340" width="50" height="22" rx="4" fill="#1e1a3a" stroke="#6c63ff" stroke-width="1.5"/>
+          <text x="295" y="355" text-anchor="middle" fill="#a78bfa" font-size="8" font-weight="700">latest</text>
+
+          <text x="170" y="380" text-anchor="middle" fill="#546e7a" font-size="9">Chuỗi checkpoint → lịch sử toàn bộ hội thoại</text>
+
+          <!-- Arrow back to Agent (loop) -->
+          <path d="M 85 158 Q 30 158 30 80 Q 30 46 110 46" stroke="#00d4aa" stroke-width="1.2" fill="none" stroke-dasharray="4 2" marker-end="url(#ca2)"/>
+          <text x="14" y="120" fill="#00d4aa" font-size="8" transform="rotate(-90,14,120)">resume session</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- highlight box -->
+    <div class="card" style="margin-top:20px; background:linear-gradient(135deg,rgba(108,99,255,.06),rgba(0,212,170,.04)); border-color:rgba(108,99,255,.3)">
+      <p style="margin:0; color:var(--text)">
+        <strong>💡 Tại sao quan trọng?</strong>
+        Không có 4 bảng này, mỗi request đến API <code style="color:#c792ea">POST /api/ai/agent/chat</code> sẽ là một cuộc hội thoại mới hoàn toàn — agent không biết bạn đã hỏi gì trước đó.
+        Với checkpointing, bạn có thể hỏi <em>"tháng trước tôi chi bao nhiêu?"</em>, nhận kết quả, rồi hỏi tiếp <em>"so với tháng này thì sao?"</em> và agent sẽ hiểu ngữ cảnh.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 8. TÓM TẮT ══════════════════ -->
   <section>
     <h2><span class="icon">💡</span> Tóm tắt</h2>
     <div class="grid2">
