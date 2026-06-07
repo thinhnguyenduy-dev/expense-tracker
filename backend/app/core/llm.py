@@ -67,8 +67,11 @@ def get_llm(temperature: float = 0):
         except Exception:
             pass
 
+    async def log_request_payload_async(request: httpx.Request):
+        log_request_payload(request)
+
     http_client = httpx.Client(event_hooks={'request': [log_request_payload]})
-    http_async_client = httpx.AsyncClient(event_hooks={'request': [log_request_payload]})
+    http_async_client = httpx.AsyncClient(event_hooks={'request': [log_request_payload_async]})
     
     if provider == "google":
         if not settings.GOOGLE_API_KEY:
