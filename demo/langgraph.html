@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LangGraph – Giải thích & So sánh</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg2: #1a1d27;
+      --bg3: #22263a;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6b6b;
+      --text: #e8eaf0;
+      --text-muted: #8b90a7;
+      --border: #2e3250;
+      --node-bg: #252840;
+      --card-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding-bottom: 60px;
+    }
+
+    /* ── HERO ── */
+    header {
+      background: linear-gradient(135deg, #0f1117 0%, #1a1035 50%, #0f1a2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 20px 50px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(108,99,255,.25) 0%, transparent 70%);
+    }
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #6c63ff, #00d4aa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      position: relative;
+    }
+    header p {
+      margin-top: 14px;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      position: relative;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 6px 18px;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: .8rem;
+      color: var(--accent);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      position: relative;
+    }
+
+    /* ── LAYOUT ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+    section { margin-bottom: 70px; }
+    h2 {
+      font-size: 1.6rem; font-weight: 700;
+      color: var(--text);
+      margin-bottom: 24px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    h2 .icon { font-size: 1.4rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent2); margin-bottom: 10px; }
+    p { color: var(--text-muted); margin-bottom: 12px; }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: var(--card-shadow);
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+
+    /* ── CONCEPT CARDS ── */
+    .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .concept-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 18px;
+      transition: transform .2s, border-color .2s;
+    }
+    .concept-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+    .concept-card .emoji { font-size: 2rem; margin-bottom: 10px; }
+    .concept-card h4 { color: var(--text); font-size: 1rem; margin-bottom: 6px; }
+    .concept-card p { font-size: .88rem; color: var(--text-muted); margin: 0; }
+
+    /* ── GRAPH DIAGRAM ── */
+    .diagram-wrapper {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 20px;
+      overflow-x: auto;
+    }
+    svg.flow-diagram {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+    /* Node styles handled inline in SVG for SVG compatibility */
+
+    /* ── CYCLE DIAGRAM ── */
+    .cycle-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 20px 0;
+    }
+    .cycle-step {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 600px;
+    }
+    .cycle-num {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .95rem;
+      background: var(--accent); color: #fff;
+    }
+    .cycle-body { flex: 1; background: var(--bg3); border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); }
+    .cycle-body strong { color: var(--text); font-size: .95rem; }
+    .cycle-body span { display: block; font-size: .83rem; color: var(--text-muted); }
+    .cycle-arrow {
+      margin-left: 56px; /* align with body */
+      font-size: 1.5rem; color: var(--accent); line-height: 1;
+      padding: 4px 0;
+    }
+
+    /* ── STATE MACHINE ── */
+    .state-machine {
+      position: relative;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+    }
+    .sm-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .sm-node {
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: .9rem; font-weight: 600;
+      text-align: center;
+      min-width: 110px;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .sm-start { background: rgba(0,212,170,.12); border-color: var(--accent2); color: var(--accent2); }
+    .sm-end   { background: rgba(255,107,107,.12); border-color: var(--accent3); color: var(--accent3); }
+    .sm-agent { background: rgba(108,99,255,.15); border-color: var(--accent); color: #a78bfa; }
+    .sm-tool  { background: rgba(255,165,0,.12);  border-color: #ffa500; color: #ffa500; }
+    .sm-arrow { color: var(--text-muted); font-size: 1.4rem; }
+    .sm-loop-label {
+      text-align: center;
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .loop-arc {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+      margin: -6px 0 8px;
+    }
+    .loop-line {
+      height: 2px;
+      width: 180px;
+      background: var(--border);
+      position: relative;
+    }
+    .loop-line::before, .loop-line::after {
+      content: '';
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 8px; height: 8px;
+      border-radius: 50%; background: var(--accent);
+    }
+    .loop-line::before { left: 0; }
+    .loop-line::after  { right: 0; }
+
+    /* ── COMPARISON TABLE ── */
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .92rem;
+    }
+    .cmp-table th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: .85rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .cmp-table th:first-child { color: var(--text-muted); }
+    .cmp-table th.th-lc  { color: #f0a500; background: rgba(240,165,0,.07); }
+    .cmp-table th.th-lg  { color: var(--accent); background: rgba(108,99,255,.07); }
+    .cmp-table td {
+      padding: 13px 18px;
+      border-top: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .cmp-table tr:hover td { background: rgba(255,255,255,.02); }
+    .cmp-table td:first-child { color: var(--text); font-weight: 500; }
+    .cmp-table td.lc-col { color: #d4a017; }
+    .cmp-table td.lg-col { color: #a78bfa; }
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: .75rem; font-weight: 600;
+    }
+    .pill-yes  { background: rgba(0,212,170,.15); color: var(--accent2); }
+    .pill-no   { background: rgba(255,107,107,.12); color: var(--accent3); }
+    .pill-part { background: rgba(255,165,0,.12); color: #ffa500; }
+
+    /* ── USE CASES ── */
+    .usecase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .uc-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: .88rem;
+    }
+    .uc-card .uc-label {
+      font-size: .7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      margin-bottom: 6px;
+    }
+    .uc-lc .uc-label { color: #f0a500; }
+    .uc-lg .uc-label { color: var(--accent); }
+    .uc-card ul { list-style: none; padding: 0; }
+    .uc-card ul li::before { content: '▸ '; color: var(--text-muted); }
+    .uc-card ul li { color: var(--text); padding: 2px 0; }
+
+    /* ── CODE ── */
+    pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      overflow-x: auto;
+      font-size: .83rem;
+      line-height: 1.6;
+    }
+    code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cm  { color: #546e7a; font-style: italic; }
+    .cls { color: #ffcb6b; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: .82rem;
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>LangGraph</h1>
+  <p>Framework xây dựng AI Agent dạng đồ thị trạng thái (Stateful Graph)</p>
+  <div class="badge">Built on top of LangChain</div>
+</header>
+
+<main>
+
+  <!-- ══════════════════ 1. LANGGRAPH LÀ GÌ ══════════════════ -->
+  <section>
+    <h2><span class="icon">🧠</span> LangGraph là gì?</h2>
+    <div class="card" style="margin-bottom:20px">
+      <p>
+        <strong style="color:var(--text)">LangGraph</strong> là một thư viện Python (và JS) cho phép xây dựng
+        <em style="color:#a78bfa">AI Agent</em> dạng <strong style="color:var(--accent2)">đồ thị có trạng thái</strong> (stateful graph).
+        Thay vì chạy một chuỗi prompt tuyến tính, LangGraph cho phép agent <strong style="color:var(--text)">lặp lại, rẽ nhánh, gọi tool nhiều lần</strong>
+        và giữ trạng thái xuyên suốt toàn bộ vòng đời.
+      </p>
+      <p>
+        Nó được xây dựng dựa trên LangChain nhưng giải quyết bài toán khác hẳn: <strong style="color:var(--accent2)">điều phối luồng chạy của agent</strong>
+        chứ không phải chỉ kết nối các bước đơn giản.
+      </p>
+    </div>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="emoji">🔷</div>
+        <h4>Node (Nút)</h4>
+        <p>Một hàm Python thực hiện một tác vụ cụ thể: gọi LLM, chạy tool, xử lý dữ liệu.</p>
+      </div>
+      <div class="concept-card">
+        <div class="emoji">➡️</div>
+        <h4>Edge (Cạnh)</h4>
+        <p>Kết nối giữa các node. Có thể là cố định hoặc <em>conditional</em> (phân nhánh theo điều kiện).</p>
+      </div>
+      <div class="concept-card">
+        <div class="emoji">📦</div>
+        <h4>State (Trạng thái)</h4>
+        <p>TypedDict dùng chung cho toàn graph. Mỗi node đọc/ghi vào state này.</p>
+      </div>
+      <div class="concept-card">
+        <div class="emoji">🔁</div>
+        <h4>Cycle (Vòng lặp)</h4>
+        <p>Graph <em>có thể có chu trình</em> – agent lặp lại nút cho đến khi điều kiện dừng được thỏa mãn.</p>
+      </div>
+      <div class="concept-card">
+        <div class="emoji">🛑</div>
+        <h4>Checkpointing</h4>
+        <p>Lưu snapshot state sau mỗi bước. Agent có thể dừng, tiếp tục (Human-in-the-loop).</p>
+      </div>
+      <div class="concept-card">
+        <div class="emoji">👥</div>
+        <h4>Multi-Agent</h4>
+        <p>Nhiều graph con (subgraph) giao tiếp với nhau như một hệ thống agent phân tán.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 2. SƠ ĐỒ HOẠT ĐỘNG ══════════════════ -->
+  <section>
+    <h2><span class="icon">📊</span> Sơ đồ hoạt động – ReAct Agent</h2>
+    <p style="margin-bottom:20px">Mô hình phổ biến nhất trong LangGraph: Agent → quyết định gọi Tool hay dừng.</p>
+
+    <div class="diagram-wrapper">
+      <svg class="flow-diagram" viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" style="min-height:280px">
+        <defs>
+          <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#6c63ff"/>
+          </marker>
+          <marker id="arr2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#00d4aa"/>
+          </marker>
+          <marker id="arr3" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#ff6b6b"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+
+        <!-- START -->
+        <rect x="310" y="20" width="140" height="48" rx="24" fill="#1a2a1a" stroke="#00d4aa" stroke-width="2"/>
+        <text x="380" y="50" text-anchor="middle" fill="#00d4aa" font-size="14" font-weight="700">▶ START</text>
+
+        <!-- Arrow down -->
+        <line x1="380" y1="68" x2="380" y2="105" stroke="#6c63ff" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="390" y="92" fill="#546e7a" font-size="11">Input State</text>
+
+        <!-- AGENT NODE -->
+        <rect x="270" y="108" width="220" height="64" rx="14" fill="#1e1a3a" stroke="#6c63ff" stroke-width="2"/>
+        <text x="380" y="135" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">🤖 Agent Node</text>
+        <text x="380" y="155" text-anchor="middle" fill="#6c63ff" font-size="11">(LLM quyết định hành động)</text>
+
+        <!-- Conditional edge text -->
+        <text x="380" y="195" text-anchor="middle" fill="#8b90a7" font-size="11" font-style="italic">Conditional Edge</text>
+
+        <!-- Arrow left → Tools -->
+        <line x1="270" y1="140" x2="175" y2="140" stroke="#6c63ff" stroke-width="2"/>
+        <line x1="175" y1="140" x2="175" y2="230" stroke="#6c63ff" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="100" y="135" fill="#ffa500" font-size="11">"use tool"</text>
+
+        <!-- Arrow right → END -->
+        <line x1="490" y1="140" x2="585" y2="140" stroke="#6c63ff" stroke-width="2"/>
+        <line x1="585" y1="140" x2="585" y2="230" stroke="#6c63ff" stroke-width="2" marker-end="url(#arr3)"/>
+        <text x="500" y="135" fill="#ff6b6b" font-size="11">"done"</text>
+
+        <!-- TOOL NODE -->
+        <rect x="80" y="232" width="190" height="64" rx="14" fill="#1e1a15" stroke="#ffa500" stroke-width="2"/>
+        <text x="175" y="258" text-anchor="middle" fill="#ffa500" font-size="13" font-weight="700">🔧 Tool Node</text>
+        <text x="175" y="278" text-anchor="middle" fill="#a0854a" font-size="11">(SQL, Search, API, ...)</text>
+
+        <!-- END NODE -->
+        <rect x="490" y="232" width="190" height="64" rx="14" fill="#1a1520" stroke="#ff6b6b" stroke-width="2"/>
+        <text x="585" y="259" text-anchor="middle" fill="#ff6b6b" font-size="13" font-weight="700">⏹ END</text>
+        <text x="585" y="279" text-anchor="middle" fill="#804040" font-size="11">(Trả kết quả)</text>
+
+        <!-- Loop back: Tool → Agent -->
+        <line x1="175" y1="296" x2="175" y2="360" stroke="#00d4aa" stroke-width="2"/>
+        <line x1="175" y1="360" x2="380" y2="360" stroke="#00d4aa" stroke-width="2"/>
+        <line x1="380" y1="360" x2="380" y2="172" stroke="#00d4aa" stroke-width="2" marker-end="url(#arr2)"/>
+        <text x="230" y="377" fill="#00d4aa" font-size="11">Tool result → State → Agent lại quyết định</text>
+
+        <!-- State box -->
+        <rect x="290" y="200" width="180" height="30" rx="6" fill="#16213a" stroke="#2e3250" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="380" y="219" text-anchor="middle" fill="#8b90a7" font-size="10">📦 State được cập nhật</text>
+      </svg>
+    </div>
+
+    <!-- Step-by-step -->
+    <div class="cycle-container" style="margin-top:32px">
+      <div class="cycle-step">
+        <div class="cycle-num">1</div>
+        <div class="cycle-body">
+          <strong>Người dùng gửi câu hỏi</strong>
+          <span>Input được đưa vào State, graph bắt đầu từ node START.</span>
+        </div>
+      </div>
+      <div class="cycle-arrow">↓</div>
+      <div class="cycle-step">
+        <div class="cycle-num">2</div>
+        <div class="cycle-body">
+          <strong>Agent Node (LLM) phân tích</strong>
+          <span>LLM đọc state, quyết định: "Cần gọi tool nào?" hoặc "Đã đủ thông tin để trả lời."</span>
+        </div>
+      </div>
+      <div class="cycle-arrow">↓</div>
+      <div class="cycle-step">
+        <div class="cycle-num">3</div>
+        <div class="cycle-body">
+          <strong>Conditional Edge phân nhánh</strong>
+          <span>Nếu cần tool → chuyển sang Tool Node. Nếu xong → chuyển sang END.</span>
+        </div>
+      </div>
+      <div class="cycle-arrow">↓</div>
+      <div class="cycle-step">
+        <div class="cycle-num">4</div>
+        <div class="cycle-body">
+          <strong>Tool Node thực thi</strong>
+          <span>Chạy SQL, gọi API, tìm kiếm web... Kết quả được ghi vào State.</span>
+        </div>
+      </div>
+      <div class="cycle-arrow">↓</div>
+      <div class="cycle-step">
+        <div class="cycle-num">5</div>
+        <div class="cycle-body">
+          <strong>Vòng lặp quay lại Agent</strong>
+          <span>State mới (có kết quả tool) được đưa vào Agent để tiếp tục phân tích. Lặp cho đến khi xong.</span>
+        </div>
+      </div>
+      <div class="cycle-arrow">↓</div>
+      <div class="cycle-step">
+        <div class="cycle-num">6</div>
+        <div class="cycle-body">
+          <strong>Trả kết quả cho người dùng</strong>
+          <span>Graph kết thúc tại END, state cuối cùng chứa câu trả lời.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 3. STATE TRONG LANGGRAPH ══════════════════ -->
+  <section>
+    <h2><span class="icon">📦</span> State – Trung tâm của LangGraph</h2>
+    <div class="grid2">
+      <div>
+        <div class="card" style="margin-bottom:0">
+          <h3>State là gì?</h3>
+          <p>State là một <code style="color:#c792ea">TypedDict</code> – từ điển kiểu mạnh – được chia sẻ qua tất cả các node. Mỗi node nhận state cũ, thực hiện thay đổi, trả về phần cập nhật.</p>
+          <p>LangGraph sử dụng <strong style="color:var(--accent2)">Reducer</strong> để merge state: thay vì ghi đè, bạn có thể <em>cộng dồn</em> danh sách messages.</p>
+        </div>
+      </div>
+      <div>
+<pre><code><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">TypedDict</span>, <span class="cls">Annotated</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cls">BaseMessage</span>
+<span class="kw">import</span> operator
+
+<span class="cm"># Định nghĩa State</span>
+<span class="kw">class</span> <span class="cls">AgentState</span>(<span class="cls">TypedDict</span>):
+    messages: <span class="cls">Annotated</span>[
+        list[<span class="cls">BaseMessage</span>],
+        operator.add  <span class="cm"># Reducer: cộng dồn</span>
+    ]
+    user_id: int
+
+<span class="cm"># Tạo graph với State</span>
+graph = <span class="cls">StateGraph</span>(<span class="cls">AgentState</span>)
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 4. MULTI-AGENT DIAGRAM ══════════════════ -->
+  <section>
+    <h2><span class="icon">🕸️</span> Sơ đồ Multi-Agent (Supervisor Pattern)</h2>
+    <p style="margin-bottom:20px">Dùng trong dự án này (Expense Tracker AI): Supervisor điều phối nhiều agent chuyên biệt.</p>
+
+    <div class="diagram-wrapper">
+      <svg class="flow-diagram" viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" style="min-height:240px">
+        <defs>
+          <marker id="ma" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#6c63ff"/>
+          </marker>
+          <marker id="ma2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#00d4aa"/>
+          </marker>
+        </defs>
+
+        <!-- User -->
+        <rect x="310" y="14" width="140" height="44" rx="22" fill="#0f1117" stroke="#00d4aa" stroke-width="2"/>
+        <text x="380" y="40" text-anchor="middle" fill="#00d4aa" font-size="13" font-weight="700">👤 User</text>
+
+        <line x1="380" y1="58" x2="380" y2="100" stroke="#6c63ff" stroke-width="2" marker-end="url(#ma)"/>
+
+        <!-- Supervisor -->
+        <rect x="250" y="104" width="260" height="58" rx="14" fill="#1e1a3a" stroke="#6c63ff" stroke-width="2.5"/>
+        <text x="380" y="128" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="700">🎯 Supervisor Agent</text>
+        <text x="380" y="148" text-anchor="middle" fill="#6c63ff" font-size="11">Phân tích & phân công nhiệm vụ</text>
+
+        <!-- Agents row -->
+        <!-- SQL Agent -->
+        <line x1="310" y1="162" x2="140" y2="222" stroke="#6c63ff" stroke-width="1.5" marker-end="url(#ma)" stroke-dasharray="4 2"/>
+        <rect x="50" y="224" width="170" height="52" rx="10" fill="#1a1520" stroke="#ffa500" stroke-width="1.5"/>
+        <text x="135" y="246" text-anchor="middle" fill="#ffa500" font-size="12" font-weight="600">🗄️ SQL Analyst</text>
+        <text x="135" y="264" text-anchor="middle" fill="#7a6030" font-size="10">Truy vấn database</text>
+
+        <!-- Finance Agent -->
+        <line x1="380" y1="162" x2="380" y2="222" stroke="#6c63ff" stroke-width="1.5" marker-end="url(#ma)" stroke-dasharray="4 2"/>
+        <rect x="290" y="224" width="180" height="52" rx="10" fill="#1a1520" stroke="#82aaff" stroke-width="1.5"/>
+        <text x="380" y="246" text-anchor="middle" fill="#82aaff" font-size="12" font-weight="600">💹 Finance Analyst</text>
+        <text x="380" y="264" text-anchor="middle" fill="#304060" font-size="10">Phân tích tài chính</text>
+
+        <!-- Search Agent -->
+        <line x1="450" y1="162" x2="620" y2="222" stroke="#6c63ff" stroke-width="1.5" marker-end="url(#ma)" stroke-dasharray="4 2"/>
+        <rect x="535" y="224" width="170" height="52" rx="10" fill="#1a1520" stroke="#c3e88d" stroke-width="1.5"/>
+        <text x="620" y="246" text-anchor="middle" fill="#c3e88d" font-size="12" font-weight="600">🔍 Web Search</text>
+        <text x="620" y="264" text-anchor="middle" fill="#507040" font-size="10">DuckDuckGo / API ngoài</text>
+
+        <!-- Results back -->
+        <line x1="135" y1="276" x2="135" y2="310" stroke="#00d4aa" stroke-width="1.5"/>
+        <line x1="135" y1="310" x2="380" y2="310" stroke="#00d4aa" stroke-width="1.5"/>
+        <line x1="620" y1="276" x2="620" y2="310" stroke="#00d4aa" stroke-width="1.5"/>
+        <line x1="620" y1="310" x2="380" y2="310" stroke="#00d4aa" stroke-width="1.5"/>
+        <line x1="380" y1="276" x2="380" y2="310" stroke="#00d4aa" stroke-width="1.5"/>
+        <line x1="380" y1="310" x2="380" y2="330" stroke="#00d4aa" stroke-width="1.5" marker-end="url(#ma2)"/>
+        <text x="390" y="322" fill="#00d4aa" font-size="10">Kết quả tổng hợp</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 5. SO SÁNH ══════════════════ -->
+  <section>
+    <h2><span class="icon">⚔️</span> LangGraph vs LangChain – So sánh chi tiết</h2>
+
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:28px">
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th style="width:22%; padding-left:24px">Tiêu chí</th>
+            <th class="th-lc" style="width:39%">⛓️ LangChain</th>
+            <th class="th-lg" style="width:39%">🔷 LangGraph</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding-left:24px">Mô hình</td>
+            <td class="lc-col">Chuỗi tuyến tính (Chain / Sequential)</td>
+            <td class="lg-col">Đồ thị có hướng (Directed Graph / State Machine)</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Luồng điều khiển</td>
+            <td class="lc-col">Cố định, A → B → C → D</td>
+            <td class="lg-col">Linh hoạt, có nhánh & vòng lặp</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">State Management</td>
+            <td class="lc-col"><span class="pill pill-part">Hạn chế</span> – pass-through, không persistent</td>
+            <td class="lg-col"><span class="pill pill-yes">Mạnh</span> – TypedDict, Reducer, Checkpointing</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Vòng lặp (Cycle)</td>
+            <td class="lc-col"><span class="pill pill-no">Không hỗ trợ</span> natively</td>
+            <td class="lg-col"><span class="pill pill-yes">Hỗ trợ</span> – built-in</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Human-in-the-Loop</td>
+            <td class="lc-col"><span class="pill pill-no">Khó</span> – phải tự implement</td>
+            <td class="lg-col"><span class="pill pill-yes">Dễ</span> – interrupt/resume từ checkpoint</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Multi-Agent</td>
+            <td class="lc-col"><span class="pill pill-part">Cơ bản</span> – AgentExecutor đơn lẻ</td>
+            <td class="lg-col"><span class="pill pill-yes">Mạnh</span> – Subgraph, Supervisor pattern</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Độ phức tạp</td>
+            <td class="lc-col">Thấp – dễ học, dễ debug</td>
+            <td class="lg-col">Trung bình – cần hiểu graph, state, reducer</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Use case chính</td>
+            <td class="lc-col">RAG, chatbot đơn giản, summarization</td>
+            <td class="lg-col">Agent phức tạp, long-running, multi-step</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Streaming</td>
+            <td class="lc-col"><span class="pill pill-part">Cơ bản</span></td>
+            <td class="lg-col"><span class="pill pill-yes">Nâng cao</span> – stream từng node, token, event</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px">Phụ thuộc nhau</td>
+            <td class="lc-col">Độc lập</td>
+            <td class="lg-col">Xây dựng trên LangChain – dùng cùng tools, LLMs</td>
+          </tr>
+          <tr>
+            <td style="padding-left:24px; padding-bottom:18px">Khi nào dùng</td>
+            <td class="lc-col">Pipeline đơn giản, output cố định</td>
+            <td class="lg-col">Agent cần loop, decision, memory dài hạn</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Use case cards -->
+    <div class="usecase-grid">
+      <div class="uc-card uc-lc">
+        <div class="uc-label">LangChain – Phù hợp</div>
+        <ul>
+          <li>RAG chatbot</li>
+          <li>Document summarizer</li>
+          <li>Q&amp;A đơn giản</li>
+          <li>Extract thông tin từ PDF</li>
+          <li>Pipeline translate / rewrite</li>
+        </ul>
+      </div>
+      <div class="uc-card uc-lg">
+        <div class="uc-label">LangGraph – Phù hợp</div>
+        <ul>
+          <li>AI Financial Analyst (app này)</li>
+          <li>Coding Agent tự debug</li>
+          <li>Customer support agent phức tạp</li>
+          <li>Research agent (nhiều nguồn)</li>
+          <li>Human-in-the-loop workflow</li>
+        </ul>
+      </div>
+      <div class="uc-card" style="border-color: var(--accent)">
+        <div class="uc-label" style="color:var(--accent)">Kết hợp cả hai</div>
+        <ul>
+          <li>LangGraph điều phối graph</li>
+          <li>LangChain cung cấp tools</li>
+          <li>LangChain xử lý RAG</li>
+          <li>LangGraph quản lý state</li>
+          <li>Chia sẻ cùng LLM, memory</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 6. CODE EXAMPLE ══════════════════ -->
+  <section>
+    <h2><span class="icon">💻</span> Code mẫu – Expense Tracker AI Agent</h2>
+    <p style="margin-bottom:16px">Đây là cấu trúc graph được dùng trong <code style="color:#c792ea">backend/app/agents/graph.py</code> của dự án:</p>
+
+    <div class="grid2">
+      <div>
+<pre><code><span class="cm"># 1. Định nghĩa State</span>
+<span class="kw">class</span> <span class="cls">AgentState</span>(<span class="cls">TypedDict</span>):
+    messages: <span class="cls">Annotated</span>[
+        list[<span class="cls">BaseMessage</span>], operator.add
+    ]
+    user_id: int
+    thread_id: str
+
+<span class="cm"># 2. Tạo các node</span>
+<span class="kw">def</span> <span class="fn">agent_node</span>(state: <span class="cls">AgentState</span>):
+    <span class="cm"># LLM quyết định hành động</span>
+    response = llm_with_tools.invoke(
+        state[<span class="str">"messages"</span>]
+    )
+    <span class="kw">return</span> {<span class="str">"messages"</span>: [response]}
+
+<span class="cm"># Tool node (SQL, DuckDuckGo...)</span>
+tool_node = <span class="cls">ToolNode</span>(tools)
+</code></pre>
+      </div>
+      <div>
+<pre><code><span class="cm"># 3. Build Graph</span>
+builder = <span class="cls">StateGraph</span>(<span class="cls">AgentState</span>)
+
+builder.add_node(<span class="str">"agent"</span>, agent_node)
+builder.add_node(<span class="str">"tools"</span>, tool_node)
+
+builder.add_edge(<span class="cls">START</span>, <span class="str">"agent"</span>)
+builder.add_conditional_edges(
+    <span class="str">"agent"</span>,
+    should_continue,  <span class="cm"># hàm phân nhánh</span>
+    {
+        <span class="str">"tools"</span>: <span class="str">"tools"</span>,
+        <span class="str">"end"</span>: <span class="cls">END</span>
+    }
+)
+builder.add_edge(<span class="str">"tools"</span>, <span class="str">"agent"</span>)
+
+<span class="cm"># 4. Compile với checkpointing</span>
+graph = builder.compile(
+    checkpointer=memory
+)
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 7. TÓM TẮT ══════════════════ -->
+  <section>
+    <h2><span class="icon">💡</span> Tóm tắt</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Dùng LangChain khi…</h3>
+        <ul style="list-style:none; padding:0; color:var(--text-muted)">
+          <li style="padding:4px 0">✅ Pipeline đơn giản, output dự đoán được</li>
+          <li style="padding:4px 0">✅ RAG, QA, Summarization</li>
+          <li style="padding:4px 0">✅ Cần nhanh, ít boilerplate</li>
+          <li style="padding:4px 0">✅ Team mới làm quen LLM</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Dùng LangGraph khi…</h3>
+        <ul style="list-style:none; padding:0; color:var(--text-muted)">
+          <li style="padding:4px 0">✅ Agent cần loop, retry, backtrack</li>
+          <li style="padding:4px 0">✅ Multi-agent, phân công task</li>
+          <li style="padding:4px 0">✅ Human review giữa chừng</li>
+          <li style="padding:4px 0">✅ Long-running, crash recovery</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px; background: linear-gradient(135deg, rgba(108,99,255,.08), rgba(0,212,170,.05)); border-color: rgba(108,99,255,.3)">
+      <p style="margin:0; color:var(--text)">
+        <strong>🎯 Trong Expense Tracker này:</strong>
+        LangChain cung cấp <em>tools</em> (SQL, DuckDuckGo) và kết nối LLM providers (OpenAI / Gemini / Anthropic).
+        LangGraph điều phối <em>luồng chạy</em> — agent phân tích câu hỏi tài chính, lặp gọi tool cho đến khi có đủ dữ liệu, rồi tổng hợp câu trả lời.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Expense Tracker — LangGraph Demo &nbsp;|&nbsp; Built with FastAPI + LangGraph + LangChain &nbsp;|&nbsp; 2026
+</footer>
+
+</body>
+</html>
