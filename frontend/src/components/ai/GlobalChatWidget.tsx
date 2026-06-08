@@ -24,6 +24,16 @@ type Message = {
     isError?: boolean;
 };
 
+type ExpenseDraft = {
+    amount?: number;
+    currency?: string;
+    category?: string;
+    category_id?: number | null;
+    merchant?: string;
+    description?: string;
+    date?: string;
+};
+
 // Lightweight inline markdown renderer (no external library needed)
 function renderInline(text: string): React.ReactNode {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -106,7 +116,11 @@ export function GlobalChatWidget() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  
+  const [awaitingClarification, setAwaitingClarification] = useState(false);
+  const [pendingDrafts, setPendingDrafts] = useState<ExpenseDraft[]>([]);
+  const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
+  const [activeDraft, setActiveDraft] = useState<ExpenseDraft | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   
@@ -130,6 +144,31 @@ export function GlobalChatWidget() {
     resolver: zodResolver(expenseSchema),
     defaultValues: { date: new Date() },
   });
+
+  // Record which draft to show, then open the dialog. The actual form.reset()
+  // happens in the useEffect below — AFTER Radix mounts the dialog content and
+  // react-hook-form registers the fields — otherwise the reset fires into
+  // unregistered fields and the form shows empty.
+  const openDraftDialog = (draft: ExpenseDraft) => {
+      setActiveDraft(draft);
+      setIsDialogOpen(true);
+  };
+
+  // Populate the form once the dialog is open AND we have a draft.
+  useEffect(() => {
+      if (!isDialogOpen || !activeDraft) return;
+      const categoryId = activeDraft.category_id
+          ? activeDraft.category_id.toString()
+          : (categories.find(c => c.name.toLowerCase() === (activeDraft.category ?? "").toLowerCase())?.id.toString() ?? "");
+      form.reset({
+          amount: activeDraft.amount ?? 0,
+          description: activeDraft.description ?? activeDraft.merchant ?? "",
+          date: activeDraft.date ? new Date(activeDraft.date) : new Date(),
+          category_id: categoryId,
+          currency: activeDraft.currency ?? "VND",
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDialogOpen, activeDraft]);
 
   // Scroll to bottom effect
   useEffect(() => {
@@ -180,32 +219,52 @@ export function GlobalChatWidget() {
 
     try {
         const storedThreadId = localStorage.getItem("ai_thread_id") || undefined;
-        const response = await aiApi.chat({ message, thread_id: storedThreadId });
+        const response = await aiApi.chat({
+            message,
+            thread_id: storedThreadId,
+            is_resume: awaitingClarification,
+        });
         const data = response.data;
-        
+
         if (data.thread_id) {
             localStorage.setItem("ai_thread_id", data.thread_id);
         }
 
         // Add agent response
         setConversation(prev => [...prev, { role: "agent", content: data.response }]);
-        
-        if (data.is_completed && data.expense_data) {
-            const d = data.expense_data;
-            let categoryId = "";
-            if (d.category) {
-                const match = categories.find(c => c.name.toLowerCase() === d.category.toLowerCase());
-                if (match) categoryId = match.id.toString();
+
+        // The AI needs more info — keep the input in "answer the question" mode
+        // so the next message is sent with is_resume=true.
+        if (data.needs_clarification) {
+            setAwaitingClarification(true);
+            return;
+        }
+
+        // If we were resuming and the AI replied with another plain-text question
+        // (no tool call), stay in clarification mode.
+        if (awaitingClarification && !data.is_completed) {
+            const looksLikeQuestion = data.response.includes("?");
+            if (looksLikeQuestion) {
+                setAwaitingClarification(true);
+                return;
             }
-            form.reset({
-                amount: d.amount || 0,
-                description: d.description || d.merchant || "",
-                date: d.date ? new Date(d.date) : new Date(),
-                category_id: categoryId,
-                currency: d.currency || "VND"
-            });
-            setIsDialogOpen(true);
-            toast.info(tAI('draftReady'));
+        }
+
+        setAwaitingClarification(false);
+
+        if (data.is_completed && data.expense_data) {
+            // Backend returns a single object OR an array (multi-expense).
+            const drafts: ExpenseDraft[] = Array.isArray(data.expense_data)
+                ? data.expense_data
+                : [data.expense_data];
+            setPendingDrafts(drafts);
+            setCurrentDraftIndex(0);
+            openDraftDialog(drafts[0]);
+            if (drafts.length > 1) {
+                toast.info(`Có ${drafts.length} khoản chi — xác nhận lần lượt từng khoản`);
+            } else {
+                toast.info(tAI('draftReady'));
+            }
         }
 
         if (data.is_completed && data.income_data) {
@@ -267,7 +326,21 @@ export function GlobalChatWidget() {
         currency: data.currency,
       });
       toast.success(t('successAdd'));
-      setIsDialogOpen(false);
+
+      const nextIndex = currentDraftIndex + 1;
+      if (nextIndex < pendingDrafts.length) {
+        // More drafts to confirm — advance to the next one.
+        setCurrentDraftIndex(nextIndex);
+        openDraftDialog(pendingDrafts[nextIndex]);
+        toast.info(`Khoản ${nextIndex + 1}/${pendingDrafts.length} — vui lòng xác nhận`);
+      } else {
+        // All done — close and reset the queue.
+        setIsDialogOpen(false);
+        setPendingDrafts([]);
+        setCurrentDraftIndex(0);
+        setActiveDraft(null);
+        setAwaitingClarification(false);
+      }
     } catch (error: unknown) {
       toast.error(getApiErrorMessage(error, t('failedSave')));
     } finally {
@@ -319,6 +392,10 @@ export function GlobalChatWidget() {
                             <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-indigo-500" title={tAI('newChat')} onClick={() => {
                                 setConversation([]);
                                 localStorage.removeItem("ai_thread_id");
+                                setAwaitingClarification(false);
+                                setPendingDrafts([]);
+                                setCurrentDraftIndex(0);
+                                setActiveDraft(null);
                             }}>
                                 <SquarePen className="h-4 w-4" />
                             </Button>
@@ -358,12 +435,23 @@ export function GlobalChatWidget() {
                     </div>
                     
                     <div className="flex gap-2 relative mt-auto pt-2 border-t border-gray-100 dark:border-gray-800">
-                        <Textarea 
+                        {awaitingClarification && (
+                          <div className="absolute -top-4 left-0 text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            Đang chờ câu trả lời của bạn
+                          </div>
+                        )}
+                        <Textarea
                         value={input}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={tAI('placeholder')} 
-                        className="resize-none min-h-[40px] pr-10 rounded-xl border-gray-200 dark:border-gray-800 focus-visible:ring-indigo-500 text-sm py-2"
+                        placeholder={awaitingClarification ? "Trả lời câu hỏi trên..." : tAI('placeholder')}
+                        className={cn(
+                          "resize-none min-h-[40px] pr-10 rounded-xl focus-visible:ring-indigo-500 text-sm py-2",
+                          awaitingClarification
+                            ? "border-amber-400 dark:border-amber-600"
+                            : "border-gray-200 dark:border-gray-800"
+                        )}
                         rows={1}
                         />
                         <Button 

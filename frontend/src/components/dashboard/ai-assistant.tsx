@@ -15,11 +15,20 @@ import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { ExpenseDialog, ExpenseFormData } from "@/components/expenses/ExpenseDialog";
 
-// Define Conversation Message Type
 type Message = {
     role: "user" | "agent";
     content: string;
     isError?: boolean;
+};
+
+type ExpenseDraft = {
+    amount?: number;
+    currency?: string;
+    category?: string;
+    category_id?: number | null;
+    merchant?: string;
+    description?: string;
+    date?: string;
 };
 
 export function AIAssistant() {
@@ -30,6 +39,35 @@ export function AIAssistant() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [awaitingClarification, setAwaitingClarification] = useState(false);
+  const [pendingDrafts, setPendingDrafts] = useState<ExpenseDraft[]>([]);
+  const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
+  const [activeDraft, setActiveDraft] = useState<ExpenseDraft | null>(null);
+
+  const openDraftDialog = (draft: ExpenseDraft) => {
+      // Just record which draft to show and open the dialog. The actual
+      // form.reset() happens in a useEffect AFTER Radix mounts the dialog
+      // content and react-hook-form registers the fields — otherwise the
+      // reset fires into unregistered fields and the form shows empty.
+      setActiveDraft(draft);
+      setIsDialogOpen(true);
+  };
+
+  // Populate the form once the dialog is open AND we have a draft. Runs after
+  // the dialog content has mounted, so the field values actually stick.
+  useEffect(() => {
+      if (!isDialogOpen || !activeDraft) return;
+      const categoryId = activeDraft.category_id
+          ? activeDraft.category_id.toString()
+          : (categories.find(c => c.name.toLowerCase() === (activeDraft.category ?? "").toLowerCase())?.id.toString() ?? "");
+      form.reset({
+          amount: activeDraft.amount ?? 0,
+          description: activeDraft.description ?? activeDraft.merchant ?? "",
+          date: activeDraft.date ? new Date(activeDraft.date) : new Date(),
+          category_id: categoryId,
+          currency: activeDraft.currency ?? "VND",
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDialogOpen, activeDraft]);
   
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
@@ -122,30 +160,14 @@ export function AIAssistant() {
         setAwaitingClarification(false);
 
         if (data.is_completed && data.expense_data) {
-            // Normalise: backend returns single object OR array for multi-expense
-            const drafts = Array.isArray(data.expense_data)
+            const drafts: ExpenseDraft[] = Array.isArray(data.expense_data)
                 ? data.expense_data
                 : [data.expense_data];
-
-            // Pre-fill and open dialog for the first draft; remaining handled after submit
-            const d = drafts[0];
-            const categoryId = d.category_id
-                ? d.category_id.toString()
-                : (categories.find(c => c.name.toLowerCase() === (d.category || "").toLowerCase())?.id.toString() ?? "");
-
-            form.reset({
-                amount: d.amount || 0,
-                description: d.description || d.merchant || "",
-                date: d.date ? new Date(d.date) : new Date(),
-                category_id: categoryId,
-                currency: d.currency || "VND"
-            });
-
-            setIsDialogOpen(true);
+            setPendingDrafts(drafts);
+            setCurrentDraftIndex(0);
+            openDraftDialog(drafts[0]);
             if (drafts.length > 1) {
-                toast.info(`${drafts.length} khoản chi cần xác nhận — lần lượt từng khoản`);
-            } else {
-                toast.info("Draft ready for review");
+                toast.info(`Có ${drafts.length} khoản chi — xác nhận lần lượt từng khoản`);
             }
         }
     } catch (error: any) {
@@ -178,10 +200,21 @@ export function AIAssistant() {
 
       await expensesApi.create(payload);
       toast.success(t('successAdd'));
-      
-      setIsDialogOpen(false);
-      setConversation([]);
-      setAwaitingClarification(false);
+
+      const nextIndex = currentDraftIndex + 1;
+      if (nextIndex < pendingDrafts.length) {
+          // More drafts to confirm — advance to next
+          setCurrentDraftIndex(nextIndex);
+          openDraftDialog(pendingDrafts[nextIndex]);
+          toast.info(`Khoản ${nextIndex + 1}/${pendingDrafts.length} — vui lòng xác nhận`);
+      } else {
+          // All done
+          setIsDialogOpen(false);
+          setPendingDrafts([]);
+          setCurrentDraftIndex(0);
+          setConversation([]);
+          setAwaitingClarification(false);
+      }
       
       // We can't use queryClient here, so we might need to manually trigger refresh provided by parent or just reload
       // Since dashboard pulls data on mount/update, we might need a way to refresh it.
