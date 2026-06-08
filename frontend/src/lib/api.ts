@@ -431,6 +431,7 @@ export interface ChatRequest {
   message: string;
   thread_id?: string;
   history?: any[];
+  is_resume?: boolean;
 }
 
 export interface ChatResponse {
@@ -440,6 +441,7 @@ export interface ChatResponse {
   income_data?: any;
   tool_calls: { name: string; args: any; result?: string }[];
   thread_id?: string;
+  needs_clarification?: boolean;
 }
 
 export const aiApi = {

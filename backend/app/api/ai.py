@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
@@ -12,8 +12,9 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     message: str
-    thread_id: Optional[str] = None # Added thread_id
+    thread_id: Optional[str] = None
     history: Optional[List[Dict[str, Any]]] = None
+    is_resume: bool = False  # True when user is answering a clarification question
 
 class ToolCallLog(BaseModel):
     name: str
@@ -23,10 +24,11 @@ class ToolCallLog(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     is_completed: bool = False
-    expense_data: Optional[Dict[str, Any]] = None
+    expense_data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
     income_data: Optional[Dict[str, Any]] = None
     tool_calls: List[ToolCallLog] = []
-    thread_id: Optional[str] = None # Added thread_id
+    thread_id: Optional[str] = None
+    needs_clarification: bool = False  # True when graph is paused waiting for user input
 
 @router.post("/agent/chat", response_model=ChatResponse)
 async def chat_with_agent(
@@ -65,7 +67,7 @@ async def chat_with_agent(
         # But bad if the user *meant* to add it twice. 
         # However, usually identical immediate messages are accidental.
         
-        result = await process_chat(current_user.id, request.message, request.thread_id)
+        result = await process_chat(current_user.id, request.message, request.thread_id, request.is_resume)
         
         return ChatResponse(**result)
 
@@ -88,7 +90,7 @@ from app.core.cache import acached
 from loguru import logger
 
 # @acached(prefix="ai_chat", ttl=60)
-async def process_chat(user_id: int, message: str, thread_id: Optional[str] = None) -> Dict[str, Any]:
+async def process_chat(user_id: int, message: str, thread_id: Optional[str] = None, is_resume: bool = False) -> Dict[str, Any]:
     # Import here to avoid circular dependencies if any
     from app.agents.graph import compile_graph
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -120,25 +122,45 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
         
         # Thread ID logic
         final_thread_id = thread_id or str(uuid.uuid4())
-        
-        input_state = {
-            "messages": [HumanMessage(content=message)]
-        }
-        
+
         from app.core.ai_logging import AILoggingCallbackHandler
         config = {
             "configurable": {
                 "user_id": user_id,
                 "thread_id": final_thread_id,
                 "user_lang": user_lang,
-                "user_currency": user_currency
+                "user_currency": user_currency,
+                "is_resume": is_resume,
             },
             "callbacks": [AILoggingCallbackHandler()],
             "recursion_limit": 12
         }
         
         try:
+            # When resuming after clarification, clear the old flag so the
+            # financial_agent doesn't re-enter the clarification branch.
+            if is_resume:
+                input_state = {
+                    "messages": [HumanMessage(content=message)],
+                    "clarification_needed": None,
+                }
+            else:
+                input_state = {"messages": [HumanMessage(content=message)]}
+
             final_state = await graph.ainvoke(input_state, config=config)
+
+            # Detect if graph ended at clarification_node (no interrupt() needed)
+            if final_state.get("clarification_needed"):
+                question = str(final_state["clarification_needed"])
+                return {
+                    "response": question,
+                    "is_completed": False,
+                    "needs_clarification": True,
+                    "expense_data": None,
+                    "income_data": None,
+                    "tool_calls": [],
+                    "thread_id": final_thread_id,
+                }
             
             messages = final_state["messages"]
             last_message = messages[-1]
@@ -161,7 +183,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                     response_text = str(content)
             
             is_completed = False
-            expense_data = None
+            expense_list: list[dict] = []   # collect all submit_expense_tool calls
             income_data = None
             tool_calls_log = []
         
@@ -201,24 +223,32 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                         result_str = str(msg.content)
                         if result_str.startswith("Draft Created"):
                             args = pending_expense_tool_calls[call_id]
-                            # Parse category_id out of "Draft Created|category_id:X|category:Y"
                             parts = {p.split(":")[0]: p.split(":", 1)[1] for p in result_str.split("|")[1:] if ":" in p}
                             raw_id = parts.get("category_id")
-                            expense_data = {
+                            expense_list.append({
                                 **args,
                                 "category": parts.get("category") or args.get("category"),
                                 "category_id": int(raw_id) if raw_id and raw_id != "None" else None,
-                            }
+                            })
                             is_completed = True
                         del pending_expense_tool_calls[call_id]
-        
+
+            # Normalise: single expense keeps backward-compat shape; multi returns list
+            if len(expense_list) == 1:
+                expense_data = expense_list[0]
+            elif len(expense_list) > 1:
+                expense_data = expense_list  # type: ignore[assignment]
+            else:
+                expense_data = None
+
             return {
                 "response": str(response_text) if response_text else "I've processed that.",
                 "is_completed": is_completed,
+                "needs_clarification": False,
                 "expense_data": expense_data,
                 "income_data": income_data,
                 "tool_calls": tool_calls_log,
-                "thread_id": final_thread_id
+                "thread_id": final_thread_id,
             }
         except Exception as e:
             from langgraph.errors import GraphRecursionError

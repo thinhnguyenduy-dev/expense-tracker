@@ -29,6 +29,7 @@ export function AIAssistant() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [awaitingClarification, setAwaitingClarification] = useState(false);
   
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
@@ -87,25 +88,50 @@ export function AIAssistant() {
 
     try {
         const storedThreadId = localStorage.getItem("ai_thread_id") || undefined;
-        const response = await aiApi.chat({ message, thread_id: storedThreadId });
+        const response = await aiApi.chat({
+            message,
+            thread_id: storedThreadId,
+            is_resume: awaitingClarification,
+        });
         const data = response.data;
-        
+
         if (data.thread_id) {
             localStorage.setItem("ai_thread_id", data.thread_id);
         }
 
         // Add agent response
         setConversation(prev => [...prev, { role: "agent", content: data.response }]);
-        
-        if (data.is_completed && data.expense_data) {
-            const d = data.expense_data;
-            let categoryId = "";
-            
-            // Try to match category name
-            if (d.category) {
-                const match = categories.find(c => c.name.toLowerCase() === d.category.toLowerCase());
-                if (match) categoryId = match.id.toString();
+
+        if (data.needs_clarification) {
+            setAwaitingClarification(true);
+            return;
+        }
+
+        // If we were in clarification mode and the AI responded with a question
+        // in plain text (no tool call), keep awaitingClarification=true so the
+        // next send still carries is_resume=true.
+        if (awaitingClarification && !data.is_completed) {
+            const looksLikeQuestion = data.response.trim().endsWith("?") ||
+                data.response.includes("?");
+            if (looksLikeQuestion) {
+                setAwaitingClarification(true);
+                return;
             }
+        }
+
+        setAwaitingClarification(false);
+
+        if (data.is_completed && data.expense_data) {
+            // Normalise: backend returns single object OR array for multi-expense
+            const drafts = Array.isArray(data.expense_data)
+                ? data.expense_data
+                : [data.expense_data];
+
+            // Pre-fill and open dialog for the first draft; remaining handled after submit
+            const d = drafts[0];
+            const categoryId = d.category_id
+                ? d.category_id.toString()
+                : (categories.find(c => c.name.toLowerCase() === (d.category || "").toLowerCase())?.id.toString() ?? "");
 
             form.reset({
                 amount: d.amount || 0,
@@ -116,7 +142,11 @@ export function AIAssistant() {
             });
 
             setIsDialogOpen(true);
-            toast.info("Draft ready for review");
+            if (drafts.length > 1) {
+                toast.info(`${drafts.length} khoản chi cần xác nhận — lần lượt từng khoản`);
+            } else {
+                toast.info("Draft ready for review");
+            }
         }
     } catch (error: any) {
         console.error(error);
@@ -150,7 +180,8 @@ export function AIAssistant() {
       toast.success(t('successAdd'));
       
       setIsDialogOpen(false);
-      setConversation([]); // Clear conversation on success
+      setConversation([]);
+      setAwaitingClarification(false);
       
       // We can't use queryClient here, so we might need to manually trigger refresh provided by parent or just reload
       // Since dashboard pulls data on mount/update, we might need a way to refresh it.
@@ -224,12 +255,23 @@ export function AIAssistant() {
           </div>
           
           <div className="flex gap-2 relative mt-auto pt-2">
-            <Textarea 
+            {awaitingClarification && (
+              <div className="absolute -top-5 left-0 text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Đang chờ câu trả lời của bạn
+              </div>
+            )}
+            <Textarea
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..." 
-              className="resize-none min-h-[50px] pr-12 rounded-xl border-gray-200 dark:border-gray-800 focus-visible:ring-indigo-500"
+              placeholder={awaitingClarification ? "Trả lời câu hỏi trên..." : "Type a message..."}
+              className={cn(
+                "resize-none min-h-[50px] pr-12 rounded-xl focus-visible:ring-indigo-500",
+                awaitingClarification
+                  ? "border-amber-400 dark:border-amber-600"
+                  : "border-gray-200 dark:border-gray-800"
+              )}
               rows={1}
             />
             <Button 

@@ -150,6 +150,18 @@ def make_tools(user_id: int):
             db.close()
 
     @tool
+    def ask_clarification_tool(question: str) -> str:
+        """
+        Call this tool when the user's request is ambiguous and you need more information before proceeding.
+        Use this when:
+        - The user mentions multiple expenses in one message (e.g., "grab 85k và mua thuốc 120k")
+        - The category is unclear or could match multiple options
+        - The amount or date is missing or ambiguous
+        Do NOT call submit_expense_tool until the user has answered.
+        """
+        return question
+
+    @tool
     def submit_income_tool(
         amount: float,
         source: str,
@@ -221,4 +233,4 @@ def make_tools(user_id: int):
         except Exception as e:
             return f"Search failed: {e}. Please try another query or proceed with your best estimate."
 
-    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, lookup_categories_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, search_web_tool]
+    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, lookup_categories_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, search_web_tool]

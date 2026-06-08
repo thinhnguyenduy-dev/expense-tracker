@@ -169,54 +169,130 @@ def supervisor_node(state: AgentState):
 # --- Financial Agent ---
 def financial_agent_node(state: AgentState, config: RunnableConfig):
     logger.debug("Entering financial_agent_node")
-    user_id = config.get("configurable", {}).get("user_id")
-    user_lang = config.get("configurable", {}).get("user_lang", "vi")
-    user_currency = config.get("configurable", {}).get("user_currency", "VND")
-    logger.debug(f"User ID: {user_id}, Lang: {user_lang}, Currency: {user_currency}")
+    cfg = config.get("configurable", {})
+    user_id = cfg.get("user_id")
+    user_lang = cfg.get("user_lang", "vi")
+    user_currency = cfg.get("user_currency", "VND")
+    is_resume = cfg.get("is_resume", False)
     lang_name = {"vi": "Vietnamese", "en": "English"}.get(user_lang, user_lang)
+
+    from datetime import date as _date
+
+    # ── Clarification relay mode ──────────────────────────────────────────────
+    # Triggered ONLY when the last message in history is a ToolMessage from
+    # ask_clarification_tool (i.e. financial_tools_node just ran it).
+    # We relay the question as a friendly text AIMessage (no tools bound) so
+    # history always ends on a clean AIMessage. We use the message history —
+    # NOT state["clarification_needed"] — to avoid stale-state issues.
+    messages = state["messages"]
+    last_msg = messages[-1] if messages else None
+    is_clarification_relay = (
+        isinstance(last_msg, ToolMessage)
+        and getattr(last_msg, "name", "") == "ask_clarification_tool"
+    )
+    if is_clarification_relay:
+        question = str(last_msg.content)
+        logger.debug(f"Relaying clarification question: {question[:80]}")
+        relay_model = get_llm(temperature=0)
+        relay_prompt = ChatPromptTemplate.from_messages([
+            ("system", (
+                "You are a helpful Financial Assistant. Current Date: {date}.\n"
+                "Relay the following clarification question to the user in a friendly, "
+                "concise way in {user_lang}. Do not add extra questions or commentary.\n"
+                "Question to relay: {question}"
+            )),
+        ])
+        relay_chain = relay_prompt.partial(
+            date=str(_date.today()),
+            user_lang=lang_name,
+            question=question,
+        ) | relay_model
+        response = relay_chain.invoke({})
+        logger.debug("Clarification relayed as text AIMessage")
+        # Set clarification_needed so ai.py detects needs_clarification=True
+        return {"messages": [response], "clarification_needed": question}
+
+    # ── Normal / resume mode ──────────────────────────────────────────────────
     tools = make_tools(user_id)
-    
     logger.debug("Binding tools...")
     model = get_llm(temperature=0).bind_tools(tools)
-    
+
+    resume_instruction = (
+        "\n🚨 RESUME MODE — MANDATORY:\n"
+        "The user has answered your clarification (see the last HumanMessage). "
+        "You MUST follow these rules STRICTLY:\n"
+        "1. DO NOT call `ask_clarification_tool` under any circumstances.\n"
+        "2. DO NOT write any question in your response.\n"
+        "3. Call `lookup_categories_tool` NOW, then call `submit_expense_tool` for EACH expense.\n"
+        "4. If a category is still unclear, pick the closest match from the lookup list — do not ask.\n"
+        "5. Submit ALL expenses mentioned in the original message.\n"
+    ) if is_resume else ""
+
     prompt = ChatPromptTemplate.from_messages([
         ("system", (
             "You are a helpful Financial Assistant. Current Date: {date}.\n"
+            "{resume_instruction}"
             "AVAILABLE TOOLS:\n"
-            "- `lookup_categories_tool`: To list user categories (always call this first before submitting an expense).\n"
-            "- `submit_expense_tool`: To log a new expense.\n"
-            "- `submit_income_tool`: To log a new income.\n"
-            "- `check_budget_tool`: To check budget limit for a category.\n"
-            "- `get_monthly_summary_tool`: To get a text summary of a specific month.\n"
+            "- `lookup_categories_tool`: Get the latest list of categories. ALWAYS call before submitting.\n"
+            "- `submit_expense_tool`: Log a new expense.\n"
+            "- `submit_income_tool`: Log a new income.\n"
+            "- `ask_clarification_tool`: Ask for missing/ambiguous info. Use ONLY ONCE per original request.\n"
+            "- `check_budget_tool`: Check budget limit for a category.\n"
+            "- `get_monthly_summary_tool`: Get monthly spending summary.\n"
             "\n"
-            "MANDATORY WORKFLOW FOR LOGGING AN EXPENSE:\n"
-            "1. ALWAYS call `lookup_categories_tool` first to get the LATEST category list — never rely on previously seen categories.\n"
-            "2. Match the user's requested category to an EXACT name from the returned list (case-insensitive).\n"
-            "3. If the category is not found, inform the user and do NOT call `submit_expense_tool`.\n"
-            "4. Call `submit_expense_tool` with the exact category name from step 2.\n"
+            "WORKFLOW FOR LOGGING AN EXPENSE:\n"
+            "1. If the request is ambiguous, call `ask_clarification_tool` ONCE. Do not call it again.\n"
+            "2. Call `lookup_categories_tool` to get the latest categories.\n"
+            "3. Match the category to an exact name from the list.\n"
+            "4. Call `submit_expense_tool` with the exact category name.\n"
             "\n"
-            "IMPORTANT: Do NOT call tools that are not listed above (like 'get_total_expenses_tool'). Use 'get_monthly_summary_tool' for totals.\n"
             "Always respond in {user_lang}. Currency: {user_currency}."
         )),
         MessagesPlaceholder(variable_name="messages"),
     ])
-    from datetime import date
-    chain = prompt.partial(date=str(date.today()), user_lang=lang_name, user_currency=user_currency) | model
-    
+    chain = prompt.partial(
+        date=str(_date.today()),
+        user_lang=lang_name,
+        user_currency=user_currency,
+        resume_instruction=resume_instruction,
+    ) | model
+
     logger.debug("Invoking financial chain...")
-    response = chain.invoke(_sanitize_messages_for_model(_trim_messages(state["messages"])))
+    response = chain.invoke(_sanitize_messages_for_model(_trim_messages(messages)))
     logger.debug(f"Financial response content: {str(response.content)[:100]}...")
     if response.tool_calls:
         logger.debug(f"Financial response tool_calls: {response.tool_calls}")
-    
+
     logger.debug("Financial chain returned")
-    return {"messages": [response]}
+    # Clear clarification_needed when generating the final response (no more tool calls).
+    # This ensures ai.py sees needs_clarification=False after a successful resume+submit.
+    extra = {} if getattr(response, "tool_calls", None) else {"clarification_needed": None}
+    return {"messages": [response], **extra}
 
 def financial_tools_node(state: AgentState, config: RunnableConfig):
     user_id = config.get("configurable", {}).get("user_id")
     tools = make_tools(user_id)
     node = ToolNode(tools)
-    return node.invoke(state, config)
+    result = node.invoke(state, config)
+
+    # Detect ask_clarification_tool call and surface the question into state
+    for msg in result.get("messages", []):
+        if isinstance(msg, ToolMessage) and getattr(msg, "name", "") == "ask_clarification_tool":
+            return {**result, "clarification_needed": str(msg.content)}
+
+    return result
+
+
+def clarification_node(state: AgentState):
+    """
+    Signals that the AI needs more info from the user.
+    The graph ends here; ai.py detects `clarification_needed` in the final state
+    and returns needs_clarification=True to the frontend.
+    On the next user turn the answer arrives as a new HumanMessage and the
+    financial_agent resumes with full conversation history.
+    """
+    logger.debug(f"Clarification needed: {state.get('clarification_needed')}")
+    return {}  # state already has clarification_needed set by financial_tools_node
 
 # --- Data Analyst Agent Wrapper ---
 async def data_analyst_node(state: AgentState):
@@ -256,11 +332,12 @@ def get_agent_graph():
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("financial_agent", financial_agent_node)
     workflow.add_node("financial_tools", financial_tools_node)
+    workflow.add_node("clarification_node", clarification_node)
     workflow.add_node("data_analyst", data_analyst_node)
     workflow.add_node("general_agent", general_agent_node)
-    
+
     workflow.set_entry_point("supervisor")
-    
+
     # Conditional Edge from Supervisor
     workflow.add_conditional_edges(
         "supervisor",
@@ -272,16 +349,25 @@ def get_agent_graph():
             "FINISH": END
         }
     )
-    
-    # Conditional Edge from Financial Agent (Loop for Tools)
-    def should_continue_financial(state: AgentState) -> Literal["financial_tools", "supervisor"]:
+
+    # Conditional Edge from Financial Agent
+    def should_continue_financial(state: AgentState) -> Literal["financial_tools", "clarification_node", "supervisor"]:
         last_message = state["messages"][-1]
-        if last_message.tool_calls:
+        if getattr(last_message, "tool_calls", None):
             return "financial_tools"
-        return "supervisor" # Go back to supervisor after acting
+        # After clarification relay AIMessage, end the turn so frontend gets needs_clarification=True
+        if state.get("clarification_needed"):
+            return "clarification_node"
+        return "supervisor"
 
     workflow.add_conditional_edges("financial_agent", should_continue_financial)
+
+    # financial_tools always loops back to financial_agent
+    # (clarification_needed detection is now handled by financial_agent_node itself)
     workflow.add_edge("financial_tools", "financial_agent")
+
+    # clarification_node is terminal — ai.py reads clarification_needed from final_state
+    workflow.add_edge("clarification_node", END)
     
     # Edge from Analyst
     workflow.add_edge("data_analyst", "supervisor")
