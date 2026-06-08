@@ -142,7 +142,7 @@ def make_tools(user_id: int):
         """
         Call this tool when the user's request is ambiguous and you need more information before proceeding.
         Use this when:
-        - The user mentions multiple expenses in one message (e.g., "grab 85k và mua thuốc 120k")
+        - The user mentions multiple expenses in one message
         - The category is unclear or could match multiple options
         - The amount or date is missing or ambiguous
         Do NOT call submit_expense_tool until the user has answered.
