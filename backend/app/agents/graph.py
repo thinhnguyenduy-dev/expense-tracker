@@ -173,6 +173,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     user_id = cfg.get("user_id")
     user_lang = cfg.get("user_lang", "vi")
     user_currency = cfg.get("user_currency", "VND")
+    categories = cfg.get("categories", [])  # Get categories from config
     is_resume = cfg.get("is_resume", False)
     lang_name = {"vi": "Vietnamese", "en": "English"}.get(user_lang, user_lang)
 
@@ -217,14 +218,17 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     logger.debug("Binding tools...")
     model = get_llm(temperature=0).bind_tools(tools)
 
+    # Format categories for display
+    categories_str = ", ".join(categories) if categories else "No categories available"
+
     resume_instruction = (
         "\n🚨 RESUME MODE — MANDATORY:\n"
         "The user has answered your clarification (see the last HumanMessage). "
         "You MUST follow these rules STRICTLY:\n"
         "1. DO NOT call `ask_clarification_tool` under any circumstances.\n"
         "2. DO NOT write any question in your response.\n"
-        "3. Call `lookup_categories_tool` NOW, then call `submit_expense_tool` for EACH expense.\n"
-        "4. If a category is still unclear, pick the closest match from the lookup list — do not ask.\n"
+        "3. Pick a category from the available list, then call `submit_expense_tool` for EACH expense.\n"
+        "4. If a category is still unclear, pick the closest match from the list — do not ask.\n"
         "5. Submit ALL expenses mentioned in the original message.\n"
     ) if is_resume else ""
 
@@ -232,9 +236,9 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
         ("system", (
             "You are a helpful Financial Assistant. Current Date: {date}.\n"
             "{resume_instruction}"
+            "📋 **AVAILABLE CATEGORIES:** {categories}\n\n"
             "AVAILABLE TOOLS:\n"
-            "- `lookup_categories_tool`: Get the latest list of categories. ALWAYS call before submitting.\n"
-            "- `submit_expense_tool`: Log a new expense.\n"
+            "- `submit_expense_tool`: Log a new expense (use exact category name from the list above).\n"
             "- `submit_income_tool`: Log a new income.\n"
             "- `ask_clarification_tool`: Ask for missing/ambiguous info. Use ONLY ONCE per original request.\n"
             "- `check_budget_tool`: Check budget limit for a category.\n"
@@ -242,9 +246,8 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
             "\n"
             "WORKFLOW FOR LOGGING AN EXPENSE:\n"
             "1. If the request is ambiguous, call `ask_clarification_tool` ONCE. Do not call it again.\n"
-            "2. Call `lookup_categories_tool` to get the latest categories.\n"
-            "3. Match the category to an exact name from the list.\n"
-            "4. Call `submit_expense_tool` with the exact category name.\n"
+            "2. Pick the exact category name from the list above.\n"
+            "3. Call `submit_expense_tool` with the exact category name.\n"
             "\n"
             "Always respond in {user_lang}. Currency: {user_currency}."
         )),
@@ -254,6 +257,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
         date=str(_date.today()),
         user_lang=lang_name,
         user_currency=user_currency,
+        categories=categories_str,
         resume_instruction=resume_instruction,
     ) | model
 

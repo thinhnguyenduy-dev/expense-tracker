@@ -267,7 +267,7 @@
         <rect x="18" y="242" width="224" height="68" rx="12" fill="#1a1405" stroke="#fb923c" stroke-width="2"/>
         <text x="130" y="270" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">💰  financial_agent</text>
         <text x="130" y="290" text-anchor="middle" fill="#7a5010" font-family="Segoe UI,system-ui,sans-serif" font-size="10">Expense / Income / Budget</text>
-        <text x="130" y="303" text-anchor="middle" fill="#5a3a08" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">tools: 7 financial tools</text>
+        <text x="130" y="303" text-anchor="middle" fill="#5a3a08" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">tools: 8 financial tools</text>
 
         <!-- ── DATA ANALYST ── -->
         <rect x="328" y="242" width="230" height="68" rx="12" fill="#0e1a25" stroke="#60a5fa" stroke-width="2"/>
@@ -346,11 +346,10 @@
     </div>
 
     <div class="three-col">
-      <!-- financial_agent -->
       <div class="node-card" style="border-color:rgba(251,146,60,.3)">
         <div class="node-label" style="color:var(--orange)">💰 financial_agent</div>
         <h4>Xử lý giao dịch tài chính</h4>
-        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, kiểm tra ngân sách. Có <strong>tool loop nội bộ</strong> với <code style="color:#82aaff">financial_tools</code>.</p>
+        <p>Gọi LLM với 8 tools để thêm chi tiêu, thu nhập, kiểm tra ngân sách. Categories được truyền qua system prompt (không cần tool lookup). Có <strong>tool loop nội bộ</strong> với <code style="color:#82aaff">financial_tools</code>.</p>
         <div class="route-info">
           Nếu LLM trả về <code style="color:#fb923c">tool_calls</code> → <strong>financial_tools</strong><br>
           Nếu không có → <strong>supervisor</strong>
@@ -396,14 +395,9 @@
 
     <div class="tool-grid">
       <div class="tool-card">
-        <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
-        <div class="tool-name">lookup_categories_tool</div>
-        <div class="tool-desc">Lấy danh sách category của user. <strong style="color:var(--text)">Bắt buộc gọi trước</strong> khi log expense — không được dùng tên category từ bộ nhớ.</div>
-      </div>
-      <div class="tool-card">
         <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
         <div class="tool-name">submit_expense_tool</div>
-        <div class="tool-desc">Tạo draft expense. Trả về chuỗi <code style="color:#c3e88d">"Draft Created|category_id:X|..."</code> để API layer parse và lưu DB thực.</div>
+        <div class="tool-desc">Tạo draft expense. Categories được truyền qua system prompt (không cần gọi tool lookup). Trả về <code style="color:#c3e88d">"Draft Created|..."</code>.</div>
       </div>
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
@@ -414,6 +408,11 @@
         <span class="tool-tag" style="background:var(--blue-bg);color:var(--blue)">Check</span>
         <div class="tool-name">check_budget_tool</div>
         <div class="tool-desc">Kiểm tra nếu chi thêm X vào category Y có vượt budget không. Trả về cảnh báo hoặc xác nhận an toàn.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--yellow-bg);color:var(--yellow)">Clarify</span>
+        <div class="tool-name">ask_clarification_tool</div>
+        <div class="tool-desc">Hỏi user khi thiếu thông tin (category không rõ, amount mơ hồ). Graph tạm dừng, đợi user trả lời, sau đó resume.</div>
       </div>
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
@@ -435,6 +434,10 @@
         <div class="tool-name">search_web_tool</div>
         <div class="tool-desc">Tìm kiếm DuckDuckGo. Dùng khi cần tỷ giá thời gian thực hoặc thông tin tài chính bên ngoài.</div>
       </div>
+    </div>
+
+    <div class="highlight" style="margin-top:18px">
+      <p><strong>⚡ Optimization:</strong> Categories được fetch 1 lần ở API level (<code>process_chat</code>) và truyền vào <code>config["configurable"]["categories"]</code>. Financial agent nhận list này qua system prompt — giảm 33% LLM calls so với việc gọi <code>lookup_categories_tool</code> mỗi request.</p>
     </div>
   </section>
 

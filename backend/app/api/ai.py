@@ -98,17 +98,22 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
     from app.core.config import settings
     from app.core.database import SessionLocal
     from app.models.user import User
+    from app.models.category import Category
     import uuid
 
     # We need the connection string.
     db_url = settings.DATABASE_URL.replace("postgresql://", "postgresql://") # Ensure scheme
     
-    # Fetch user preferences
+    # Fetch user preferences and categories
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         user_lang = user.language if user else "vi"
         user_currency = user.currency if user else "VND"
+        
+        # Fetch categories once here instead of via tool
+        categories = db.query(Category).filter(Category.user_id == user_id).all()
+        category_list = [c.name for c in categories] if categories else []
     finally:
         db.close()
     
@@ -130,6 +135,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "thread_id": final_thread_id,
                 "user_lang": user_lang,
                 "user_currency": user_currency,
+                "categories": category_list,  # Pass categories to agents
                 "is_resume": is_resume,
             },
             "callbacks": [AILoggingCallbackHandler()],

@@ -100,19 +100,7 @@ def make_tools(user_id: int):
         finally:
             db.close()
 
-    @tool
-    def lookup_categories_tool() -> str:
-        """
-        Get a list of all available categories for the user.
-        """
-        db = SessionLocal()
-        try:
-            categories = db.query(Category).filter(Category.user_id == user_id).all()
-            if not categories:
-                return "You have no categories. Please create some first."
-            return ", ".join([c.name for c in categories])
-        finally:
-            db.close()
+
 
     @tool
     def submit_expense_tool(
@@ -125,7 +113,7 @@ def make_tools(user_id: int):
     ) -> str:
         """
         Call this tool when you have gathered all necessary information to create the expense draft.
-        You MUST call lookup_categories_tool first to get the latest category list, then pass the exact category name here.
+        Pick the exact category name from the list provided in the system prompt.
         This signals that the conversation is complete.
         """
         db = SessionLocal()
@@ -144,7 +132,7 @@ def make_tools(user_id: int):
                     # Category not found — return error so AI re-evaluates
                     available = db.query(Category).filter(Category.user_id == user_id).all()
                     names = ", ".join(c.name for c in available) or "none"
-                    return f"ERROR: Category '{category}' not found. Available categories: {names}. Please call lookup_categories_tool and use an exact name."
+                    return f"ERROR: Category '{category}' not found. Available categories: {names}. Please use an exact name from the list."
             return f"Draft Created|category_id:{category_id}|category:{resolved_category}"
         finally:
             db.close()
@@ -233,4 +221,4 @@ def make_tools(user_id: int):
         except Exception as e:
             return f"Search failed: {e}. Please try another query or proceed with your best estimate."
 
-    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, lookup_categories_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, search_web_tool]
+    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, search_web_tool]
