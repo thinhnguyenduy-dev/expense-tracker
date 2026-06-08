@@ -176,30 +176,41 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             start_check_idx = last_human_idx if last_human_idx != -1 else 0
 
             # Analyze ONLY NEW history to find tool calls and completion
+            # Maps tool_call_id → tool args for resolving category_id from tool result
+            pending_expense_tool_calls: dict[str, dict] = {}
+
             for msg in messages[start_check_idx:]:
                 if isinstance(msg, AIMessage) and msg.tool_calls:
                     for tc in msg.tool_calls:
-                        # Convert dict args to dict if needed (already dict)
                         tool_calls_log.append({"name": tc["name"], "args": tc["args"]})
-                        
+
                         if tc["name"] == "submit_expense_tool":
-                            is_completed = True
-                            expense_data = tc["args"]
-                        
+                            pending_expense_tool_calls[tc["id"]] = tc["args"]
+
                         elif tc["name"] == "submit_income_tool":
                             is_completed = True
                             income_data = tc["args"]
-                
+
                 if isinstance(msg, ToolMessage):
-                     if tool_calls_log:
-                         # We can't update the last log easily if we just append dicts, 
-                         # effectively we need to track index or object. 
-                         # Since we are just building a log for the frontend, we can try to attach result.
-                         # But wait, 'ToolCallLog' is Pydantic. Here we return Dict.
-                         # Let's verify if we can match them.
-                         # Simplified: Just don't attach result for now or improved logic.
-                         # The original code attached result to tool_calls_log[-1].
-                         tool_calls_log[-1]["result"] = str(msg.content)
+                    if tool_calls_log:
+                        tool_calls_log[-1]["result"] = str(msg.content)
+
+                    # Resolve category_id from the tool's return value
+                    call_id = getattr(msg, "tool_call_id", None)
+                    if call_id and call_id in pending_expense_tool_calls:
+                        result_str = str(msg.content)
+                        if result_str.startswith("Draft Created"):
+                            args = pending_expense_tool_calls[call_id]
+                            # Parse category_id out of "Draft Created|category_id:X|category:Y"
+                            parts = {p.split(":")[0]: p.split(":", 1)[1] for p in result_str.split("|")[1:] if ":" in p}
+                            raw_id = parts.get("category_id")
+                            expense_data = {
+                                **args,
+                                "category": parts.get("category") or args.get("category"),
+                                "category_id": int(raw_id) if raw_id and raw_id != "None" else None,
+                            }
+                            is_completed = True
+                        del pending_expense_tool_calls[call_id]
         
             return {
                 "response": str(response_text) if response_text else "I've processed that.",

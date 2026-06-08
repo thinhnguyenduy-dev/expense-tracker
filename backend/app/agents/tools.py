@@ -125,10 +125,29 @@ def make_tools(user_id: int):
     ) -> str:
         """
         Call this tool when you have gathered all necessary information to create the expense draft.
+        You MUST call lookup_categories_tool first to get the latest category list, then pass the exact category name here.
         This signals that the conversation is complete.
         """
-        # In a real agent, this might log to state, but here it marks completion.
-        return "Draft Created"
+        db = SessionLocal()
+        try:
+            resolved_category = None
+            category_id = None
+            if category:
+                cat = db.query(Category).filter(
+                    Category.user_id == user_id,
+                    Category.name.ilike(f"%{category}%")
+                ).first()
+                if cat:
+                    category_id = cat.id
+                    resolved_category = cat.name
+                else:
+                    # Category not found — return error so AI re-evaluates
+                    available = db.query(Category).filter(Category.user_id == user_id).all()
+                    names = ", ".join(c.name for c in available) or "none"
+                    return f"ERROR: Category '{category}' not found. Available categories: {names}. Please call lookup_categories_tool and use an exact name."
+            return f"Draft Created|category_id:{category_id}|category:{resolved_category}"
+        finally:
+            db.close()
 
     @tool
     def submit_income_tool(
