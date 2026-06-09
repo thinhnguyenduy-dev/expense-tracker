@@ -28,26 +28,7 @@
       "content": "Bạn vừa chi 50k cho mục đích gì vậy? (Ăn uống, Mua sắm, Di chuyển, Sức khỏe, Y tế, Giáo dục, Thể thao, hay Công tác?)",
       "role": "assistant"
     },
-    { "content": "thuốc ho ", "role": "user" },
-    {
-      "content": null,
-      "role": "assistant",
-      "tool_calls": [
-        {
-          "type": "function",
-          "id": "tooluse_B3FfOyetOlf2TmI8t4YPBK",
-          "function": {
-            "name": "submit_expense_tool",
-            "arguments": "{\"amount\": 50000, \"category\": \"Y tế\", \"description\": \"thuốc ho\", \"currency\": \"VND\"}"
-          }
-        }
-      ]
-    },
-    {
-      "content": "Draft Created|category_id:35|category:Y tế",
-      "role": "tool",
-      "tool_call_id": "tooluse_B3FfOyetOlf2TmI8t4YPBK"
-    }
+    { "content": "thuốc ho ", "role": "user" }
   ],
   "model": "default",
   "stream": false,
