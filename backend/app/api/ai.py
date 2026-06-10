@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any, Optional, Union
 from pydantic import BaseModel
@@ -178,8 +179,12 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             
             if isinstance(last_message, HumanMessage):
                 # Supervisor decided to FINISH immediately without any agent output.
-                # To avoid echoing, we provide a fallback response.
-                response_text = "Mình luôn sẵn sàng giúp bạn! Bạn có thể yêu cầu mình thêm khoản chi, kiểm tra ngân sách hoặc phân tích thói quen chi tiêu của bạn."
+                # To avoid echoing, we provide a fallback response (localized).
+                response_text = (
+                    "Mình luôn sẵn sàng giúp bạn! Bạn có thể yêu cầu mình thêm khoản chi, kiểm tra ngân sách hoặc phân tích thói quen chi tiêu của bạn."
+                    if user_lang == "vi"
+                    else "I'm always here to help! You can ask me to add an expense, check your budget, or analyze your spending habits."
+                )
             else:
                 content = last_message.content
                 if isinstance(content, list):
@@ -228,18 +233,19 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                     if tool_calls_log:
                         tool_calls_log[-1]["result"] = str(msg.content)
 
-                    # Resolve category_id from the tool's return value
+                    # Resolve category_id from the tool's JSON return value
                     call_id = getattr(msg, "tool_call_id", None)
                     if call_id and call_id in pending_expense_tool_calls:
-                        result_str = str(msg.content)
-                        if result_str.startswith("Draft Created"):
-                            args = pending_expense_tool_calls[call_id]
-                            parts = {p.split(":")[0]: p.split(":", 1)[1] for p in result_str.split("|")[1:] if ":" in p}
-                            raw_id = parts.get("category_id")
+                        args = pending_expense_tool_calls[call_id]
+                        try:
+                            payload = json.loads(str(msg.content))
+                        except (ValueError, TypeError):
+                            payload = {}
+                        if payload.get("status") == "draft_created":
                             expense_list.append({
                                 **args,
-                                "category": parts.get("category") or args.get("category"),
-                                "category_id": int(raw_id) if raw_id and raw_id != "None" else None,
+                                "category": payload.get("category") or args.get("category"),
+                                "category_id": payload.get("category_id"),
                             })
                             is_completed = True
                         del pending_expense_tool_calls[call_id]
@@ -273,7 +279,11 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             from langgraph.errors import GraphRecursionError
             if isinstance(e, GraphRecursionError):
                 return {
-                    "response": "Xin lỗi, yêu cầu quá phức tạp để xử lý. Vui lòng thử lại với câu hỏi đơn giản hơn.",
+                    "response": (
+                        "Xin lỗi, yêu cầu quá phức tạp để xử lý. Vui lòng thử lại với câu hỏi đơn giản hơn."
+                        if user_lang == "vi"
+                        else "Sorry, that request is too complex to process. Please try again with a simpler question."
+                    ),
                     "is_completed": False,
                     "expense_data": None,
                     "income_data": None,

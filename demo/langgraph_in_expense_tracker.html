@@ -7,16 +7,31 @@
   <style>
     :root {
       --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
-      --border: #30363d; --text: #e6edf3; --dim: #8b949e;
+      --border: #30363d; --border2: #3d444d;
+      --text: #e6edf3; --text2: #adb7c2; --dim: #8b949e;
       --purple: #a78bfa; --purple-bg: rgba(167,139,250,.12);
       --teal: #34d399; --teal-bg: rgba(52,211,153,.1);
       --orange: #fb923c; --orange-bg: rgba(251,146,60,.1);
       --red: #f87171; --red-bg: rgba(248,113,113,.1);
       --blue: #60a5fa; --blue-bg: rgba(96,165,250,.1);
       --yellow: #fbbf24; --yellow-bg: rgba(251,191,36,.1);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow: 0 8px 28px rgba(0,0,0,.32);
+      --radius: 14px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.72;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: rgba(52,211,153,.3); color: #fff; }
+    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2c333d; border-radius: 8px; border: 2px solid var(--bg); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
 
     header {
       background: linear-gradient(135deg, #0d1117 0%, #0d1f12 50%, #14120d 100%);
@@ -34,17 +49,18 @@
       text-transform: uppercase; margin-bottom: 14px; position: relative;
     }
     header h1 {
-      font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 800; letter-spacing: -.025em;
       background: linear-gradient(135deg, #6ee7b7, #34d399, #fbbf24);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      position: relative; margin-bottom: 10px;
+      position: relative; margin-bottom: 12px; line-height: 1.15;
     }
-    header p { color: var(--dim); font-size: 1rem; position: relative; max-width: 580px; margin: 0 auto; }
+    header p { color: var(--text2); font-size: 1.02rem; position: relative; max-width: 600px; margin: 0 auto; }
 
     .file-nav {
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 14px 24px; background: var(--bg2); border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
+      padding: 13px 24px; background: rgba(22,27,34,.82); border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; position: sticky; top: 0; z-index: 30;
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     }
     .file-nav .label { color: var(--dim); font-size: .82rem; }
     .nav-btn {
@@ -59,20 +75,21 @@
     main { max-width: 1060px; margin: 0 auto; padding: 48px 24px 80px; }
     section { margin-bottom: 68px; }
     h2 {
-      font-size: 1.4rem; font-weight: 700; color: var(--text);
-      margin-bottom: 22px; display: flex; align-items: center; gap: 10px;
+      font-size: 1.45rem; font-weight: 700; color: var(--text);
+      margin-bottom: 24px; padding-bottom: 15px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; letter-spacing: -.015em;
     }
     h2 .n {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 30px; height: 30px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 9px;
       background: var(--teal-bg); border: 1px solid rgba(52,211,153,.35);
-      font-size: .82rem; color: var(--teal); font-weight: 700; flex-shrink: 0;
+      font-size: .85rem; color: var(--teal); font-weight: 700; flex-shrink: 0;
     }
-    h3 { font-size: .98rem; font-weight: 600; color: var(--teal); margin-bottom: 10px; }
-    p { color: var(--dim); margin-bottom: 10px; }
+    h3 { font-size: 1rem; font-weight: 600; color: var(--teal); margin-bottom: 10px; letter-spacing: -.01em; }
+    p { color: var(--text2); margin-bottom: 10px; }
     p:last-child { margin-bottom: 0; }
 
-    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     @media (max-width: 780px) { .three-col { grid-template-columns: 1fr 1fr; } }
@@ -80,39 +97,42 @@
 
     .diagram-box {
       background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 14px; padding: 24px 12px; overflow-x: auto;
+      border-radius: var(--radius); padding: 26px 14px; overflow-x: auto;
+      box-shadow: var(--shadow-sm);
     }
     .diagram-box svg { display: block; margin: 0 auto; }
 
     /* NODE CARDS */
     .node-card {
       background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
-      padding: 16px; transition: transform .2s;
+      padding: 17px; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     }
-    .node-card:hover { transform: translateY(-2px); }
+    .node-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     .node-card .node-label {
       font-size: .7rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .08em; margin-bottom: 7px;
     }
-    .node-card h4 { color: var(--text); font-size: .93rem; font-weight: 700; margin-bottom: 6px; }
-    .node-card p { font-size: .82rem; color: var(--dim); margin: 0; }
+    .node-card h4 { color: var(--text); font-size: .94rem; font-weight: 700; margin-bottom: 6px; }
+    .node-card p { font-size: .83rem; color: var(--text2); margin: 0; }
     .node-card .route-info {
-      margin-top: 10px; padding: 8px 10px;
-      background: var(--bg2); border-radius: 6px; border: 1px solid var(--border);
-      font-size: .78rem; color: var(--dim);
+      margin-top: 11px; padding: 9px 11px;
+      background: var(--bg2); border-radius: 7px; border: 1px solid var(--border);
+      font-size: .78rem; color: var(--text2); line-height: 1.6;
     }
 
     /* TOOL GRID */
     .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .tool-card {
-      background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
-      padding: 14px 15px; display: flex; flex-direction: column; gap: 6px;
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 11px;
+      padding: 15px 16px; display: flex; flex-direction: column; gap: 6px;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     }
+    .tool-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--border2); }
     .tool-card .tool-name {
       font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      font-size: .78rem; font-weight: 700; color: #82aaff;
+      font-size: .79rem; font-weight: 700; color: #82aaff;
     }
-    .tool-card .tool-desc { font-size: .8rem; color: var(--dim); }
+    .tool-card .tool-desc { font-size: .81rem; color: var(--text2); line-height: 1.6; }
     .tool-card .tool-tag {
       display: inline-block; padding: 2px 8px; border-radius: 999px;
       font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
@@ -123,9 +143,9 @@
     .ckpt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
     .ckpt-card {
       background: var(--bg2); border: 1px solid var(--border); border-radius: 13px; overflow: hidden;
-      transition: transform .18s;
+      transition: transform .2s ease, box-shadow .2s ease;
     }
-    .ckpt-card:hover { transform: translateY(-3px); }
+    .ckpt-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     .ckpt-head {
       padding: 13px 16px 11px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 9px;
@@ -152,8 +172,8 @@
 
     /* CODE */
     pre {
-      background: #090d13; border: 1px solid var(--border); border-radius: 10px;
-      padding: 18px; overflow-x: auto; font-size: .78rem; line-height: 1.65;
+      background: #0a0e14; border: 1px solid var(--border); border-radius: 11px;
+      padding: 20px; overflow-x: auto; font-size: .8rem; line-height: 1.72;
     }
     code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
     .kw { color: #c792ea; } .fn { color: #82aaff; } .str { color: #c3e88d; }
@@ -173,20 +193,23 @@
     }
     .api-content {
       flex: 1; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 9px; padding: 10px 14px;
+      border-radius: 10px; padding: 11px 15px;
+      transition: border-color .2s ease, box-shadow .2s ease;
     }
-    .api-content strong { color: var(--text); font-size: .88rem; display: block; margin-bottom: 2px; }
-    .api-content span { color: var(--dim); font-size: .81rem; }
+    .api-content:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+    .api-content strong { color: var(--text); font-size: .89rem; display: block; margin-bottom: 3px; }
+    .api-content span { color: var(--text2); font-size: .82rem; line-height: 1.6; }
     .api-tag {
       display: inline-block; margin-top: 5px; padding: 2px 7px; border-radius: 4px;
       font-size: .7rem; font-family: 'JetBrains Mono','Fira Code',monospace; font-weight: 600;
     }
 
     .highlight {
-      background: linear-gradient(135deg, rgba(52,211,153,.06), rgba(167,139,250,.04));
-      border: 1px solid rgba(52,211,153,.22); border-radius: 12px; padding: 18px 22px;
+      background: linear-gradient(135deg, rgba(52,211,153,.08), rgba(167,139,250,.04));
+      border: 1px solid rgba(52,211,153,.22); border-left: 3px solid var(--teal);
+      border-radius: 12px; padding: 18px 22px;
     }
-    .highlight p { color: var(--text); margin: 0; font-size: .9rem; }
+    .highlight p { color: var(--text); margin: 0; font-size: .92rem; line-height: 1.72; }
     .highlight a { color: var(--purple); text-decoration: none; font-weight: 600; }
     .highlight a:hover { text-decoration: underline; }
 
@@ -202,7 +225,7 @@
 <header>
   <div class="part-badge">Phần 2 / 2</div>
   <h1>LangGraph trong Expense Tracker</h1>
-  <p>Supervisor pattern · 5 nodes · 8 tools · PostgreSQL checkpointing · API integration</p>
+  <p>Supervisor pattern · 6 nodes · 8 tools · clarification &amp; resume · PostgreSQL checkpointing</p>
 </header>
 
 <nav class="file-nav">
@@ -222,46 +245,47 @@
       <p>
         Graph trong app dùng <strong style="color:var(--text)">Supervisor Pattern</strong>:
         một node trung tâm phân tích câu hỏi và phân công cho agent chuyên biệt.
-        Wiring của graph nằm trong <code style="color:#fb923c">backend/app/agents/graph.py</code>; các node ở <code style="color:#fb923c">nodes.py</code>, prompt ở <code style="color:#fb923c">prompts.py</code>, helper xử lý message ở <code style="color:#fb923c">utils.py</code>.
+        Wiring của graph nằm trong <code style="color:#fb923c">backend/app/agents/graph.py</code>; các node ở <code style="color:#fb923c">nodes.py</code>, prompt ở <code style="color:#fb923c">prompts.py</code>, schema State ở <code style="color:#fb923c">state.py</code>, helper xử lý message ở <code style="color:#fb923c">utils.py</code>.
       </p>
       <p style="margin-top:6px">
-        Graph có <strong style="color:var(--teal)">5 nodes</strong>, mỗi node xử lý một loại tác vụ khác nhau.
-        Supervisor quyết định node nào chạy tiếp theo bằng cách set <code style="color:#82aaff">state["next"]</code>.
+        Graph có <strong style="color:var(--teal)">6 nodes</strong>: <code style="color:#82aaff">supervisor</code>, <code style="color:#82aaff">financial_agent</code>, <code style="color:#82aaff">financial_tools</code>, <code style="color:#82aaff">clarification_node</code>, <code style="color:#82aaff">data_analyst</code>, <code style="color:#82aaff">general_agent</code>.
+        Supervisor chỉ điều phối <strong style="color:var(--teal)">3 agent</strong> — <code style="color:#82aaff">financial_agent</code>, <code style="color:#82aaff">data_analyst</code>, <code style="color:#82aaff">general_agent</code> — bằng cách set <code style="color:#82aaff">state["next"]</code> (hoặc <code style="color:#fb923c">FINISH</code> → END).
+        Hai node phụ trợ <code style="color:#82aaff">financial_tools</code> và <code style="color:#82aaff">clarification_node</code> thuộc vòng nội bộ của <code style="color:#82aaff">financial_agent</code> (đi bằng conditional edge riêng), <strong>không</strong> do supervisor chọn.
+        Shared <code style="color:#82aaff">AgentState</code> (state.py) gồm 4 field: <code style="color:#82aaff">messages</code> (reducer <code>operator.add</code>), <code style="color:#82aaff">clarification_needed</code>, <code style="color:#82aaff">next</code>, <code style="color:#82aaff">analyst_trace</code> — còn <code>user_id</code>/<code>thread_id</code> nằm trong <code style="color:#82aaff">config["configurable"]</code>, không phải State.
       </p>
     </div>
 
     <!-- MAIN GRAPH DIAGRAM -->
     <div class="diagram-box">
-      <svg viewBox="0 0 900 530" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; min-height:300px">
+      <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; min-height:300px">
         <defs>
           <marker id="mp" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#a78bfa"/></marker>
           <marker id="mt" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#34d399"/></marker>
           <marker id="mo" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fb923c"/></marker>
           <marker id="mr" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#f87171"/></marker>
           <marker id="mb" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#60a5fa"/></marker>
-          <marker id="md" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#4a5568"/></marker>
         </defs>
 
         <!-- ── START ── -->
-        <rect x="310" y="14" width="200" height="44" rx="22" fill="#0c1f16" stroke="#34d399" stroke-width="2"/>
-        <text x="410" y="41" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">▶  START</text>
+        <rect x="350" y="12" width="200" height="42" rx="21" fill="#0c1f16" stroke="#34d399" stroke-width="2"/>
+        <text x="450" y="39" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">▶  START</text>
 
         <!-- START → Supervisor -->
-        <line x1="410" y1="58" x2="390" y2="82" stroke="#34d399" stroke-width="2" marker-end="url(#mt)"/>
+        <line x1="450" y1="54" x2="432" y2="82" stroke="#34d399" stroke-width="2" marker-end="url(#mt)"/>
 
         <!-- ── SUPERVISOR ── -->
-        <rect x="130" y="84" width="510" height="66" rx="14" fill="#1a1635" stroke="#a78bfa" stroke-width="2.5"/>
-        <text x="385" y="113" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">🎯  Supervisor</text>
-        <text x="385" y="135" text-anchor="middle" fill="#6050a0" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Phân tích câu hỏi → set state["next"] → phân công agent</text>
+        <rect x="120" y="84" width="520" height="66" rx="14" fill="#1a1635" stroke="#a78bfa" stroke-width="2.5"/>
+        <text x="380" y="113" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">🎯  Supervisor</text>
+        <text x="380" y="135" text-anchor="middle" fill="#6050a0" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Đọc 10 msg gần nhất → set state["next"] → phân công agent</text>
 
         <!-- ── END (FINISH) ── -->
-        <rect x="740" y="88" width="130" height="44" rx="10" fill="#1a0e0e" stroke="#f87171" stroke-width="2"/>
-        <text x="805" y="110" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="700">⏹  END</text>
-        <text x="805" y="124" text-anchor="middle" fill="#6a2525" font-family="Segoe UI,system-ui,sans-serif" font-size="10">FINISH</text>
+        <rect x="748" y="88" width="130" height="44" rx="10" fill="#1a0e0e" stroke="#f87171" stroke-width="2"/>
+        <text x="813" y="110" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="700">⏹  END</text>
+        <text x="813" y="124" text-anchor="middle" fill="#6a2525" font-family="Segoe UI,system-ui,sans-serif" font-size="10">FINISH</text>
 
         <!-- Supervisor → END -->
-        <line x1="640" y1="117" x2="740" y2="110" stroke="#f87171" stroke-width="1.8" marker-end="url(#mr)"/>
-        <text x="688" y="107" text-anchor="middle" fill="#c06060" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">FINISH</text>
+        <line x1="640" y1="114" x2="748" y2="110" stroke="#f87171" stroke-width="1.8" marker-end="url(#mr)"/>
+        <text x="694" y="104" text-anchor="middle" fill="#c06060" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">FINISH</text>
 
         <!-- ── FINANCIAL AGENT ── -->
         <rect x="18" y="242" width="224" height="68" rx="12" fill="#1a1405" stroke="#fb923c" stroke-width="2"/>
@@ -270,69 +294,74 @@
         <text x="130" y="303" text-anchor="middle" fill="#5a3a08" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">tools: 8 financial tools</text>
 
         <!-- ── DATA ANALYST ── -->
-        <rect x="328" y="242" width="230" height="68" rx="12" fill="#0e1a25" stroke="#60a5fa" stroke-width="2"/>
-        <text x="443" y="270" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">📊  data_analyst</text>
-        <text x="443" y="290" text-anchor="middle" fill="#2a4a6a" font-family="Segoe UI,system-ui,sans-serif" font-size="10">Analytics · SQL · Aggregation</text>
-        <text x="443" y="303" text-anchor="middle" fill="#1a3a5a" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">tools: search_web + SQL</text>
+        <rect x="330" y="242" width="230" height="68" rx="12" fill="#0e1a25" stroke="#60a5fa" stroke-width="2"/>
+        <text x="445" y="270" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">📊  data_analyst</text>
+        <text x="445" y="290" text-anchor="middle" fill="#2a4a6a" font-family="Segoe UI,system-ui,sans-serif" font-size="10">Analytics · SQL · user-scoped</text>
+        <text x="445" y="303" text-anchor="middle" fill="#1a3a5a" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">ReAct subgraph: SQL toolkit + search</text>
 
         <!-- ── GENERAL AGENT ── -->
         <rect x="648" y="242" width="218" height="68" rx="12" fill="#0d1a12" stroke="#34d399" stroke-width="2"/>
         <text x="757" y="270" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">💬  general_agent</text>
         <text x="757" y="290" text-anchor="middle" fill="#1a5030" font-family="Segoe UI,system-ui,sans-serif" font-size="10">Chitchat · Greetings · Off-topic</text>
-        <text x="757" y="303" text-anchor="middle" fill="#124020" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">no tools – LLM only</text>
+        <text x="757" y="303" text-anchor="middle" fill="#124020" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">no tools – LLM only (temp 0.5)</text>
 
         <!-- ── FINANCIAL TOOLS ── -->
-        <rect x="18" y="396" width="224" height="60" rx="12" fill="#130e03" stroke="#fbbf24" stroke-width="1.8"/>
-        <text x="130" y="422" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">🔧  financial_tools</text>
-        <text x="130" y="441" text-anchor="middle" fill="#7a6010" font-family="Segoe UI,system-ui,sans-serif" font-size="10">ToolNode – thực thi LangChain tools</text>
+        <rect x="18" y="394" width="224" height="58" rx="12" fill="#130e03" stroke="#fbbf24" stroke-width="1.8"/>
+        <text x="130" y="419" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">🔧  financial_tools</text>
+        <text x="130" y="438" text-anchor="middle" fill="#7a6010" font-family="Segoe UI,system-ui,sans-serif" font-size="10">ToolNode – thực thi tools</text>
+
+        <!-- ── CLARIFICATION NODE ── -->
+        <rect x="300" y="394" width="230" height="58" rx="12" fill="#1a0e0e" stroke="#f87171" stroke-width="1.8"/>
+        <text x="415" y="419" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">🛑  clarification_node</text>
+        <text x="415" y="438" text-anchor="middle" fill="#8a3535" font-family="Segoe UI,system-ui,sans-serif" font-size="10">terminal – hỏi lại user</text>
+
+        <!-- ── END (clarification exit) ── -->
+        <rect x="588" y="394" width="218" height="58" rx="12" fill="#1a0e0e" stroke="#f87171" stroke-width="2"/>
+        <text x="697" y="417" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">⏹  END</text>
+        <text x="697" y="437" text-anchor="middle" fill="#6a2525" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">needs_clarification=True</text>
 
         <!-- === FORWARD ARROWS: Supervisor → agents === -->
-        <!-- Supervisor → financial_agent -->
         <line x1="210" y1="150" x2="112" y2="242" stroke="#fb923c" stroke-width="1.8" marker-end="url(#mo)"/>
         <text x="118" y="194" text-anchor="middle" fill="#c06010" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600" transform="rotate(-35,118,194)">expense/income</text>
 
-        <!-- Supervisor → data_analyst -->
-        <line x1="385" y1="150" x2="443" y2="242" stroke="#60a5fa" stroke-width="1.8" marker-end="url(#mb)"/>
-        <text x="423" y="197" fill="#3070b0" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">analytics</text>
+        <line x1="390" y1="150" x2="445" y2="242" stroke="#60a5fa" stroke-width="1.8" marker-end="url(#mb)"/>
+        <text x="425" y="197" fill="#3070b0" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">analytics</text>
 
-        <!-- Supervisor → general_agent -->
         <line x1="570" y1="150" x2="730" y2="242" stroke="#34d399" stroke-width="1.8" marker-end="url(#mt)"/>
         <text x="680" y="190" fill="#1a7040" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">chitchat</text>
 
-        <!-- === financial_agent ↔ financial_tools LOOP === -->
-        <line x1="130" y1="310" x2="130" y2="396" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#mo)"/>
-        <text x="140" y="355" fill="#c09010" font-family="Segoe UI,system-ui,sans-serif" font-size="10">tool_calls?</text>
+        <!-- === financial_agent ↔ financial_tools LOOP (two parallel arrows) === -->
+        <line x1="100" y1="310" x2="100" y2="392" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#mo)"/>
+        <text x="62" y="356" text-anchor="middle" fill="#c09010" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">tool_calls?</text>
+        <line x1="160" y1="392" x2="160" y2="312" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#mo)"/>
+        <text x="190" y="356" fill="#806010" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">result</text>
 
-        <!-- financial_tools → financial_agent (right-side L path) -->
-        <path d="M 242,426 L 278,426 L 278,276 L 242,276" stroke="#fbbf24" stroke-width="1.8" fill="none" marker-end="url(#mo)"/>
-        <text x="292" y="360" fill="#806010" font-family="Segoe UI,system-ui,sans-serif" font-size="10">result</text>
+        <!-- financial_agent → clarification_node -->
+        <line x1="232" y1="312" x2="345" y2="394" stroke="#f87171" stroke-width="1.6" marker-end="url(#mr)"/>
+        <text x="378" y="352" fill="#a04040" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5" font-weight="600">clarification_needed</text>
+
+        <!-- clarification_node → END -->
+        <line x1="530" y1="423" x2="588" y2="423" stroke="#f87171" stroke-width="1.8" marker-end="url(#mr)"/>
 
         <!-- === RETURN ARROWS: agents → Supervisor (dashed) === -->
-        <!-- financial_agent → Supervisor (dashed) -->
         <line x1="165" y1="242" x2="243" y2="150" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#mo)" opacity="0.55"/>
-
-        <!-- data_analyst → Supervisor (dashed) -->
         <line x1="465" y1="242" x2="424" y2="150" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#mb)" opacity="0.55"/>
-
-        <!-- general_agent → Supervisor (dashed) -->
         <line x1="760" y1="242" x2="608" y2="150" stroke="#34d399" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#mt)" opacity="0.55"/>
-
-        <!-- "→ supervisor after done" label -->
-        <text x="450" y="224" text-anchor="middle" fill="#3a4a5a" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5" font-style="italic">↑ sau khi xong, agent quay lại Supervisor</text>
+        <text x="452" y="224" text-anchor="middle" fill="#3a4a5a" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5" font-style="italic">↑ sau khi xong, agent quay lại Supervisor (dashed)</text>
 
         <!-- State box (annotation) -->
-        <rect x="320" y="386" width="440" height="78" rx="10" fill="rgba(96,165,250,.03)" stroke="rgba(96,165,250,.1)" stroke-width="1" stroke-dasharray="4 3"/>
-        <text x="540" y="407" text-anchor="middle" fill="#2a3a4a" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 AgentState – chia sẻ xuyên suốt</text>
-        <text x="540" y="424" text-anchor="middle" fill="#1e2e3e" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages (Annotated + operator.add)</text>
-        <text x="540" y="439" text-anchor="middle" fill="#1e2e3e" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">next: str  ·  user_id: int  ·  thread_id: str</text>
-        <text x="540" y="454" text-anchor="middle" fill="#182838" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">→ state["next"] điều khiển routing của Supervisor</text>
+        <rect x="556" y="318" width="320" height="66" rx="10" fill="rgba(96,165,250,.03)" stroke="rgba(96,165,250,.1)" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="716" y="337" text-anchor="middle" fill="#2a3a4a" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 AgentState (state.py) – shared</text>
+        <text x="716" y="353" text-anchor="middle" fill="#1e2e3e" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages (Annotated + operator.add)</text>
+        <text x="716" y="367" text-anchor="middle" fill="#1e2e3e" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">clarification_needed · next · analyst_trace</text>
+        <text x="716" y="380" text-anchor="middle" fill="#182838" font-family="Segoe UI,system-ui,sans-serif" font-size="9" font-style="italic">user_id / thread_id → config, không phải State</text>
       </svg>
     </div>
   </section>
 
   <!-- ══ 2. 5 NODES ══ -->
   <section>
-    <h2><span class="n">2</span> Chi tiết 5 Nodes</h2>
+    <h2><span class="n">2</span> Chi tiết 6 Nodes</h2>
 
     <!-- Supervisor -->
     <div class="card" style="margin-bottom:14px; border-color:rgba(167,139,250,.3)">
@@ -341,7 +370,7 @@
         <code style="color:var(--purple);font-size:.95rem;font-family:'JetBrains Mono','Fira Code',monospace;font-weight:700">supervisor_node</code>
         <span style="margin-left:auto;padding:3px 9px;background:var(--purple-bg);border:1px solid rgba(167,139,250,.3);border-radius:999px;font-size:.72rem;color:var(--purple)">Entry Point</span>
       </div>
-      <p>LLM đọc 10 messages gần nhất, dùng <strong style="color:var(--text)">structured tool calling</strong> để quyết định route. Trả về <code style="color:#82aaff">state["next"]</code> là một trong 4 giá trị: <code style="color:#c3e88d">"financial_agent"</code>, <code style="color:#c3e88d">"data_analyst"</code>, <code style="color:#c3e88d">"general_agent"</code>, <code style="color:#c3e88d">"FINISH"</code>.</p>
+      <p>LLM đọc 10 messages gần nhất (đã <code style="color:#82aaff">sanitize</code>), dùng <strong style="color:var(--text)">structured tool calling</strong> (<code style="color:#82aaff">bind_tools(RouterResponse, tool_choice="RouterResponse")</code>) để quyết định route. <code style="color:#82aaff">RouterResponse</code> có 2 field: <code style="color:#82aaff">next</code> — một trong <code style="color:#c3e88d">"financial_agent"</code>, <code style="color:#c3e88d">"data_analyst"</code>, <code style="color:#c3e88d">"general_agent"</code>, <code style="color:#c3e88d">"FINISH"</code> — và <code style="color:#82aaff">reason</code> (khi FINISH, được thêm vào history dưới dạng AIMessage để UI thấy).</p>
       <p><strong style="color:var(--orange)">Logic đặc biệt:</strong> Nếu message cuối là AIMessage (agent vừa trả lời), Supervisor <em>tự động</em> set FINISH — tránh agent gọi agent vô hạn.</p>
     </div>
 
@@ -349,10 +378,11 @@
       <div class="node-card" style="border-color:rgba(251,146,60,.3)">
         <div class="node-label" style="color:var(--orange)">💰 financial_agent</div>
         <h4>Xử lý giao dịch tài chính</h4>
-        <p>Gọi LLM với 8 tools để thêm chi tiêu, thu nhập, kiểm tra ngân sách. Categories được truyền qua system prompt (không cần tool lookup). Có <strong>tool loop nội bộ</strong> với <code style="color:#82aaff">financial_tools</code>.</p>
+        <p>Gọi LLM với 8 tools để thêm chi tiêu, thu nhập, kiểm tra ngân sách. Categories truyền qua system prompt (không cần tool lookup). Có <strong>tool loop nội bộ</strong> với <code style="color:#82aaff">financial_tools</code>. Cũng chạy <strong>clarification relay</strong> &amp; <strong>resume mode</strong> (xem §2b).</p>
         <div class="route-info">
-          Nếu LLM trả về <code style="color:#fb923c">tool_calls</code> → <strong>financial_tools</strong><br>
-          Nếu không có → <strong>supervisor</strong>
+          <code style="color:#fb923c">tool_calls</code> → <strong>financial_tools</strong><br>
+          <code style="color:#f87171">clarification_needed</code> → <strong>clarification_node</strong><br>
+          còn lại → <strong>supervisor</strong>
         </div>
       </div>
 
@@ -360,9 +390,9 @@
       <div class="node-card" style="border-color:rgba(96,165,250,.3)">
         <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
         <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
-        <p>Wrap <code style="color:#82aaff">get_analyst_agent()</code> từ <code style="color:#fb923c">analyst.py</code> — agent riêng chuyên chạy SQL và tìm kiếm web.</p>
+        <p>Wrap <code style="color:#82aaff">get_analyst_agent(today, user_id)</code> từ <code style="color:#fb923c">analyst.py</code> — ReAct subgraph chạy SQL + web search. <code>sql_db_query</code> bị thay bằng bản <strong>guarded</strong>, bắt buộc filter <code style="color:#82aaff">user_id</code> (chống leak dữ liệu user khác).</p>
         <div class="route-info">
-          Sau khi xử lý xong → luôn về <strong>supervisor</strong>
+          Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
         </div>
       </div>
 
@@ -377,14 +407,112 @@
       </div>
     </div>
 
-    <div style="margin-top:14px">
+    <div class="two-col" style="margin-top:14px">
       <div class="node-card" style="border-color:rgba(251,191,36,.3)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
           <div class="node-label" style="color:var(--yellow);margin:0">🔧 financial_tools</div>
           <span style="padding:2px 8px;background:var(--yellow-bg);border:1px solid rgba(251,191,36,.25);border-radius:999px;font-size:.68rem;color:var(--yellow)">ToolNode</span>
         </div>
-        <p style="font-size:.85rem">Là LangGraph's <code style="color:#82aaff">ToolNode</code> — tự động nhìn vào <code style="color:#82aaff">AIMessage.tool_calls</code>, tìm đúng tool function và thực thi, ghi kết quả vào State dưới dạng <code style="color:#82aaff">ToolMessage</code>. Sau đó luôn quay về <code style="color:#fb923c">financial_agent</code> để LLM đọc kết quả.</p>
+        <p style="font-size:.85rem">Bọc LangGraph's <code style="color:#82aaff">ToolNode</code> — nhìn vào <code style="color:#82aaff">AIMessage.tool_calls</code>, thực thi tool, ghi <code style="color:#82aaff">ToolMessage</code> vào State. <strong style="color:var(--text)">Đặc biệt:</strong> nếu phát hiện <code style="color:#82aaff">ask_clarification_tool</code>, nó surface câu hỏi vào <code style="color:#82aaff">clarification_needed</code>. Sau đó luôn quay về <code style="color:#fb923c">financial_agent</code>.</p>
       </div>
+
+      <div class="node-card" style="border-color:rgba(248,113,113,.3)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="node-label" style="color:var(--red);margin:0">🛑 clarification_node</div>
+          <span style="padding:2px 8px;background:var(--red-bg);border:1px solid rgba(248,113,113,.25);border-radius:999px;font-size:.68rem;color:var(--red)">Terminal</span>
+        </div>
+        <p style="font-size:.85rem">Node <strong style="color:var(--text)">kết thúc graph</strong> (→ END) khi AI cần hỏi thêm. Không gọi LLM — chỉ là điểm thoát. <code style="color:#fb923c">ai.py</code> đọc <code style="color:#82aaff">clarification_needed</code> trong final_state → trả <code style="color:#82aaff">needs_clarification=True</code>. Câu trả lời của user ở lượt sau đến như HumanMessage mới và <code style="color:#fb923c">financial_agent</code> resume.</p>
+      </div>
+    </div>
+
+    <!-- §2b CLARIFICATION & RESUME -->
+    <h3 style="font-size:1.05rem;font-weight:700;color:var(--text);margin:30px 0 6px">🛑 Clarification &amp; Resume — khi AI cần hỏi lại</h3>
+    <p style="margin-bottom:16px">
+      Khi yêu cầu mơ hồ (nhiều khoản chi trong 1 câu, category không rõ, hoặc <strong style="color:var(--text)">số tiền ở ngoại tệ</strong>),
+      <code style="color:#82aaff">financial_agent</code> gọi <code style="color:#fb923c">ask_clarification_tool</code>. Thay vì dùng <code>interrupt()</code>,
+      app cho graph <strong style="color:var(--text)">kết thúc sạch</strong> tại <code style="color:#f87171">clarification_node</code> và trả <code style="color:#82aaff">needs_clarification=True</code> về frontend.
+      Lượt sau, frontend gọi lại với <code style="color:#82aaff">is_resume=true</code> → bơm <code style="color:#fb923c">RESUME_INSTRUCTION</code> vào prompt để agent <em>bắt buộc</em> submit, không hỏi lại.
+    </p>
+
+    <div class="diagram-box" style="margin-bottom:16px">
+      <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; min-height:200px">
+        <defs>
+          <marker id="cl-r" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#f87171"/></marker>
+          <marker id="cl-y" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fbbf24"/></marker>
+          <marker id="cl-o" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fb923c"/></marker>
+          <marker id="cl-t" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#34d399"/></marker>
+        </defs>
+
+        <!-- TURN 1 label -->
+        <text x="20" y="24" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="700">LƯỢT 1 — câu hỏi mơ hồ</text>
+
+        <!-- user msg -->
+        <rect x="20" y="36" width="150" height="40" rx="9" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="95" y="54" text-anchor="middle" fill="#e6edf3" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">"chi 50 USD ăn trưa"</text>
+        <text x="95" y="68" text-anchor="middle" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="9">HumanMessage</text>
+
+        <line x1="170" y1="56" x2="208" y2="56" stroke="#fb923c" stroke-width="1.8" marker-end="url(#cl-o)"/>
+
+        <!-- financial_agent -->
+        <rect x="210" y="36" width="150" height="40" rx="9" fill="#1a1405" stroke="#fb923c" stroke-width="1.8"/>
+        <text x="285" y="54" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_agent</text>
+        <text x="285" y="68" text-anchor="middle" fill="#7a5010" font-family="Segoe UI,system-ui,sans-serif" font-size="9">ngoại tệ → cần rate</text>
+
+        <line x1="360" y1="56" x2="398" y2="56" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#cl-y)"/>
+
+        <!-- financial_tools -->
+        <rect x="400" y="36" width="160" height="40" rx="9" fill="#130e03" stroke="#fbbf24" stroke-width="1.8"/>
+        <text x="480" y="53" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_tools</text>
+        <text x="480" y="67" text-anchor="middle" fill="#7a6010" font-family="Segoe UI,system-ui,sans-serif" font-size="9">ask_clarification_tool</text>
+
+        <line x1="560" y1="56" x2="598" y2="56" stroke="#fb923c" stroke-width="1.8" marker-end="url(#cl-o)"/>
+
+        <!-- back to financial_agent relay -->
+        <rect x="600" y="36" width="150" height="40" rx="9" fill="#1a1405" stroke="#fb923c" stroke-width="1.8"/>
+        <text x="675" y="53" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_agent</text>
+        <text x="675" y="67" text-anchor="middle" fill="#7a5010" font-family="Segoe UI,system-ui,sans-serif" font-size="9">relay → AIMessage</text>
+
+        <line x1="750" y1="56" x2="788" y2="56" stroke="#f87171" stroke-width="1.8" marker-end="url(#cl-r)"/>
+
+        <!-- clarification_node -->
+        <rect x="790" y="36" width="100" height="40" rx="9" fill="#1a0e0e" stroke="#f87171" stroke-width="1.8"/>
+        <text x="840" y="53" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="700">🛑 END</text>
+        <text x="840" y="67" text-anchor="middle" fill="#8a3535" font-family="Segoe UI,system-ui,sans-serif" font-size="8.5">needs_clarif=True</text>
+
+        <!-- frontend shows question -->
+        <text x="450" y="108" text-anchor="middle" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">→ Frontend hiển thị câu hỏi: "Tỷ giá USD→VND là bao nhiêu?" và chờ user trả lời</text>
+
+        <!-- divider -->
+        <line x1="20" y1="132" x2="880" y2="132" stroke="#30363d" stroke-width="1" stroke-dasharray="5 4"/>
+
+        <!-- TURN 2 -->
+        <text x="20" y="162" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="700">LƯỢT 2 — user trả lời (is_resume=true)</text>
+
+        <rect x="20" y="176" width="170" height="40" rx="9" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="105" y="194" text-anchor="middle" fill="#e6edf3" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">"26,300"</text>
+        <text x="105" y="208" text-anchor="middle" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="9">HumanMessage + is_resume</text>
+
+        <line x1="190" y1="196" x2="228" y2="196" stroke="#fb923c" stroke-width="1.8" marker-end="url(#cl-o)"/>
+
+        <rect x="230" y="176" width="210" height="40" rx="9" fill="#1a1405" stroke="#fb923c" stroke-width="1.8"/>
+        <text x="335" y="193" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_agent (RESUME)</text>
+        <text x="335" y="207" text-anchor="middle" fill="#7a5010" font-family="Segoe UI,system-ui,sans-serif" font-size="9">+ RESUME_INSTRUCTION → không hỏi lại</text>
+
+        <line x1="440" y1="196" x2="478" y2="196" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#cl-y)"/>
+
+        <rect x="480" y="176" width="180" height="40" rx="9" fill="#130e03" stroke="#fbbf24" stroke-width="1.8"/>
+        <text x="570" y="193" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_tools</text>
+        <text x="570" y="207" text-anchor="middle" fill="#7a6010" font-family="Segoe UI,system-ui,sans-serif" font-size="9">submit_expense_tool (50×26,300)</text>
+
+        <line x1="660" y1="196" x2="698" y2="196" stroke="#34d399" stroke-width="1.8" marker-end="url(#cl-t)"/>
+
+        <rect x="700" y="176" width="190" height="40" rx="9" fill="#0d1a12" stroke="#34d399" stroke-width="1.8"/>
+        <text x="795" y="193" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="700">✅ Draft expense created</text>
+        <text x="795" y="207" text-anchor="middle" fill="#1a5030" font-family="Segoe UI,system-ui,sans-serif" font-size="9">needs_clarification=False</text>
+
+        <text x="450" y="250" text-anchor="middle" fill="#5a6570" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">Nhờ checkpointing theo thread_id, lượt 2 đọc lại toàn bộ history của lượt 1 — agent nhớ "50 USD ăn trưa".</text>
+        <text x="450" y="272" text-anchor="middle" fill="#4a5a6a" font-family="JetBrains Mono,monospace" font-size="9.5">RESUME_INSTRUCTION: cấm gọi ask_clarification_tool, tự quy đổi ngoại tệ, submit MỌI khoản chi trong câu gốc</text>
+      </svg>
     </div>
 
     <!-- last_message vs full_history -->
@@ -459,20 +587,22 @@
 
     <div class="highlight">
       <p>
-        💡 App chọn <code style="color:#82aaff">last_message</code> trong <code style="color:#fb923c">data_analyst_node</code>
-        (<code style="color:#82aaff">return {"messages": [new_messages[-1]]}</code>) để Supervisor không bị ngập trong
-        các tool-call SQL nội bộ — vừa gọn context, vừa rẻ token. Đánh đổi: mất khả năng truy vết chi tiết các bước
-        SQL ở history chung (nếu cần debug thì xem qua checkpoint của subgraph).
-        Thư viện <code style="color:#c3e88d">langgraph-supervisor</code> gọi 2 cách này là <code>output_mode="last_message"</code> /
-        <code>"full_history"</code>; app tự implement nên chỉ là chuyện lấy <code>[-1]</code> hay cả list.
+        💡 Mode được chọn qua <code style="color:#82aaff">settings.ANALYST_OUTPUT_MODE</code> (mặc định <code style="color:#82aaff">last_message</code>) và truyền vào
+        <code style="color:#82aaff">config["configurable"]["analyst_output_mode"]</code>. Ở <code style="color:#82aaff">last_message</code>,
+        <code style="color:#fb923c">data_analyst_node</code> đẩy về shared State đúng 1 message cuối
+        (<code style="color:#82aaff">return {"messages": [new_messages[-1]], ...}</code>) — Supervisor không bị ngập trong tool-call SQL nội bộ.
+        <strong style="color:var(--text)">Không mất khả năng truy vết:</strong> chuỗi AI/Tool nội bộ được trích riêng bằng
+        <code style="color:#82aaff">_extract_tool_trace()</code> và lưu vào field <code style="color:#82aaff">analyst_trace</code> của State; <code style="color:#fb923c">ai.py</code> gộp nó vào
+        <code style="color:#82aaff">tool_calls</code> để UI vẫn hiện được các bước SQL. Mode <code style="color:#82aaff">full_history</code> thì merge thẳng mọi message
+        analyst sinh ra (slice off phần history đã có để <code>operator.add</code> không nhân đôi).
       </p>
     </div>
   </section>
 
   <!-- ══ 3. 8 TOOLS ══ -->
   <section>
-    <h2><span class="n">3</span> 7 Tools của Financial Agent</h2>
-    <p style="margin-bottom:18px">Tất cả được tạo qua factory <code style="color:#82aaff">make_tools(user_id)</code> trong <code style="color:#fb923c">backend/app/agents/tools.py</code>. Mỗi tool được bind với <code style="color:#82aaff">user_id</code> — đảm bảo data isolation.</p>
+    <h2><span class="n">3</span> 8 Tools của Financial Agent</h2>
+    <p style="margin-bottom:18px">Tất cả được tạo qua factory <code style="color:#82aaff">make_tools(user_id, user_currency)</code> trong <code style="color:#fb923c">backend/app/agents/tools.py</code>. Mỗi tool được bind với <code style="color:#82aaff">user_id</code> (data isolation) và <code style="color:#82aaff">user_currency</code> (format tiền tệ đúng — VND/JPY/KRW không có phần thập phân).</p>
 
     <div class="tool-grid">
       <div class="tool-card">
@@ -502,6 +632,11 @@
       </div>
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
+        <div class="tool-name">get_monthly_income_summary_tool</div>
+        <div class="tool-desc">Tổng thu nhập và breakdown theo nguồn (source) cho một tháng. Dùng khi user hỏi "tháng này tôi kiếm được bao nhiêu?"</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
         <div class="tool-name">get_recent_expenses_tool</div>
         <div class="tool-desc">10 expense gần nhất trong N ngày qua (default 7). Dùng để kiểm tra expense đã thêm chưa.</div>
       </div>
@@ -513,7 +648,7 @@
     </div>
 
     <div class="highlight" style="margin-top:18px">
-      <p><strong>🔁 Tỷ giá / web search:</strong> Financial agent <strong>không</strong> có tool search web. Quy đổi tiền tệ do <code style="color:#fb923c">ExchangeRateService</code> xử lý deterministic ở tầng API; còn tìm kiếm web (DuckDuckGo) là việc của <code style="color:#82aaff">data_analyst</code>.</p>
+      <p><strong>🔁 Ngoại tệ / web search:</strong> Financial agent <strong>không</strong> có tool search web. Nếu khoản chi ở ngoại tệ (USD, EUR…), prompt bắt agent gọi <code style="color:#fb923c">ask_clarification_tool</code> <em>một lần</em> để hỏi tỷ giá, rồi tự quy đổi (amount × rate) khi resume — không bao giờ submit ngoại tệ khi chưa có rate xác nhận. Quy đổi deterministic ở tầng API do <code style="color:#fb923c">ExchangeRateService</code> xử lý; tìm kiếm web (DuckDuckGo) là việc của <code style="color:#82aaff">data_analyst</code>.</p>
     </div>
 
     <div class="highlight" style="margin-top:18px">
@@ -625,15 +760,15 @@
             <div class="api-dot" style="border-color:var(--teal)"></div>
             <div class="api-content">
               <strong>Frontend gửi request</strong>
-              <span><code style="color:#fb923c">{ message, thread_id? }</code> — thread_id là UUID nhận từ response trước. Nếu null → tạo UUID mới.</span>
+              <span><code style="color:#fb923c">{ message, thread_id?, is_resume }</code> — thread_id là UUID nhận từ response trước (null → tạo mới). <code style="color:#82aaff">is_resume=true</code> khi user đang trả lời câu hỏi clarification.</span>
             </div>
           </div>
 
           <div class="api-step">
             <div class="api-dot" style="border-color:var(--blue)"></div>
             <div class="api-content">
-              <strong>Lấy preferences của user</strong>
-              <span>Query DB lấy <code style="color:#82aaff">user_lang</code> và <code style="color:#82aaff">user_currency</code>. Đưa vào <code style="color:#82aaff">config.configurable</code>.</span>
+              <strong>Lấy preferences + categories</strong>
+              <span>Query DB lấy <code style="color:#82aaff">user_lang</code>, <code style="color:#82aaff">user_currency</code> và <strong>danh sách categories (1 lần)</strong>. Cùng với <code style="color:#82aaff">analyst_output_mode</code> &amp; <code style="color:#82aaff">is_resume</code>, tất cả đưa vào <code style="color:#82aaff">config.configurable</code>; <code style="color:#82aaff">AILoggingCallbackHandler</code> gắn vào <code>config.callbacks</code>.</span>
             </div>
           </div>
 
@@ -667,8 +802,8 @@
             <div class="api-dot" style="border-color:var(--teal)"></div>
             <div class="api-content">
               <strong>Trả response + thread_id</strong>
-              <span>Parse messages cuối, detect expense_data / income_data từ ToolMessage, trả về <code style="color:#82aaff">ChatResponse</code>.</span>
-              <div><span class="api-tag" style="background:var(--teal-bg);color:var(--teal)">{ response, expense_data, tool_calls, thread_id }</span></div>
+              <span>Nếu final_state có <code style="color:#82aaff">clarification_needed</code> → trả <code style="color:#82aaff">needs_clarification=True</code> ngay. Ngược lại parse các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, gộp <code style="color:#82aaff">analyst_trace</code> vào tool_calls. <code style="color:#82aaff">GraphRecursionError</code> → trả lời an toàn.</span>
+              <div><span class="api-tag" style="background:var(--teal-bg);color:var(--teal)">{ response, expense_data, income_data, tool_calls, thread_id, needs_clarification }</span></div>
             </div>
           </div>
 
@@ -685,26 +820,31 @@
             <span class="str">"user_id"</span>: user_id,
             <span class="str">"thread_id"</span>: final_thread_id,   <span class="cm"># key cho checkpoint</span>
             <span class="str">"user_lang"</span>: user_lang,
-            <span class="str">"user_currency"</span>: user_currency
+            <span class="str">"user_currency"</span>: user_currency,
+            <span class="str">"categories"</span>: category_list,     <span class="cm"># fetch 1 lần, đưa vào prompt</span>
+            <span class="str">"is_resume"</span>: is_resume,          <span class="cm"># bật RESUME_INSTRUCTION</span>
+            <span class="str">"analyst_output_mode"</span>: settings.ANALYST_OUTPUT_MODE,
         },
+        <span class="str">"callbacks"</span>: [<span class="cls">AILoggingCallbackHandler</span>()],
         <span class="str">"recursion_limit"</span>: <span class="num" style="color:#f78c6c">12</span>  <span class="cm"># tránh loop vô hạn</span>
     }
 
-    final_state = <span class="kw">await</span> graph.<span class="fn">ainvoke</span>(
-        {<span class="str">"messages"</span>: [<span class="cls">HumanMessage</span>(content=message)]},
-        config=config
-    )
+    final_state = <span class="kw">await</span> graph.<span class="fn">ainvoke</span>(input_state, config=config)
 
-<span class="cm"># Parse kết quả</span>
+<span class="cm"># Graph dừng tại clarification_node? → cần hỏi lại user</span>
+<span class="kw">if</span> final_state.get(<span class="str">"clarification_needed"</span>):
+    <span class="kw">return</span> {<span class="str">"needs_clarification"</span>: <span class="kw">True</span>, ...}
+
+<span class="cm"># Parse kết quả: gom NHIỀU submit_expense_tool thành list</span>
 messages = final_state[<span class="str">"messages"</span>]
-last_msg = messages[-<span class="num" style="color:#f78c6c">1</span>]
-
-<span class="cm"># Tìm expense_data từ ToolMessage</span>
 <span class="kw">for</span> msg <span class="kw">in</span> messages[last_human_idx:]:
     <span class="kw">if</span> <span class="fn">isinstance</span>(msg, <span class="cls">AIMessage</span>) <span class="kw">and</span> msg.tool_calls:
         <span class="kw">for</span> tc <span class="kw">in</span> msg.tool_calls:
             <span class="kw">if</span> tc[<span class="str">"name"</span>] == <span class="str">"submit_expense_tool"</span>:
-                <span class="cm"># ... parse draft expense</span></code></pre>
+                <span class="cm"># ... parse draft expense</span>
+
+<span class="cm"># Gộp trace SQL/search của analyst (last_message mode)</span>
+tool_calls_log.<span class="fn">extend</span>(final_state.get(<span class="str">"analyst_trace"</span>) <span class="kw">or</span> [])</code></pre>
     </div>
   </section>
 

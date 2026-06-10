@@ -132,6 +132,7 @@ const ToolCallTrace = memo(({ calls }: { calls: ToolCall[] }) => {
 ToolCallTrace.displayName = "ToolCallTrace";
 
 const ChatMessageItem = memo(({ msg, onRetry }: { msg: Message; onRetry?: () => void }) => {
+    const tAI = useTranslations("AI");
     return (
         <div className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div className={cn(
@@ -154,7 +155,7 @@ const ChatMessageItem = memo(({ msg, onRetry }: { msg: Message; onRetry?: () => 
                                 onClick={onRetry}
                                 className="block text-xs text-red-500 hover:text-red-700 underline mt-1"
                             >
-                                Thử lại
+                                {tAI('retry')}
                             </button>
                         )}
                     </div>
@@ -322,7 +323,7 @@ export function GlobalChatWidget() {
             setCurrentDraftIndex(0);
             openDraftDialog(drafts[0]);
             if (drafts.length > 1) {
-                toast.info(`Có ${drafts.length} khoản chi — xác nhận lần lượt từng khoản`);
+                toast.info(tAI('multiExpenseConfirm', { count: drafts.length }));
             } else {
                 toast.info(tAI('draftReady'));
             }
@@ -374,7 +375,7 @@ export function GlobalChatWidget() {
       });
       if (existing?.items?.length > 0) {
         const confirmed = window.confirm(
-          `Bạn đã có khoản chi ${data.amount.toLocaleString()} VND trong danh mục này hôm nay. Vẫn tiếp tục?`
+          tAI('duplicateExpenseWarning', { amount: data.amount.toLocaleString() })
         );
         if (!confirmed) { setIsSubmitting(false); return; }
       }
@@ -393,7 +394,7 @@ export function GlobalChatWidget() {
         // More drafts to confirm — advance to the next one.
         setCurrentDraftIndex(nextIndex);
         openDraftDialog(pendingDrafts[nextIndex]);
-        toast.info(`Khoản ${nextIndex + 1}/${pendingDrafts.length} — vui lòng xác nhận`);
+        toast.info(tAI('expenseProgress', { current: nextIndex + 1, total: pendingDrafts.length }));
       } else {
         // All done — close and reset the queue.
         setIsDialogOpen(false);
@@ -499,14 +500,14 @@ export function GlobalChatWidget() {
                         {awaitingClarification && (
                           <div className="absolute -top-4 left-0 text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                            Đang chờ câu trả lời của bạn
+                            {tAI('awaitingAnswer')}
                           </div>
                         )}
                         <Textarea
                         value={input}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={awaitingClarification ? "Trả lời câu hỏi trên..." : tAI('placeholder')}
+                        placeholder={awaitingClarification ? tAI('answerPlaceholder') : tAI('placeholder')}
                         className={cn(
                           "resize-none min-h-[40px] pr-10 rounded-xl focus-visible:ring-indigo-500 text-sm py-2",
                           awaitingClarification

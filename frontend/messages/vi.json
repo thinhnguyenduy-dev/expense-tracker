@@ -62,7 +62,6 @@
       "sunday": "Chủ Nhật"
     },
     "export": "Xuất dữ liệu"
-
   },
   "Dashboard": {
     "title": "Bảng điều khiển",
@@ -358,6 +357,12 @@
     "failedSaveIncome": "Không thể lưu thu nhập",
     "emptySuggestion1": "\"Ăn trưa 50k\"",
     "emptySuggestion2": "\"Báo cáo chi tiêu\"",
-    "trySaying": "Thử nói:"
+    "trySaying": "Thử nói:",
+    "retry": "Thử lại",
+    "multiExpenseConfirm": "Có {count} khoản chi — xác nhận lần lượt từng khoản",
+    "duplicateExpenseWarning": "Bạn đã có khoản chi {amount} VND trong danh mục này hôm nay. Vẫn tiếp tục?",
+    "expenseProgress": "Khoản {current}/{total} — vui lòng xác nhận",
+    "awaitingAnswer": "Đang chờ câu trả lời của bạn",
+    "answerPlaceholder": "Trả lời câu hỏi trên..."
   }
 }

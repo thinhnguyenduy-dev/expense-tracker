@@ -1,4 +1,5 @@
 import calendar
+import json
 from typing import Optional
 from datetime import date, timedelta
 
@@ -153,8 +154,15 @@ def make_tools(user_id: int, user_currency: str = "VND"):
                     # Category not found — return error so AI re-evaluates
                     available = db.query(Category).filter(Category.user_id == user_id).all()
                     names = ", ".join(c.name for c in available) or "none"
-                    return f"ERROR: Category '{category}' not found. Available categories: {names}. Please use an exact name from the list."
-            return f"Draft Created|category_id:{category_id}|category:{resolved_category}"
+                    return json.dumps({
+                        "status": "error",
+                        "message": f"Category '{category}' not found. Available categories: {names}. Please use an exact name from the list.",
+                    }, ensure_ascii=False)
+            return json.dumps({
+                "status": "draft_created",
+                "category_id": category_id,
+                "category": resolved_category,
+            }, ensure_ascii=False)
         finally:
             db.close()
 
@@ -180,7 +188,7 @@ def make_tools(user_id: int, user_currency: str = "VND"):
         Call this tool when you have gathered all necessary information to create an income draft.
         This signals that the conversation is complete.
         """
-        return "Draft Income Created"
+        return json.dumps({"status": "draft_created"}, ensure_ascii=False)
 
     @tool
     def get_monthly_summary_tool(month: Optional[int] = None, year: Optional[int] = None) -> str:
@@ -227,8 +235,50 @@ def make_tools(user_id: int, user_currency: str = "VND"):
         finally:
             db.close()
 
+    @tool
+    def get_monthly_income_summary_tool(month: Optional[int] = None, year: Optional[int] = None) -> str:
+        """
+        Get the total income for a specific month and a breakdown by source.
+        If no month or year is provided, it defaults to the current month.
+        Use this when the user asks for "total income", "income this month", "last month", or "monthly income".
+        """
+        db = SessionLocal()
+        try:
+            today = date.today()
+
+            target_year = year if year else today.year
+            target_month = month if month else today.month
+
+            first_day = date(target_year, target_month, 1)
+            last_day = date(target_year, target_month, calendar.monthrange(target_year, target_month)[1])
+
+            total_income = db.query(func.coalesce(func.sum(Income.amount), 0)).filter(
+                Income.user_id == user_id,
+                Income.date >= first_day,
+                Income.date <= last_day
+            ).scalar()
+
+            src_stats = db.query(
+                Income.source,
+                func.sum(Income.amount).label('total')
+            ).filter(
+                Income.user_id == user_id,
+                Income.date >= first_day,
+                Income.date <= last_day
+            ).group_by(Income.source).all()
+
+            breakdown = "\n".join([f"- {src}: {_fmt_money(total, user_currency)}" for src, total in src_stats]) if src_stats else "- No income recorded."
+
+            return (
+                f"📈 **Monthly Income ({first_day.strftime('%B %Y')})**\n"
+                f"**Total Income:** {_fmt_money(total_income, user_currency)}\n\n"
+                f"**Breakdown by Source:**\n{breakdown}"
+            )
+        finally:
+            db.close()
+
     # NOTE: No web-search tool here on purpose. Currency conversion is handled
     # deterministically by ExchangeRateService at persistence time
     # (see app/core/exchange_rate.py), so the financial agent never needs to
     # scrape exchange rates. General web research is the analyst agent's job.
-    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool]
+    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, get_monthly_income_summary_tool]

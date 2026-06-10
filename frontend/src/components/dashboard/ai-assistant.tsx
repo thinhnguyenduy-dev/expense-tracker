@@ -71,6 +71,7 @@ export function AIAssistant() {
   
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
+  const tAI = useTranslations('AI');
 
   // Schema Definition
   const expenseSchema = z.object({
@@ -167,7 +168,7 @@ export function AIAssistant() {
             setCurrentDraftIndex(0);
             openDraftDialog(drafts[0]);
             if (drafts.length > 1) {
-                toast.info(`Có ${drafts.length} khoản chi — xác nhận lần lượt từng khoản`);
+                toast.info(tAI('multiExpenseConfirm', { count: drafts.length }));
             }
         }
     } catch (error: any) {
@@ -206,7 +207,7 @@ export function AIAssistant() {
           // More drafts to confirm — advance to next
           setCurrentDraftIndex(nextIndex);
           openDraftDialog(pendingDrafts[nextIndex]);
-          toast.info(`Khoản ${nextIndex + 1}/${pendingDrafts.length} — vui lòng xác nhận`);
+          toast.info(tAI('expenseProgress', { current: nextIndex + 1, total: pendingDrafts.length }));
       } else {
           // All done
           setIsDialogOpen(false);
@@ -291,14 +292,14 @@ export function AIAssistant() {
             {awaitingClarification && (
               <div className="absolute -top-5 left-0 text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Đang chờ câu trả lời của bạn
+                {tAI('awaitingAnswer')}
               </div>
             )}
             <Textarea
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={awaitingClarification ? "Trả lời câu hỏi trên..." : "Type a message..."}
+              placeholder={awaitingClarification ? tAI('answerPlaceholder') : tAI('placeholder')}
               className={cn(
                 "resize-none min-h-[50px] pr-12 rounded-xl focus-visible:ring-indigo-500",
                 awaitingClarification

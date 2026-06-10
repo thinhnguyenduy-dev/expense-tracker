@@ -232,7 +232,9 @@ async def data_analyst_node(state: AgentState, config: RunnableConfig):
     output_mode = cfg.get("analyst_output_mode", "last_message")
 
     analyst_agent = get_analyst_agent(today=str(_date.today()), user_id=cfg.get("user_id"))
-    response = await analyst_agent.ainvoke(state)
+    # Pass config so callbacks (e.g. AILoggingCallbackHandler) propagate into the
+    # analyst subgraph — otherwise its SQL/tool calls don't show up in the logs.
+    response = await analyst_agent.ainvoke(state, config)
 
     new_messages = response["messages"]
     if not new_messages:

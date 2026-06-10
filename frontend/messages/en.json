@@ -316,8 +316,14 @@
     "failedToProcess": "Failed to process recurring expenses",
     "totalMonthly": "Total Monthly (Est.)",
     "estMonthly": "Estimated monthly cost for active recurring expenses"
-  }
-,"Reports": { "title": "Reports", "spendingTrend": "Spending Trend", "categoryBreakdown": "Category Breakdown", "details": "Details", "noData": "No data for selected period" },
+  },
+  "Reports": {
+    "title": "Reports",
+    "spendingTrend": "Spending Trend",
+    "categoryBreakdown": "Category Breakdown",
+    "details": "Details",
+    "noData": "No data for selected period"
+  },
   "Family": {
     "viewFamily": "View Family",
     "personalOnly": "Personal Only",
@@ -341,6 +347,12 @@
     "failedSaveIncome": "Failed to save income",
     "emptySuggestion1": "\"Lunch for $15\"",
     "emptySuggestion2": "\"Spending report\"",
-    "trySaying": "Try saying:"
+    "trySaying": "Try saying:",
+    "retry": "Retry",
+    "multiExpenseConfirm": "{count} expenses — confirm them one by one",
+    "duplicateExpenseWarning": "You already logged a {amount} VND expense in this category today. Continue?",
+    "expenseProgress": "Expense {current}/{total} — please confirm",
+    "awaitingAnswer": "Waiting for your answer",
+    "answerPlaceholder": "Answer the question above..."
   }
 }

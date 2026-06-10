@@ -7,15 +7,30 @@
   <style>
     :root {
       --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
-      --border: #30363d; --text: #e6edf3; --dim: #8b949e;
+      --border: #30363d; --border2: #3d444d;
+      --text: #e6edf3; --text2: #adb7c2; --dim: #8b949e;
       --purple: #a78bfa; --purple-bg: rgba(167,139,250,.12);
       --teal: #34d399; --teal-bg: rgba(52,211,153,.1);
       --orange: #fb923c; --orange-bg: rgba(251,146,60,.1);
       --red: #f87171; --red-bg: rgba(248,113,113,.1);
       --blue: #60a5fa;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow: 0 8px 28px rgba(0,0,0,.32);
+      --radius: 14px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.72;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: rgba(167,139,250,.32); color: #fff; }
+    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2c333d; border-radius: 8px; border: 2px solid var(--bg); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
 
     /* HEADER */
     header {
@@ -34,18 +49,19 @@
       text-transform: uppercase; margin-bottom: 14px; position: relative;
     }
     header h1 {
-      font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 800; letter-spacing: -.025em;
       background: linear-gradient(135deg, #c4b5fd, #a78bfa, #60a5fa);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      position: relative; margin-bottom: 10px;
+      position: relative; margin-bottom: 12px; line-height: 1.15;
     }
-    header p { color: var(--dim); font-size: 1rem; position: relative; max-width: 560px; margin: 0 auto; }
+    header p { color: var(--text2); font-size: 1.02rem; position: relative; max-width: 580px; margin: 0 auto; }
 
     /* FILE NAV */
     .file-nav {
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 14px 24px; background: var(--bg2); border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
+      padding: 13px 24px; background: rgba(22,27,34,.82); border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; position: sticky; top: 0; z-index: 30;
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     }
     .file-nav .label { color: var(--dim); font-size: .82rem; }
     .nav-btn {
@@ -61,20 +77,21 @@
     main { max-width: 1060px; margin: 0 auto; padding: 48px 24px 80px; }
     section { margin-bottom: 68px; }
     h2 {
-      font-size: 1.4rem; font-weight: 700; color: var(--text);
-      margin-bottom: 22px; display: flex; align-items: center; gap: 10px;
+      font-size: 1.45rem; font-weight: 700; color: var(--text);
+      margin-bottom: 24px; padding-bottom: 15px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; letter-spacing: -.015em;
     }
     h2 .n {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 30px; height: 30px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 9px;
       background: var(--purple-bg); border: 1px solid rgba(167,139,250,.35);
-      font-size: .82rem; color: var(--purple); font-weight: 700; flex-shrink: 0;
+      font-size: .85rem; color: var(--purple); font-weight: 700; flex-shrink: 0;
     }
-    h3 { font-size: .98rem; font-weight: 600; color: var(--teal); margin-bottom: 10px; }
-    p { color: var(--dim); margin-bottom: 10px; }
+    h3 { font-size: 1rem; font-weight: 600; color: var(--teal); margin-bottom: 10px; letter-spacing: -.01em; }
+    p { color: var(--text2); margin-bottom: 10px; }
     p:last-child { margin-bottom: 0; }
 
-    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
 
@@ -82,17 +99,18 @@
     .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 13px; }
     .concept-card {
       background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
-      padding: 18px 15px; transition: transform .2s, border-color .2s;
+      padding: 18px 16px; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
     }
-    .concept-card:hover { transform: translateY(-3px); border-color: var(--purple); }
+    .concept-card:hover { transform: translateY(-3px); border-color: var(--purple); box-shadow: var(--shadow); }
     .concept-card .icon { font-size: 1.7rem; margin-bottom: 9px; }
     .concept-card h4 { color: var(--text); font-size: .93rem; font-weight: 700; margin-bottom: 6px; }
-    .concept-card p { font-size: .82rem; color: var(--dim); margin: 0; }
+    .concept-card p { font-size: .83rem; color: var(--text2); margin: 0; }
 
     /* DIAGRAM */
     .diagram-box {
       background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 14px; padding: 24px 16px; overflow-x: auto;
+      border-radius: var(--radius); padding: 26px 18px; overflow-x: auto;
+      box-shadow: var(--shadow-sm);
     }
     .diagram-box svg { display: block; margin: 0 auto; }
 
@@ -105,22 +123,24 @@
       color: var(--purple); font-weight: 700; font-size: .82rem;
       display: flex; align-items: center; justify-content: center;
     }
-    .step-body { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 11px 15px; }
-    .step-body strong { color: var(--text); font-size: .88rem; display: block; margin-bottom: 2px; }
-    .step-body span { color: var(--dim); font-size: .82rem; }
+    .step-body { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+    .step-body strong { color: var(--text); font-size: .89rem; display: block; margin-bottom: 3px; }
+    .step-body span { color: var(--text2); font-size: .83rem; }
 
     /* CODE */
     pre {
-      background: #090d13; border: 1px solid var(--border); border-radius: 10px;
-      padding: 18px; overflow-x: auto; font-size: .78rem; line-height: 1.65;
+      background: #0a0e14; border: 1px solid var(--border); border-radius: 11px;
+      padding: 20px; overflow-x: auto; font-size: .8rem; line-height: 1.72;
     }
     code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
     .kw { color: #c792ea; } .fn { color: #82aaff; } .str { color: #c3e88d; }
     .cm { color: #4a5a6a; font-style: italic; } .cls { color: #ffcb6b; }
 
     /* COMPARISON TABLE */
-    .cmp-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 22px; }
+    .cmp-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 22px; box-shadow: var(--shadow-sm); }
     .cmp-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    .cmp-table tbody tr { transition: background .15s ease; }
+    .cmp-table tbody tr:hover { background: rgba(255,255,255,.018); }
     .cmp-table th { padding: 12px 16px; text-align: left; font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; }
     .cmp-table th:first-child { color: var(--dim); width: 22%; }
     .cmp-table th.lc { color: var(--orange); background: var(--orange-bg); width: 39%; }
@@ -136,10 +156,11 @@
 
     /* HIGHLIGHT */
     .highlight {
-      background: linear-gradient(135deg, rgba(167,139,250,.06), rgba(52,211,153,.04));
-      border: 1px solid rgba(167,139,250,.22); border-radius: 12px; padding: 18px 22px;
+      background: linear-gradient(135deg, rgba(167,139,250,.08), rgba(52,211,153,.04));
+      border: 1px solid rgba(167,139,250,.22); border-left: 3px solid var(--purple);
+      border-radius: 12px; padding: 18px 22px;
     }
-    .highlight p { color: var(--text); margin: 0; font-size: .9rem; }
+    .highlight p { color: var(--text); margin: 0; font-size: .92rem; line-height: 1.72; }
     .highlight a { color: var(--teal); text-decoration: none; font-weight: 600; }
     .highlight a:hover { text-decoration: underline; }
 
@@ -306,7 +327,7 @@
       ReAct ở trên là <strong style="color:var(--text)">một</strong> agent tự lặp. Khi bài toán cần
       <strong style="color:var(--text)">nhiều agent chuyên biệt</strong>, ta đặt một
       <strong style="color:var(--purple)">Supervisor</strong> ở trung tâm: nó đọc State, quyết định
-      <em>worker nào</em> xử lý tiếp (set <code style="color:#82aaff">state["next"]</code>), worker chạy xong
+      <em>agent nào</em> xử lý tiếp (set <code style="color:#82aaff">state["next"]</code>), agent chạy xong
       trả kết quả về qua shared State, rồi Supervisor lại quyết định — cho đến khi <code style="color:#c3e88d">FINISH</code>.
     </p>
 
@@ -328,7 +349,7 @@
         <!-- SUPERVISOR NODE -->
         <rect x="235" y="88" width="310" height="66" rx="14" fill="#1a1635" stroke="#a78bfa" stroke-width="2.5"/>
         <text x="390" y="118" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">🧭  Supervisor  (Router LLM)</text>
-        <text x="390" y="141" text-anchor="middle" fill="#7060aa" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Đọc State → chọn worker → set state["next"]</text>
+        <text x="390" y="141" text-anchor="middle" fill="#7060aa" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Đọc State → chọn agent → set state["next"]</text>
 
         <!-- Supervisor → END (FINISH) -->
         <line x1="545" y1="121" x2="598" y2="121" stroke="#f87171" stroke-width="2" marker-end="url(#sp-r)"/>
@@ -340,54 +361,54 @@
         <rect x="300" y="166" width="180" height="24" rx="6" fill="rgba(167,139,250,.06)" stroke="#30363d" stroke-width="1" stroke-dasharray="3 2"/>
         <text x="390" y="182" text-anchor="middle" fill="#5a5080" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">⚡ route theo state["next"]</text>
 
-        <!-- Supervisor → Workers (3 routing arrows) -->
+        <!-- Supervisor → Agents (3 routing arrows) -->
         <line x1="340" y1="154" x2="150" y2="248" stroke="#a78bfa" stroke-width="2" marker-end="url(#sp-p)"/>
         <line x1="390" y1="154" x2="390" y2="248" stroke="#a78bfa" stroke-width="2" marker-end="url(#sp-p)"/>
         <line x1="440" y1="154" x2="632" y2="248" stroke="#a78bfa" stroke-width="2" marker-end="url(#sp-p)"/>
 
-        <!-- WORKER A -->
+        <!-- AGENT A -->
         <rect x="48" y="250" width="200" height="66" rx="13" fill="#1a1405" stroke="#fb923c" stroke-width="2"/>
         <text x="148" y="280" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="13.5" font-weight="700">🤖  Agent 1</text>
         <text x="148" y="301" text-anchor="middle" fill="#7a5515" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: financial_agent</text>
 
-        <!-- WORKER B -->
+        <!-- AGENT B -->
         <rect x="290" y="250" width="200" height="66" rx="13" fill="#0c1f16" stroke="#34d399" stroke-width="2"/>
         <text x="390" y="280" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="13.5" font-weight="700">🤖  Agent 2</text>
         <text x="390" y="301" text-anchor="middle" fill="#1c5740" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: data_analyst</text>
 
-        <!-- WORKER C -->
+        <!-- AGENT C -->
         <rect x="532" y="250" width="200" height="66" rx="13" fill="#0e1726" stroke="#60a5fa" stroke-width="2"/>
         <text x="632" y="280" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI,system-ui,sans-serif" font-size="13.5" font-weight="700">🤖  Agent 3</text>
         <text x="632" y="301" text-anchor="middle" fill="#2a4a72" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: general_agent</text>
 
-        <!-- Return bus: workers → shared state → Supervisor -->
+        <!-- Return bus: agents → shared state → Supervisor -->
         <line x1="148" y1="316" x2="148" y2="360" stroke="#34d399" stroke-width="2"/>
         <line x1="390" y1="316" x2="390" y2="360" stroke="#34d399" stroke-width="2"/>
         <line x1="632" y1="316" x2="632" y2="360" stroke="#34d399" stroke-width="2"/>
         <line x1="632" y1="360" x2="20" y2="360" stroke="#34d399" stroke-width="2"/>
         <line x1="20" y1="360" x2="20" y2="121" stroke="#34d399" stroke-width="2"/>
         <line x1="20" y1="121" x2="233" y2="121" stroke="#34d399" stroke-width="2" marker-end="url(#sp-g)"/>
-        <text x="396" y="379" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="500">Worker xong → kết quả vào shared State → Supervisor quyết định lại</text>
+        <text x="396" y="379" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="500">Agent xong → kết quả vào shared State → Supervisor quyết định lại</text>
 
         <!-- State annotation -->
         <rect x="205" y="398" width="370" height="46" rx="8" fill="rgba(96,165,250,.04)" stroke="rgba(96,165,250,.12)" stroke-width="1" stroke-dasharray="4 2"/>
         <text x="390" y="417" text-anchor="middle" fill="#3a5070" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 SHARED STATE (mọi node đọc/ghi)</text>
-        <text x="390" y="434" text-anchor="middle" fill="#2a4060" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages  ·  next  ·  kết quả của worker</text>
+        <text x="390" y="434" text-anchor="middle" fill="#2a4060" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages  ·  next  ·  kết quả của agent</text>
       </svg>
     </div>
 
     <div class="steps">
-      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>Supervisor nhận request</strong><span>Đọc các message gần nhất trong State, dùng <strong style="color:var(--text)">structured tool calling</strong> để chọn worker.</span></div></div>
+      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>Supervisor nhận request</strong><span>Đọc các message gần nhất trong State, dùng <strong style="color:var(--text)">structured tool calling</strong> để chọn agent.</span></div></div>
       <div class="step"><div class="step-n">2</div><div class="step-body"><strong>Conditional edge route</strong><span>Dựa trên <code style="color:#82aaff">state["next"]</code> → đi tới Agent tương ứng. Nếu xong việc → <code style="color:#fb923c">FINISH</code> → END.</span></div></div>
-      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Worker xử lý</strong><span>Agent chuyên biệt chạy (có thể tự là một ReAct loop riêng), ghi kết quả vào shared State.</span></div></div>
-      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Quay lại Supervisor</strong><span>Worker trả về Supervisor để điều phối bước tiếp theo — lặp đến khi Supervisor chọn FINISH.</span></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Agent xử lý</strong><span>Agent chuyên biệt chạy (có thể tự là một ReAct loop riêng), ghi kết quả vào shared State.</span></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Quay lại Supervisor</strong><span>Agent trả về Supervisor để điều phối bước tiếp theo — lặp đến khi Supervisor chọn FINISH.</span></div></div>
     </div>
 
     <div class="highlight" style="margin-top:22px">
       <p>
         💡 Sơ đồ trên là <strong>generic</strong>. App này <strong>tự viết tay</strong> Supervisor (node
         <code style="color:#82aaff">bind_tools(RouterResponse)</code>) thay vì dùng thư viện
-        <code style="color:#c3e88d">langgraph-supervisor</code>. Xem chi tiết cụ thể với 3 worker thật ở
+        <code style="color:#c3e88d">langgraph-supervisor</code>. Xem chi tiết cụ thể với 3 agent thật ở
         <a href="supervisor_pattern_explained.html">Supervisor Pattern →</a> và
         <a href="langgraph_in_expense_tracker.html">Phần 2 →</a>.
       </p>
@@ -593,7 +614,7 @@ graph = builder.compile(checkpointer=memory)
       <strong>🏗️ Tiếp theo:</strong>
       Xem <a href="langgraph_in_expense_tracker.html">Phần 2 →</a>
       để hiểu cách Expense Tracker áp dụng LangGraph thực tế:
-      Supervisor + 3 agent + 7 tool + PostgreSQL checkpointing — wiring ở <code style="color:#fb923c">graph.py</code>, node/prompt/util tách riêng.
+      Supervisor + 3 agent + clarification/resume + 8 tool + PostgreSQL checkpointing — wiring ở <code style="color:#fb923c">graph.py</code>, còn node/prompt/state/util tách riêng.
     </p>
   </div>
 

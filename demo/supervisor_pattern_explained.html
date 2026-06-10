@@ -178,8 +178,8 @@
         <p><strong>Supervisor Pattern</strong> là kiến trúc multi-agent trong đó:</p>
         <ul>
             <li>🎯 <strong>1 Supervisor node:</strong> Node trung tâm phân tích request và routing</li>
-            <li>👷 <strong>N Worker agents:</strong> Các agent chuyên biệt xử lý từng loại task</li>
-            <li>🔄 <strong>Cyclic flow:</strong> Workers hoàn thành → về Supervisor → routing tiếp (nếu cần)</li>
+            <li>👷 <strong>N Agents:</strong> Các agent chuyên biệt xử lý từng loại task</li>
+            <li>🔄 <strong>Cyclic flow:</strong> Agents hoàn thành → về Supervisor → routing tiếp (nếu cần)</li>
         </ul>
 
         <div class="info">
@@ -278,7 +278,7 @@
         </div>
     </div>
 
-    <h2>👷 4. Worker Agents</h2>
+    <h2>👷 4. Agents</h2>
 
     <table>
         <thead>
@@ -453,7 +453,7 @@ workflow.add_conditional_edges(
         }
     )
     
-    <span class="comment"># ── Workers về Supervisor ────────────</span>
+    <span class="comment"># ── Agents về Supervisor ────────────</span>
     workflow.add_edge(<span class="string">"data_analyst"</span>, <span class="string">"supervisor"</span>)
     workflow.add_edge(<span class="string">"general_agent"</span>, <span class="string">"supervisor"</span>)
     <span class="comment"># financial_agent có conditional edge phức tạp hơn</span>
@@ -465,8 +465,8 @@ workflow.add_conditional_edges(
             <strong>✅ Pattern Core:</strong>
             <ul>
                 <li><span class="highlight">Entry point = supervisor</span></li>
-                <li><span class="highlight">Conditional edge từ supervisor</span> routing đến workers</li>
-                <li><span class="highlight">Workers return về supervisor</span> (hoặc END)</li>
+                <li><span class="highlight">Conditional edge từ supervisor</span> routing đến agents</li>
+                <li><span class="highlight">Agents return về supervisor</span> (hoặc END)</li>
                 <li><span class="highlight">Cyclic flow</span> cho phép multi-turn conversation</li>
             </ul>
         </div>
@@ -609,14 +609,14 @@ Supervisor ┼─ Agent B
             <tbody>
                 <tr>
                     <td><strong>Supervisor Pattern</strong></td>
-                    <td>1 supervisor + N workers, dynamic routing</td>
+                    <td>1 supervisor + N agents, dynamic routing</td>
                 </tr>
                 <tr>
                     <td><strong>Supervisor Node</strong></td>
                     <td>Phân tích request, set <code>state["next"]</code>, routing</td>
                 </tr>
                 <tr>
-                    <td><strong>Worker Agents</strong></td>
+                    <td><strong>Agents</strong></td>
                     <td>Chuyên môn cao, xử lý task cụ thể</td>
                 </tr>
                 <tr>
@@ -625,7 +625,7 @@ Supervisor ┼─ Agent B
                 </tr>
                 <tr>
                     <td><strong>Cyclic Flow</strong></td>
-                    <td>Workers → Supervisor → Workers... (multi-turn)</td>
+                    <td>Agents → Supervisor → Agents... (multi-turn)</td>
                 </tr>
                 <tr>
                     <td><strong>Entry Point</strong></td>
@@ -643,17 +643,17 @@ Supervisor ┼─ Agent B
 
 <span class="comment"># 1. Supervisor quyết định routing</span>
 <span class="keyword">def</span> <span class="function">supervisor</span>(state):
-    <span class="keyword">return</span> {<span class="string">"next"</span>: <span class="string">"worker_a"</span>}  <span class="comment"># hoặc worker_b, FINISH...</span>
+    <span class="keyword">return</span> {<span class="string">"next"</span>: <span class="string">"agent_a"</span>}  <span class="comment"># hoặc agent_b, FINISH...</span>
 
 <span class="comment"># 2. Conditional edge đọc state["next"]</span>
 workflow.add_conditional_edges(
     <span class="string">"supervisor"</span>,
     <span class="keyword">lambda</span> state: state[<span class="string">"next"</span>],
-    {<span class="string">"worker_a"</span>: <span class="string">"worker_a"</span>, <span class="string">"FINISH"</span>: END}
+    {<span class="string">"agent_a"</span>: <span class="string">"agent_a"</span>, <span class="string">"FINISH"</span>: END}
 )
 
-<span class="comment"># 3. Workers về supervisor</span>
-workflow.add_edge(<span class="string">"worker_a"</span>, <span class="string">"supervisor"</span>)
+<span class="comment"># 3. Agents về supervisor</span>
+workflow.add_edge(<span class="string">"agent_a"</span>, <span class="string">"supervisor"</span>)
         </div>
     </div>
 
