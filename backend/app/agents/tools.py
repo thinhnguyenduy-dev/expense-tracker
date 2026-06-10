@@ -1,13 +1,22 @@
-from typing import List, Optional
-from langchain_core.tools import tool
-from sqlalchemy import func
+import calendar
+from typing import Optional
 from datetime import date, timedelta
+
+from langchain_core.tools import tool
+from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
+from sqlalchemy import func
+
 from app.core.database import SessionLocal
 from app.core.budget_service import BudgetService
 from app.models.category import Category
 from app.models.expense import Expense
 from app.models.income import Income
-from app.schemas.ai import BudgetCheckResult
+
+
+def get_search_tool() -> DuckDuckGoSearchRun:
+    """Shared DuckDuckGo search tool (reused by the analyst agent too)."""
+    return DuckDuckGoSearchRun()
+
 
 def make_tools(user_id: int):
     """
@@ -170,7 +179,6 @@ def make_tools(user_id: int):
         """
         db = SessionLocal()
         try:
-            import calendar
             today = date.today()
             
             target_year = year if year else today.year
@@ -214,8 +222,7 @@ def make_tools(user_id: int):
         Use this tool EXACTLY when you need to find current exchange rates (e.g., '1000 USD to VND exchange rate today') 
         or other real-time financial data before submitting a draft expense or income.
         """
-        from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
-        search = DuckDuckGoSearchRun()
+        search = get_search_tool()
         try:
             return search.invoke(query)
         except Exception as e:
