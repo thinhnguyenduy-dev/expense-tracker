@@ -104,7 +104,7 @@ const ToolCallTrace = memo(({ calls }: { calls: ToolCall[] }) => {
                 className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             >
                 <Search className="h-3 w-3" />
-                Đã chạy {calls.length} truy vấn
+                Tool calls ({calls.length})
                 <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
             </button>
             {open && (
