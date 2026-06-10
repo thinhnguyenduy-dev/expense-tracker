@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict, Annotated
+from typing import Any, Dict, List, Optional, TypedDict, Annotated
 import operator
 from langchain_core.messages import BaseMessage
 
@@ -14,3 +14,8 @@ class AgentState(TypedDict, total=False):
 
     # Supervisor routing decision.
     next: Optional[str]
+
+    # The data_analyst's tool/SQL trace for the CURRENT turn, surfaced separately
+    # from `messages` so it can be shown in the UI without bloating the shared
+    # history. Reset to None at the start of each turn (see ai.py). Override field.
+    analyst_trace: Optional[List[Dict[str, Any]]]

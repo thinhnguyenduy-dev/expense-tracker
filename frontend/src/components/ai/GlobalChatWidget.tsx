@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2, SquarePen } from "lucide-react";
+import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2, SquarePen, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,10 +18,13 @@ import { usePathname } from "next/navigation";
 import React, { memo } from "react";
 
 // Define Conversation Message Type
+type ToolCall = { name: string; args: unknown; result?: string };
+
 type Message = {
     role: "user" | "agent";
     content: string;
     isError?: boolean;
+    toolCalls?: ToolCall[];
 };
 
 type ExpenseDraft = {
@@ -71,6 +74,63 @@ function renderMarkdown(text: string): React.ReactNode {
     return <>{nodes}</>;
 }
 
+// Compactly stringify a tool's args, e.g. {query: "SELECT ..."} → SELECT ...
+function formatToolArgs(args: unknown): string {
+    if (args == null) return "";
+    if (typeof args === "string") return args;
+    if (typeof args === "object") {
+        try {
+            return Object.values(args as Record<string, unknown>)
+                .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+                .join(", ");
+        } catch {
+            return String(args);
+        }
+    }
+    return String(args);
+}
+
+// Collapsible "what the agent did" panel — shows SQL queries / tool calls and
+// their results. Populated from ChatResponse.tool_calls (e.g. the data_analyst's
+// SQL trace when ANALYST_OUTPUT_MODE=full_history).
+const ToolCallTrace = memo(({ calls }: { calls: ToolCall[] }) => {
+    const [open, setOpen] = useState(false);
+    if (!calls?.length) return null;
+    return (
+        <div className="mt-2 border-t border-gray-100 dark:border-gray-700 pt-1.5">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+                <Search className="h-3 w-3" />
+                Đã chạy {calls.length} truy vấn
+                <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+            </button>
+            {open && (
+                <div className="mt-1.5 space-y-1.5">
+                    {calls.map((c, i) => (
+                        <div
+                            key={i}
+                            className="rounded-md bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 p-2"
+                        >
+                            <div className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400 break-all">
+                                {c.name}({formatToolArgs(c.args)})
+                            </div>
+                            {c.result && (
+                                <div className="mt-1 font-mono text-[11px] text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all line-clamp-6">
+                                    → {c.result}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+});
+ToolCallTrace.displayName = "ToolCallTrace";
+
 const ChatMessageItem = memo(({ msg, onRetry }: { msg: Message; onRetry?: () => void }) => {
     return (
         <div className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
@@ -84,6 +144,7 @@ const ChatMessageItem = memo(({ msg, onRetry }: { msg: Message; onRetry?: () => 
                 {msg.role === "agent" && !msg.isError ? (
                     <div className="text-gray-800 dark:text-gray-200">
                         {renderMarkdown(msg.content)}
+                        {msg.toolCalls && <ToolCallTrace calls={msg.toolCalls} />}
                     </div>
                 ) : (
                     <div className="space-y-1">
@@ -230,8 +291,8 @@ export function GlobalChatWidget() {
             localStorage.setItem("ai_thread_id", data.thread_id);
         }
 
-        // Add agent response
-        setConversation(prev => [...prev, { role: "agent", content: data.response }]);
+        // Add agent response (with the agent's tool/SQL trace, if any)
+        setConversation(prev => [...prev, { role: "agent", content: data.response, toolCalls: data.tool_calls }]);
 
         // The AI needs more info — keep the input in "answer the question" mode
         // so the next message is sent with is_resume=true.

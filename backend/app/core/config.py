@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List, Optional
+from typing import List, Literal, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -62,7 +62,13 @@ class Settings(BaseSettings):
     
     ANTHROPIC_API_KEY: Optional[str] = None
     ANTHROPIC_MODEL_NAME: str = "claude-3-sonnet-20240229"
-    
+
+    # How much of the data_analyst (ReAct subgraph) message history to merge back
+    # into the supervisor's shared state:
+    #   "last_message"  → only the analyst's final answer (clean history, fewer tokens)
+    #   "full_history"  → all messages the analyst produced (full SQL tool-call trace)
+    ANALYST_OUTPUT_MODE: Literal["last_message", "full_history"] = "last_message"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

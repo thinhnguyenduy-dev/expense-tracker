@@ -137,6 +137,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "user_currency": user_currency,
                 "categories": category_list,  # Pass categories to agents
                 "is_resume": is_resume,
+                "analyst_output_mode": settings.ANALYST_OUTPUT_MODE,
             },
             "callbacks": [AILoggingCallbackHandler()],
             "recursion_limit": 12
@@ -149,9 +150,13 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 input_state = {
                     "messages": [HumanMessage(content=message)],
                     "clarification_needed": None,
+                    "analyst_trace": None,  # clear last turn's trace
                 }
             else:
-                input_state = {"messages": [HumanMessage(content=message)]}
+                input_state = {
+                    "messages": [HumanMessage(content=message)],
+                    "analyst_trace": None,  # clear last turn's trace
+                }
 
             final_state = await graph.ainvoke(input_state, config=config)
 
@@ -238,6 +243,14 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                             })
                             is_completed = True
                         del pending_expense_tool_calls[call_id]
+
+            # Surface the data_analyst's SQL/search trace. In last_message mode it is
+            # captured separately (not in `messages`), so merge it into tool_calls here.
+            # In full_history mode it is already in `messages` and captured by the scan
+            # above, and analyst_trace is empty — so no double counting.
+            analyst_trace = final_state.get("analyst_trace") or []
+            if analyst_trace:
+                tool_calls_log.extend(analyst_trace)
 
             # Normalise: single expense keeps backward-compat shape; multi returns list
             if len(expense_list) == 1:

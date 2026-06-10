@@ -136,7 +136,7 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
         return {"messages": [response], "clarification_needed": question}
 
     # ── Normal / resume mode ──────────────────────────────────────────────────
-    tools = make_tools(user_id)
+    tools = make_tools(user_id, user_currency)
     logger.debug("Binding tools...")
     model = get_llm(temperature=0).bind_tools(tools)
 
@@ -170,8 +170,10 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
 
 def financial_tools_node(state: AgentState, config: RunnableConfig):
     """Execute financial tool calls, surfacing clarification questions into state."""
-    user_id = config.get("configurable", {}).get("user_id")
-    tools = make_tools(user_id)
+    cfg = config.get("configurable", {})
+    user_id = cfg.get("user_id")
+    user_currency = cfg.get("user_currency", "VND")
+    tools = make_tools(user_id, user_currency)
     node = ToolNode(tools)
     result = node.invoke(state, config)
 
@@ -195,15 +197,60 @@ def clarification_node(state: AgentState):
     return {}  # state already has clarification_needed set by financial_tools_node
 
 
-async def data_analyst_node(state: AgentState):
-    """Delegate analytics/aggregation queries to the ReAct analyst agent."""
-    analyst_agent = get_analyst_agent()
+def _extract_tool_trace(messages) -> list[dict]:
+    """Build [{name, args, result}] from a run of AI(tool_calls)/Tool messages.
+
+    Used to surface the analyst's SQL/search trace to the UI when running in
+    last_message mode (where those messages don't enter the shared `messages`).
+    """
+    trace: list[dict] = []
+    pending: dict[str, dict] = {}  # tool_call_id → entry awaiting its result
+    for m in messages:
+        if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
+            for tc in m.tool_calls:
+                entry = {"name": tc.get("name"), "args": tc.get("args")}
+                trace.append(entry)
+                if tc.get("id"):
+                    pending[tc["id"]] = entry
+        elif isinstance(m, ToolMessage):
+            cid = getattr(m, "tool_call_id", None)
+            if cid in pending:
+                pending[cid]["result"] = str(m.content)
+    return trace
+
+
+async def data_analyst_node(state: AgentState, config: RunnableConfig):
+    """Delegate analytics/aggregation queries to the ReAct analyst agent.
+
+    The analyst is a ReAct subgraph that emits a whole AI/Tool/AI/Tool chain
+    while running SQL. `analyst_output_mode` controls how much of that chain is
+    merged back into the supervisor's shared state:
+      - "last_message" (default): only the analyst's final answer — clean history.
+      - "full_history": every message the analyst produced — full SQL trace.
+    """
+    cfg = config.get("configurable", {})
+    output_mode = cfg.get("analyst_output_mode", "last_message")
+
+    analyst_agent = get_analyst_agent(today=str(_date.today()), user_id=cfg.get("user_id"))
     response = await analyst_agent.ainvoke(state)
 
     new_messages = response["messages"]
-    if new_messages:
-        return {"messages": [new_messages[-1]]}
-    return {}
+    if not new_messages:
+        return {}
+
+    if output_mode == "full_history":
+        # create_react_agent returns prior history + new messages. Slice off the
+        # messages the supervisor already has, otherwise operator.add duplicates them.
+        already_seen = len(state["messages"])
+        merged = new_messages[already_seen:]
+        logger.debug(f"data_analyst output_mode=full_history → merging {len(merged)} messages back")
+        return {"messages": merged}
+
+    # last_message: keep shared history clean (only the final answer), but capture
+    # the analyst's tool/SQL trace separately so the UI can still display it.
+    trace = _extract_tool_trace(new_messages[len(state["messages"]):])
+    logger.debug(f"data_analyst output_mode=last_message → merging 1 message, trace={len(trace)} tool calls")
+    return {"messages": [new_messages[-1]], "analyst_trace": trace}
 
 
 def general_agent_node(state: AgentState, config: RunnableConfig):

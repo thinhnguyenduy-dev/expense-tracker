@@ -18,11 +18,23 @@ def get_search_tool() -> DuckDuckGoSearchRun:
     return DuckDuckGoSearchRun()
 
 
-def make_tools(user_id: int):
+def _fmt_money(amount: float, currency: str) -> str:
+    """Format an amount in the user's currency.
+
+    VND (and other zero-decimal currencies) read better without cents;
+    everything else keeps two decimals. Currency code is appended so the
+    agent never invents a symbol like '$' for a VND user.
+    """
+    if currency in ("VND", "JPY", "KRW"):
+        return f"{amount:,.0f} {currency}"
+    return f"{amount:,.2f} {currency}"
+
+
+def make_tools(user_id: int, user_currency: str = "VND"):
     """
     Factory validation to create tools bound to a specific user.
     """
-    
+
     @tool
     def check_budget_tool(category_name: str, amount: float) -> str:
         """
@@ -56,11 +68,11 @@ def make_tools(user_id: int):
             
             if new_remaining < 0:
                 return (
-                    f"⚠️ BUDGET ALERT: Spending ${amount} on '{category.name}' will exceed the budget by ${abs(new_remaining):.2f}. "
-                    f"Remaining: ${remaining:.2f}, Limit: ${cat_status['limit']:.2f}."
+                    f"⚠️ BUDGET ALERT: Spending {_fmt_money(amount, user_currency)} on '{category.name}' will exceed the budget by {_fmt_money(abs(new_remaining), user_currency)}. "
+                    f"Remaining: {_fmt_money(remaining, user_currency)}, Limit: {_fmt_money(cat_status['limit'], user_currency)}."
                 )
             else:
-                return f"✅ Budget Safe: You have ${remaining:.2f} remaining in '{category.name}'. After this, you will have ${new_remaining:.2f}."
+                return f"✅ Budget Safe: You have {_fmt_money(remaining, user_currency)} remaining in '{category.name}'. After this, you will have {_fmt_money(new_remaining, user_currency)}."
                 
         finally:
             db.close()
@@ -82,7 +94,7 @@ def make_tools(user_id: int):
             if not expenses:
                 return f"No expenses found in the last {days} days."
             
-            summary = [f"- {e.date}: {e.description} (${e.amount}) [{e.category.name if e.category else 'No Category'}]" for e in expenses]
+            summary = [f"- {e.date}: {e.description} ({_fmt_money(e.amount, user_currency)}) [{e.category.name if e.category else 'No Category'}]" for e in expenses]
             return "\n".join(summary)
         finally:
             db.close()
@@ -104,7 +116,7 @@ def make_tools(user_id: int):
             if not incomes:
                 return f"No incomes found in the last {days} days."
             
-            summary = [f"- {i.date}: {i.source} (+${i.amount})" for i in incomes]
+            summary = [f"- {i.date}: {i.source} (+{_fmt_money(i.amount, user_currency)})" for i in incomes]
             return "\n".join(summary)
         finally:
             db.close()
@@ -205,11 +217,11 @@ def make_tools(user_id: int):
                 Expense.date <= last_day
             ).group_by(Category.name).all()
             
-            breakdown = "\n".join([f"- {name}: ${total:,.2f}" for name, total in cat_stats]) if cat_stats else "- No expenses recorded."
-            
+            breakdown = "\n".join([f"- {name}: {_fmt_money(total, user_currency)}" for name, total in cat_stats]) if cat_stats else "- No expenses recorded."
+
             return (
                 f"📊 **Monthly Summary ({first_day.strftime('%B %Y')})**\n"
-                f"**Total Spent:** ${total_spent:,.2f}\n\n"
+                f"**Total Spent:** {_fmt_money(total_spent, user_currency)}\n\n"
                 f"**Breakdown by Category:**\n{breakdown}"
             )
         finally:

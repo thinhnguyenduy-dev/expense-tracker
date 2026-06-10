@@ -386,6 +386,87 @@
         <p style="font-size:.85rem">Là LangGraph's <code style="color:#82aaff">ToolNode</code> — tự động nhìn vào <code style="color:#82aaff">AIMessage.tool_calls</code>, tìm đúng tool function và thực thi, ghi kết quả vào State dưới dạng <code style="color:#82aaff">ToolMessage</code>. Sau đó luôn quay về <code style="color:#fb923c">financial_agent</code> để LLM đọc kết quả.</p>
       </div>
     </div>
+
+    <!-- last_message vs full_history -->
+    <h3 style="font-size:1.05rem;font-weight:700;color:var(--text);margin:30px 0 6px">🧹 data_analyst trả về gì cho Supervisor? — <code style="color:#82aaff">last_message</code> vs <code style="color:#82aaff">full_history</code></h3>
+    <p style="margin-bottom:16px">
+      <code style="color:#82aaff">data_analyst</code> là một <strong style="color:var(--text)">ReAct subgraph riêng</strong>: khi chạy nó tự sinh ra
+      cả chuỗi <code style="color:#60a5fa">AI → Tool → AI → Tool</code> (mỗi vòng truy vấn SQL). Câu hỏi thiết kế:
+      đẩy <em>toàn bộ</em> chuỗi đó về shared State (<code style="color:#82aaff">full_history</code>),
+      hay chỉ đẩy <em>message cuối</em> (<code style="color:#82aaff">last_message</code>)? App này chọn <code style="color:#82aaff">last_message</code>.
+    </p>
+
+    <div class="diagram-box" style="margin-bottom:16px">
+      <svg viewBox="0 0 900 492" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; min-height:320px">
+        <defs>
+          <marker id="lm-r" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#f87171"/></marker>
+          <marker id="lm-t" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#34d399"/></marker>
+        </defs>
+
+        <!-- ANALYST subgraph (top center) -->
+        <rect x="340" y="16" width="220" height="56" rx="13" fill="#0e1726" stroke="#60a5fa" stroke-width="2"/>
+        <text x="450" y="40" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">📊  data_analyst (ReAct subgraph)</text>
+        <text x="450" y="59" text-anchor="middle" fill="#2a4a72" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">tự chạy SQL nhiều vòng</text>
+
+        <!-- internal messages it produced -->
+        <text x="450" y="92" text-anchor="middle" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">messages analyst sinh ra (nội bộ):</text>
+        <g font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="600" text-anchor="middle">
+          <rect x="296" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="324" y="115" fill="#60a5fa">AI</text>
+          <rect x="358" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="386" y="115" fill="#60a5fa">Tool</text>
+          <rect x="420" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="448" y="115" fill="#60a5fa">AI</text>
+          <rect x="482" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="510" y="115" fill="#60a5fa">Tool</text>
+          <rect x="544" y="100" width="60" height="22" rx="5" fill="rgba(52,211,153,.12)" stroke="#34d399" stroke-width="1.5"/><text x="574" y="115" fill="#34d399">AI cuối</text>
+        </g>
+
+        <!-- branch arrows -->
+        <line x1="320" y1="128" x2="200" y2="176" stroke="#f87171" stroke-width="2" marker-end="url(#lm-r)"/>
+        <text x="206" y="150" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="600">return TẤT CẢ</text>
+        <line x1="600" y1="128" x2="710" y2="176" stroke="#34d399" stroke-width="2" marker-end="url(#lm-t)"/>
+        <text x="706" y="150" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="600">return [-1]</text>
+
+        <!-- divider -->
+        <line x1="450" y1="140" x2="450" y2="476" stroke="#30363d" stroke-width="1" stroke-dasharray="4 3"/>
+
+        <!-- ❌ LEFT: full_history -->
+        <text x="210" y="194" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">❌  full_history</text>
+        <rect x="34" y="204" width="352" height="240" rx="12" fill="#161b22" stroke="rgba(248,113,113,.4)" stroke-width="1.5"/>
+        <text x="210" y="224" text-anchor="middle" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Supervisor history thấy:</text>
+        <g font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" text-anchor="middle">
+          <rect x="60" y="232" width="300" height="22" rx="5" fill="#21262d" stroke="#30363d" stroke-width="1"/><text x="210" y="247" fill="#8b949e">Human — "tổng chi tháng này?"</text>
+          <rect x="60" y="258" width="300" height="22" rx="5" fill="rgba(167,139,250,.08)" stroke="rgba(167,139,250,.4)" stroke-width="1"/><text x="210" y="273" fill="#a78bfa">AI — route → data_analyst</text>
+          <rect x="60" y="284" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="299" fill="#60a5fa">AI — sql_db_query(...)</text>
+          <rect x="60" y="310" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="325" fill="#60a5fa">Tool — [rows...]</text>
+          <rect x="60" y="336" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="351" fill="#60a5fa">AI — sql_db_query(...)</text>
+          <rect x="60" y="362" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="377" fill="#60a5fa">Tool — [rows...]</text>
+          <rect x="60" y="388" width="300" height="22" rx="5" fill="rgba(52,211,153,.1)" stroke="#34d399" stroke-width="1"/><text x="210" y="403" fill="#34d399">AI — "Tổng chi: 4.2tr"</text>
+        </g>
+        <text x="210" y="430" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="10">phình to — lẫn cả tool-call SQL nội bộ</text>
+
+        <!-- ✅ RIGHT: last_message -->
+        <text x="690" y="194" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">✅  last_message — app dùng</text>
+        <rect x="514" y="204" width="352" height="240" rx="12" fill="#161b22" stroke="rgba(52,211,153,.4)" stroke-width="1.5"/>
+        <text x="690" y="224" text-anchor="middle" fill="#8b949e" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Supervisor history thấy:</text>
+        <g font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" text-anchor="middle">
+          <rect x="540" y="232" width="300" height="22" rx="5" fill="#21262d" stroke="#30363d" stroke-width="1"/><text x="690" y="247" fill="#8b949e">Human — "tổng chi tháng này?"</text>
+          <rect x="540" y="258" width="300" height="22" rx="5" fill="rgba(167,139,250,.08)" stroke="rgba(167,139,250,.4)" stroke-width="1"/><text x="690" y="273" fill="#a78bfa">AI — route → data_analyst</text>
+          <rect x="540" y="284" width="300" height="22" rx="5" fill="rgba(52,211,153,.12)" stroke="#34d399" stroke-width="1.4"/><text x="690" y="299" fill="#34d399">AI — "Tổng chi: 4.2tr"</text>
+        </g>
+        <text x="690" y="330" text-anchor="middle" fill="#4a5a6a" font-family="JetBrains Mono,monospace" font-size="10">return {"messages": [new_messages[-1]]}</text>
+        <text x="690" y="360" text-anchor="middle" fill="#5a6570" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">↑ chuỗi AI/Tool nội bộ của analyst bị bỏ</text>
+        <text x="690" y="430" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10">history sạch — chỉ kết quả cuối</text>
+      </svg>
+    </div>
+
+    <div class="highlight">
+      <p>
+        💡 App chọn <code style="color:#82aaff">last_message</code> trong <code style="color:#fb923c">data_analyst_node</code>
+        (<code style="color:#82aaff">return {"messages": [new_messages[-1]]}</code>) để Supervisor không bị ngập trong
+        các tool-call SQL nội bộ — vừa gọn context, vừa rẻ token. Đánh đổi: mất khả năng truy vết chi tiết các bước
+        SQL ở history chung (nếu cần debug thì xem qua checkpoint của subgraph).
+        Thư viện <code style="color:#c3e88d">langgraph-supervisor</code> gọi 2 cách này là <code>output_mode="last_message"</code> /
+        <code>"full_history"</code>; app tự implement nên chỉ là chuyện lấy <code>[-1]</code> hay cả list.
+      </p>
+    </div>
   </section>
 
   <!-- ══ 3. 8 TOOLS ══ -->
