@@ -222,7 +222,7 @@
       <p>
         Graph trong app dùng <strong style="color:var(--text)">Supervisor Pattern</strong>:
         một node trung tâm phân tích câu hỏi và phân công cho agent chuyên biệt.
-        Toàn bộ flow được định nghĩa trong <code style="color:#fb923c">backend/app/agents/graph.py</code>.
+        Wiring của graph nằm trong <code style="color:#fb923c">backend/app/agents/graph.py</code>; các node ở <code style="color:#fb923c">nodes.py</code>, prompt ở <code style="color:#fb923c">prompts.py</code>, helper xử lý message ở <code style="color:#fb923c">utils.py</code>.
       </p>
       <p style="margin-top:6px">
         Graph có <strong style="color:var(--teal)">5 nodes</strong>, mỗi node xử lý một loại tác vụ khác nhau.
@@ -390,7 +390,7 @@
 
   <!-- ══ 3. 8 TOOLS ══ -->
   <section>
-    <h2><span class="n">3</span> 8 Tools của Financial Agent</h2>
+    <h2><span class="n">3</span> 7 Tools của Financial Agent</h2>
     <p style="margin-bottom:18px">Tất cả được tạo qua factory <code style="color:#82aaff">make_tools(user_id)</code> trong <code style="color:#fb923c">backend/app/agents/tools.py</code>. Mỗi tool được bind với <code style="color:#82aaff">user_id</code> — đảm bảo data isolation.</p>
 
     <div class="tool-grid">
@@ -429,11 +429,10 @@
         <div class="tool-name">get_recent_incomes_tool</div>
         <div class="tool-desc">20 income gần nhất trong N ngày qua (default 30). Dùng khi user hỏi về thu nhập gần đây.</div>
       </div>
-      <div class="tool-card">
-        <span class="tool-tag" style="background:var(--purple-bg);color:var(--purple)">External</span>
-        <div class="tool-name">search_web_tool</div>
-        <div class="tool-desc">Tìm kiếm DuckDuckGo. Dùng khi cần tỷ giá thời gian thực hoặc thông tin tài chính bên ngoài.</div>
-      </div>
+    </div>
+
+    <div class="highlight" style="margin-top:18px">
+      <p><strong>🔁 Tỷ giá / web search:</strong> Financial agent <strong>không</strong> có tool search web. Quy đổi tiền tệ do <code style="color:#fb923c">ExchangeRateService</code> xử lý deterministic ở tầng API; còn tìm kiếm web (DuckDuckGo) là việc của <code style="color:#82aaff">data_analyst</code>.</p>
     </div>
 
     <div class="highlight" style="margin-top:18px">

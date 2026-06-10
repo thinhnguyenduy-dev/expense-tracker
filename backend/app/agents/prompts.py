@@ -78,7 +78,9 @@ ANALYST_SYSTEM_PROMPT = (
     "- If you cannot find the answer in the DB, consider using the Search tool if relevant (e.g. exchange rates).\n"
     "\n"
     "SEARCH INSTRUCTIONS:\n"
-    "- Use `duckduckgo_search` for current events, market data, or exchange rates.\n"
+    "- Use `duckduckgo_search` for current events and general market data.\n"
+    "- For currency conversion / exchange rates, the app already provides them via its own\n"
+    "  ExchangeRateService and `/rates/convert` endpoint — prefer those over scraping the web.\n"
     "\n"
     "When answering, be concise and data-driven.\n"
 )

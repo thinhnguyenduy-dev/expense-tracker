@@ -239,7 +239,7 @@ result = reduce(<span class="keyword">lambda</span> acc, x: acc + x, numbers, <s
     
     <span class="comment"># ❌ Không Reducer - Overwrite</span>
     next: <span class="type">Optional</span>[<span class="type">str</span>]
-    expense_data: <span class="type">Optional</span>[ExpenseExtraction]
+    clarification_needed: <span class="type">Optional</span>[<span class="type">str</span>]
     </div>
 
     <div class="highlight">
@@ -393,16 +393,13 @@ Result: {messages: [msg1, msg2, msg3]}
 <span class="keyword">import</span> operator
 <span class="keyword">from</span> langchain_core.messages <span class="keyword">import</span> BaseMessage
 
-<span class="keyword">class</span> <span class="type">AgentState</span>(TypedDict):
+<span class="keyword">class</span> <span class="type">AgentState</span>(TypedDict, total=<span class="keyword">False</span>):
     <span class="comment"># ✅ Reducer - Messages được merge</span>
     messages: <span class="type">Annotated</span>[<span class="type">List</span>[BaseMessage], operator.add]
-    
+
     <span class="comment"># ❌ Không Reducer - Overwrite</span>
-    expense_data: <span class="type">Optional</span>[ExpenseExtraction]
-    budget_check: <span class="type">Optional</span>[BudgetCheckResult]
     clarification_needed: <span class="type">Optional</span>[<span class="type">str</span>]
     next: <span class="type">Optional</span>[<span class="type">str</span>]
-    final_payload: <span class="type">Optional</span>[<span class="type">dict</span>]
         </div>
 
         <h4>Tại Sao messages Cần Reducer?</h4>
@@ -604,7 +601,7 @@ result = operator.or_(old_dict, new_dict)
             <strong>A:</strong> Không phải field nào cũng cần merge!
             <ul>
                 <li><code>next</code>: Chỉ cần giá trị mới nhất → Ghi đè</li>
-                <li><code>expense_data</code>: Một expense tại một thời điểm → Ghi đè</li>
+                <li><code>clarification_needed</code>: Một câu hỏi tại một thời điểm → Ghi đè</li>
                 <li><code>messages</code>: Cần toàn bộ lịch sử → Merge</li>
             </ul>
             <p>Dùng Reducer khi không muốn <strong>mất dữ liệu cũ</strong>!</p>

@@ -131,11 +131,8 @@ POST /agent/chat
   "messages": [
     HumanMessage(content="Tôi vừa mua cà phê 50k")
   ],
-  "expense_data": None,
-  "budget_check": None,
   "clarification_needed": None,
-  "next": None,
-  "final_payload": None
+  "next": None
 }
         </div>
 
@@ -161,11 +158,8 @@ workflow.set_entry_point("supervisor")
     HumanMessage(content="Tôi vừa mua cà phê 50k"),
     <span class="highlight">AIMessage(content="Routing to financial_agent")</span>  ← Thêm bởi operator.add
   ],
-  "expense_data": None,
-  "budget_check": None,
   "clarification_needed": None,
-  <span class="highlight">"next": "financial_agent"</span>,  ← Ghi đè
-  "final_payload": None
+  <span class="highlight">"next": "financial_agent"</span>  ← Ghi đè
 }
         </div>
 
@@ -209,11 +203,8 @@ return {
     AIMessage(content="Routing to financial_agent"),
     <span class="highlight">AIMessage(content="", tool_calls=[submit_expense_tool])</span>  ← Agent gọi submit ngay
   ],
-  "expense_data": None,
-  "budget_check": None,
   "clarification_needed": None,
-  "next": "financial_agent",
-  "final_payload": None
+  "next": "financial_agent"
 }
 
 <strong>📊 Reducer Hoạt Động:</strong>
@@ -286,21 +277,17 @@ return {
     HumanMessage(content="Tôi vừa mua cà phê 50k"),
     AIMessage(content="Routing..."),
     AIMessage(content="", tool_calls=[...]),
-    <span class="highlight">ToolMessage(content="Đã lưu chi tiêu...")</span>  ← Thêm tiếp
+    <span class="highlight">ToolMessage(content="Draft Created|category:Cà phê", name="submit_expense_tool")</span>  ← Thêm tiếp
   ],
-  "expense_data": {
-    "amount": 50000,
-    "category": "Cà phê"
-  },  ← Ghi đè
-  "budget_check": None,
   "clarification_needed": None,
-  "next": "financial_agent",
-  "final_payload": {"expense_id": 456}  ← Ghi đè
+  "next": "financial_agent"
 }
 
 <strong>🔑 Quan Trọng:</strong>
-- messages: MERGE (dùng operator.add)
-- expense_data, final_payload: OVERWRITE (ghi đè)
+- messages: MERGE (dùng operator.add) — kết quả tool đi vào history dưới dạng ToolMessage
+- clarification_needed, next: OVERWRITE (ghi đè)
+- submit_expense_tool chỉ trả về <em>draft</em>; việc lưu DB + quy đổi tiền tệ
+  diễn ra ở tầng API (ExchangeRateService), không nằm trong state của graph
         </div>
 
         <div class="arrow">⬇️</div>
@@ -332,9 +319,8 @@ return {
     ToolMessage(content="Đã lưu..."),
     <span class="highlight">AIMessage(content="Đã ghi chi tiêu...☕")</span>  ← Thêm response cuối
   ],
-  "expense_data": {...},
-  "clarification_needed": <span class="highlight">None</span>,  ← Xóa
-  ...
+  "clarification_needed": <span class="highlight">None</span>,  ← Xóa flag
+  "next": "financial_agent"
 }
 
 <strong>🎯 Lịch Sử Conversation Đầy Đủ:</strong>
@@ -510,16 +496,6 @@ return ChatResponse(
                     </td>
                 </tr>
                 <tr>
-                    <td><code>expense_data</code></td>
-                    <td><code>Optional[ExpenseExtraction]</code></td>
-                    <td><strong>OVERWRITE</strong> (Ghi đè)</td>
-                    <td>
-                        Node A: {amount: 50k}<br>
-                        Node B: {amount: 100k}<br>
-                        → Kết quả: {amount: 100k}
-                    </td>
-                </tr>
-                <tr>
                     <td><code>next</code></td>
                     <td><code>Optional[str]</code></td>
                     <td><strong>OVERWRITE</strong></td>
@@ -593,7 +569,7 @@ final_state["messages"] = new_update["messages"]
 
         <h3>3️⃣ Overwrite Pattern</h3>
         <ul>
-            <li>Dùng cho metadata: <code>next</code>, <code>expense_data</code>, <code>clarification_needed</code></li>
+            <li>Dùng cho metadata: <code>next</code>, <code>clarification_needed</code></li>
             <li>Giá trị mới ghi đè giá trị cũ</li>
             <li>Phù hợp với dữ liệu tạm thời</li>
         </ul>
@@ -630,7 +606,7 @@ final_state["messages"] = new_update["messages"]
             <li>✅ Giữ lịch sử conversation đầy đủ (messages)</li>
             <li>✅ Chia sẻ context giữa các agents</li>
             <li>✅ Hỗ trợ clarification flow (pause/resume)</li>
-            <li>✅ Cập nhật metadata linh hoạt (expense_data, next, ...)</li>
+            <li>✅ Cập nhật metadata linh hoạt (next, clarification_needed, ...)</li>
             <li>✅ Persistent state qua database</li>
         </ul>
         <p style="font-size: 16px; margin-top: 20px;">

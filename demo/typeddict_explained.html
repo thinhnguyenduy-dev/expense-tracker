@@ -307,16 +307,13 @@ Person = TypedDict(<span class="string">'Person'</span>, {
 <span class="keyword">import</span> operator
 <span class="keyword">from</span> langchain_core.messages <span class="keyword">import</span> BaseMessage
 
-<span class="keyword">class</span> <span class="type">AgentState</span>(TypedDict):
+<span class="keyword">class</span> <span class="type">AgentState</span>(TypedDict, total=<span class="keyword">False</span>):
     <span class="comment">"""State được chia sẻ giữa tất cả nodes trong graph"""</span>
-    
+
     <span class="comment"># ✅ Mọi node đều biết structure này</span>
-    messages: Annotated[List[BaseMessage], operator.add]
-    expense_data: Optional[ExpenseExtraction]
-    budget_check: Optional[BudgetCheckResult]
-    clarification_needed: Optional[<span class="type">str</span>]
-    next: Optional[<span class="type">str</span>]
-    final_payload: Optional[<span class="type">dict</span>]
+    messages: Annotated[List[BaseMessage], operator.add]  <span class="comment"># reducer: append</span>
+    clarification_needed: Optional[<span class="type">str</span>]  <span class="comment"># override</span>
+    next: Optional[<span class="type">str</span>]  <span class="comment"># supervisor routing, override</span>
         </div>
 
         <div class="info">
@@ -335,7 +332,7 @@ Person = TypedDict(<span class="string">'Person'</span>, {
     <div class="concept-box">
         <h3>Node đọc/ghi State</h3>
         <div class="code-block">
-<span class="comment"># File: backend/app/agents/graph.py</span>
+<span class="comment"># File: backend/app/agents/nodes.py</span>
 
 <span class="keyword">def</span> <span class="function">supervisor_node</span>(state: AgentState):
     <span class="comment">"""Node nhận AgentState làm input"""</span>
@@ -343,7 +340,7 @@ Person = TypedDict(<span class="string">'Person'</span>, {
     <span class="comment"># ✅ IDE biết state có key "messages"</span>
     messages = state[<span class="string">"messages"</span>]
     
-    <span class="comment"># ✅ Autocomplete: "messages", "next", "expense_data"...</span>
+    <span class="comment"># ✅ Autocomplete: "messages", "next", "clarification_needed"...</span>
     last_msg = state[<span class="string">"messages"</span>][-<span class="number">1</span>]
     
     <span class="comment"># Node return dict (phù hợp với AgentState)</span>
@@ -364,7 +361,7 @@ Person = TypedDict(<span class="string">'Person'</span>, {
     
     <span class="keyword">return</span> {
         <span class="string">"messages"</span>: [response],
-        <span class="string">"expense_data"</span>: extracted_data
+        <span class="string">"clarification_needed"</span>: <span class="type">None</span>
     }
         </div>
     </div>

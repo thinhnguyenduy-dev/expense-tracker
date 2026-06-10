@@ -215,17 +215,8 @@ def make_tools(user_id: int):
         finally:
             db.close()
 
-    @tool
-    def search_web_tool(query: str) -> str:
-        """
-        Search the web for real-time information.
-        Use this tool EXACTLY when you need to find current exchange rates (e.g., '1000 USD to VND exchange rate today') 
-        or other real-time financial data before submitting a draft expense or income.
-        """
-        search = get_search_tool()
-        try:
-            return search.invoke(query)
-        except Exception as e:
-            return f"Search failed: {e}. Please try another query or proceed with your best estimate."
-
-    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, search_web_tool]
+    # NOTE: No web-search tool here on purpose. Currency conversion is handled
+    # deterministically by ExchangeRateService at persistence time
+    # (see app/core/exchange_rate.py), so the financial agent never needs to
+    # scrape exchange rates. General web research is the analyst agent's job.
+    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool]
