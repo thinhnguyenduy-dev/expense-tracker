@@ -6,9 +6,9 @@
   <title>LangGraph là gì? – Phần 1/2</title>
   <style>
     :root {
-      --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
-      --border: #30363d; --border2: #3d444d;
-      --text: #e6edf3; --text2: #adb7c2; --dim: #8b949e;
+      --bg: #1a1f29; --bg2: #222834; --bg3: #2c3340;
+      --border: #3c4452; --border2: #4a5363;
+      --text: #e6edf3; --text2: #c6cfda; --dim: #a7b1bd;
       --purple: #a78bfa; --purple-bg: rgba(167,139,250,.12);
       --teal: #34d399; --teal-bg: rgba(52,211,153,.1);
       --orange: #fb923c; --orange-bg: rgba(251,146,60,.1);
@@ -34,7 +34,7 @@
 
     /* HEADER */
     header {
-      background: linear-gradient(135deg, #0d1117 0%, #16103a 50%, #0d1520 100%);
+      background: linear-gradient(135deg, #1a1f29 0%, #16103a 50%, #0d1520 100%);
       border-bottom: 1px solid var(--border);
       padding: 52px 24px 44px; text-align: center; position: relative; overflow: hidden;
     }
@@ -129,12 +129,12 @@
 
     /* CODE */
     pre {
-      background: #0a0e14; border: 1px solid var(--border); border-radius: 11px;
+      background: #12161f; border: 1px solid var(--border); border-radius: 11px;
       padding: 20px; overflow-x: auto; font-size: .8rem; line-height: 1.72;
     }
     code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
     .kw { color: #c792ea; } .fn { color: #82aaff; } .str { color: #c3e88d; }
-    .cm { color: #4a5a6a; font-style: italic; } .cls { color: #ffcb6b; }
+    .cm { color: #6b7d8f; font-style: italic; } .cls { color: #ffcb6b; }
 
     /* COMPARISON TABLE */
     .cmp-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 22px; box-shadow: var(--shadow-sm); }
@@ -176,7 +176,7 @@
 <header>
   <div class="part-badge">Phần 1 / 2</div>
   <h1>LangGraph là gì?</h1>
-  <p>Khái niệm cốt lõi · ReAct Agent · State · So sánh LangChain</p>
+  <p>AI Agent · Khái niệm cốt lõi · ReAct · State · So sánh LangChain</p>
 </header>
 
 <nav class="file-nav">
@@ -188,9 +188,95 @@
 
 <main>
 
-  <!-- ══ 1. LANGGRAPH LÀ GÌ ══ -->
+  <!-- ══ 1. AI · LLM · AI AGENT ══ -->
   <section>
-    <h2><span class="n">1</span> LangGraph là gì?</h2>
+    <h2><span class="n">1</span> AI, LLM &amp; AI Agent là gì?</h2>
+
+    <div class="card" style="margin-bottom:18px">
+      <p>
+        Trước khi vào LangGraph, cần nắm 3 khái niệm xếp lồng nhau:
+        <strong style="color:var(--blue)">AI</strong> →
+        <strong style="color:var(--teal)">LLM</strong> →
+        <strong style="color:var(--purple)">AI Agent</strong>.
+        LangGraph là công cụ để dựng lớp ngoài cùng — <em style="color:var(--purple)">Agent</em>.
+      </p>
+    </div>
+
+    <div class="concept-grid" style="margin-bottom:18px">
+      <div class="concept-card">
+        <div class="icon">🧠</div>
+        <h4>AI</h4>
+        <p>Trí tuệ nhân tạo — lĩnh vực rộng giúp máy tính làm việc cần "thông minh": nhận diện, dự đoán, ra quyết định.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">💬</div>
+        <h4>LLM</h4>
+        <p>Large Language Model (GPT, Claude, Gemini...). Đoán <em>token tiếp theo</em>, giỏi hiểu &amp; sinh ngôn ngữ — nhưng chỉ <strong style="color:var(--text)">trả lời một lượt</strong>.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">🤖</div>
+        <h4>AI Agent</h4>
+        <p>LLM được trao <em>tool + bộ nhớ + vòng lặp</em> để <strong style="color:var(--text)">tự lập kế hoạch &amp; hành động nhiều bước</strong> đến khi đạt mục tiêu.</p>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:18px">
+      <div class="card">
+        <h3 style="color:var(--teal)">💬 LLM thuần (chatbot)</h3>
+        <ul style="list-style:none;padding:0;color:var(--dim)">
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📥 Nhận prompt → 📤 trả 1 câu trả lời</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">❌ Không tự gọi API / truy vấn DB</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">❌ Không nhớ gì giữa các bước</li>
+          <li style="padding:5px 0">❌ Kiến thức "đóng băng" tại thời điểm train</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--purple)">🤖 AI Agent</h3>
+        <ul style="list-style:none;padding:0;color:var(--dim)">
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">🔁 Lặp: suy luận → hành động → quan sát</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">🔧 Gọi tool: SQL, API, search, code...</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📦 Nhớ ngữ cảnh &amp; kết quả qua State</li>
+          <li style="padding:5px 0">🎯 Tự quyết định khi nào "đã xong"</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="margin-bottom:14px">Một AI Agent gồm <strong style="color:var(--text)">4 thành phần</strong>:</p>
+    <div class="concept-grid" style="margin-bottom:18px">
+      <div class="concept-card">
+        <div class="icon">🧠</div>
+        <h4>Model (Bộ não)</h4>
+        <p>LLM suy luận &amp; quyết định bước tiếp theo: cần gọi tool nào, hay đã đủ để trả lời.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">🔧</div>
+        <h4>Tools (Công cụ)</h4>
+        <p>Hàm để Agent "với tay" ra thế giới thật: truy vấn DB, gọi API, tìm web, tính toán.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">📦</div>
+        <h4>Memory (Bộ nhớ)</h4>
+        <p>Lưu lịch sử hội thoại + kết quả tool để Agent không "quên" giữa các bước.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">🔁</div>
+        <h4>Loop (Vòng điều khiển)</h4>
+        <p>Điều phối: gọi model → chạy tool → đưa kết quả lại model → lặp đến khi đạt mục tiêu.</p>
+      </div>
+    </div>
+
+    <div class="highlight">
+      <p>
+        💡 <strong>LangGraph chính là khung để dựng "Loop + Memory + Tools" đó một cách bài bản</strong> —
+        bằng đồ thị có trạng thái. Pattern phổ biến nhất để hiện thực vòng lặp này là
+        <strong style="color:var(--purple)">ReAct</strong> (xem mục 3).
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ 2. LANGGRAPH LÀ GÌ ══ -->
+  <section>
+    <h2><span class="n">2</span> LangGraph là gì?</h2>
 
     <div class="card" style="margin-bottom:18px">
       <p>
@@ -243,7 +329,7 @@
 
   <!-- ══ 2. REACT AGENT ══ -->
   <section>
-    <h2><span class="n">2</span> ReAct Agent – Vòng lặp "Suy luận → Hành động"</h2>
+    <h2><span class="n">3</span> ReAct Agent – Vòng lặp "Suy luận → Hành động"</h2>
 
     <p style="margin-bottom:18px">
       <strong style="color:var(--text)">ReAct</strong> (Reasoning + Acting) là pattern phổ biến nhất: LLM đọc State,
@@ -265,16 +351,16 @@
 
         <!-- START → AGENT -->
         <line x1="390" y1="60" x2="390" y2="93" stroke="#a78bfa" stroke-width="2" marker-end="url(#ap)"/>
-        <text x="400" y="81" fill="#4a5568" font-family="Segoe UI,system-ui,sans-serif" font-size="10">input state</text>
+        <text x="400" y="81" fill="#8a98ac" font-family="Segoe UI,system-ui,sans-serif" font-size="10">input state</text>
 
         <!-- AGENT NODE -->
         <rect x="210" y="95" width="360" height="68" rx="14" fill="#1a1635" stroke="#a78bfa" stroke-width="2.5"/>
         <text x="390" y="123" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">🤖  Agent Node  (LLM)</text>
-        <text x="390" y="149" text-anchor="middle" fill="#7060aa" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Đọc State → Suy luận → Quyết định hành động tiếp theo</text>
+        <text x="390" y="149" text-anchor="middle" fill="#ab9bd6" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Đọc State → Suy luận → Quyết định hành động tiếp theo</text>
 
         <!-- Conditional edge box -->
-        <rect x="295" y="177" width="190" height="24" rx="6" fill="rgba(167,139,250,.06)" stroke="#30363d" stroke-width="1" stroke-dasharray="3 2"/>
-        <text x="390" y="193" text-anchor="middle" fill="#5a5080" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">⚡ Conditional Edge</text>
+        <rect x="295" y="177" width="190" height="24" rx="6" fill="rgba(167,139,250,.06)" stroke="#3c4452" stroke-width="1" stroke-dasharray="3 2"/>
+        <text x="390" y="193" text-anchor="middle" fill="#9a8fc2" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">⚡ Conditional Edge</text>
 
         <!-- AGENT → TOOL (left) -->
         <line x1="270" y1="163" x2="185" y2="163" stroke="#fb923c" stroke-width="2"/>
@@ -289,12 +375,12 @@
         <!-- TOOL NODE -->
         <rect x="75" y="246" width="220" height="68" rx="14" fill="#1a1405" stroke="#fb923c" stroke-width="2"/>
         <text x="185" y="274" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">🔧  Tool Node</text>
-        <text x="185" y="296" text-anchor="middle" fill="#7a5515" font-family="Segoe UI,system-ui,sans-serif" font-size="11">SQL · API · Search · ...</text>
+        <text x="185" y="296" text-anchor="middle" fill="#d09a3f" font-family="Segoe UI,system-ui,sans-serif" font-size="11">SQL · API · Search · ...</text>
 
         <!-- END NODE -->
         <rect x="485" y="246" width="220" height="68" rx="14" fill="#1a0e0e" stroke="#f87171" stroke-width="2"/>
         <text x="595" y="274" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">⏹  END</text>
-        <text x="595" y="296" text-anchor="middle" fill="#6a2525" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Trả kết quả về người dùng</text>
+        <text x="595" y="296" text-anchor="middle" fill="#c87676" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Trả kết quả về người dùng</text>
 
         <!-- LOOP: Tool → Agent (bottom arc) -->
         <line x1="185" y1="314" x2="185" y2="362" stroke="#34d399" stroke-width="2"/>
@@ -303,9 +389,9 @@
         <text x="215" y="380" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="500">Tool result → cập nhật State → Agent quyết định lại</text>
 
         <!-- State annotation -->
-        <rect x="148" y="392" width="380" height="46" rx="8" fill="rgba(96,165,250,.04)" stroke="rgba(96,165,250,.12)" stroke-width="1" stroke-dasharray="4 2"/>
-        <text x="338" y="411" text-anchor="middle" fill="#3a5070" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 STATE (chia sẻ xuyên suốt)</text>
-        <text x="338" y="428" text-anchor="middle" fill="#2a4060" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages  ·  tool_calls  ·  tool results  ·  metadata</text>
+        <rect x="148" y="392" width="380" height="46" rx="8" fill="rgba(96,165,250,.07)" stroke="rgba(96,165,250,.28)" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="338" y="411" text-anchor="middle" fill="#8ba2c2" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 STATE (chia sẻ xuyên suốt)</text>
+        <text x="338" y="428" text-anchor="middle" fill="#8299bb" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages  ·  tool_calls  ·  tool results  ·  metadata</text>
       </svg>
     </div>
 
@@ -321,7 +407,7 @@
 
   <!-- ══ 3. SUPERVISOR PATTERN ══ -->
   <section>
-    <h2><span class="n">3</span> Supervisor Pattern – Điều phối nhiều agent</h2>
+    <h2><span class="n">4</span> Supervisor Pattern – Điều phối nhiều agent</h2>
 
     <p style="margin-bottom:18px">
       ReAct ở trên là <strong style="color:var(--text)">một</strong> agent tự lặp. Khi bài toán cần
@@ -349,7 +435,7 @@
         <!-- SUPERVISOR NODE -->
         <rect x="235" y="88" width="310" height="66" rx="14" fill="#1a1635" stroke="#a78bfa" stroke-width="2.5"/>
         <text x="390" y="118" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">🧭  Supervisor  (Router LLM)</text>
-        <text x="390" y="141" text-anchor="middle" fill="#7060aa" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Đọc State → chọn agent → set state["next"]</text>
+        <text x="390" y="141" text-anchor="middle" fill="#ab9bd6" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Đọc State → chọn agent → set state["next"]</text>
 
         <!-- Supervisor → END (FINISH) -->
         <line x1="545" y1="121" x2="598" y2="121" stroke="#f87171" stroke-width="2" marker-end="url(#sp-r)"/>
@@ -358,8 +444,8 @@
         <text x="678" y="126" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700">⏹  END</text>
 
         <!-- Conditional edge box -->
-        <rect x="300" y="166" width="180" height="24" rx="6" fill="rgba(167,139,250,.06)" stroke="#30363d" stroke-width="1" stroke-dasharray="3 2"/>
-        <text x="390" y="182" text-anchor="middle" fill="#5a5080" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">⚡ route theo state["next"]</text>
+        <rect x="300" y="166" width="180" height="24" rx="6" fill="rgba(167,139,250,.06)" stroke="#3c4452" stroke-width="1" stroke-dasharray="3 2"/>
+        <text x="390" y="182" text-anchor="middle" fill="#9a8fc2" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">⚡ route theo state["next"]</text>
 
         <!-- Supervisor → Agents (3 routing arrows) -->
         <line x1="340" y1="154" x2="150" y2="248" stroke="#a78bfa" stroke-width="2" marker-end="url(#sp-p)"/>
@@ -369,17 +455,17 @@
         <!-- AGENT A -->
         <rect x="48" y="250" width="200" height="66" rx="13" fill="#1a1405" stroke="#fb923c" stroke-width="2"/>
         <text x="148" y="280" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="13.5" font-weight="700">🤖  Agent 1</text>
-        <text x="148" y="301" text-anchor="middle" fill="#7a5515" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: financial_agent</text>
+        <text x="148" y="301" text-anchor="middle" fill="#d09a3f" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: financial_agent</text>
 
         <!-- AGENT B -->
         <rect x="290" y="250" width="200" height="66" rx="13" fill="#0c1f16" stroke="#34d399" stroke-width="2"/>
         <text x="390" y="280" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="13.5" font-weight="700">🤖  Agent 2</text>
-        <text x="390" y="301" text-anchor="middle" fill="#1c5740" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: data_analyst</text>
+        <text x="390" y="301" text-anchor="middle" fill="#5ba883" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: data_analyst</text>
 
         <!-- AGENT C -->
         <rect x="532" y="250" width="200" height="66" rx="13" fill="#0e1726" stroke="#60a5fa" stroke-width="2"/>
         <text x="632" y="280" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI,system-ui,sans-serif" font-size="13.5" font-weight="700">🤖  Agent 3</text>
-        <text x="632" y="301" text-anchor="middle" fill="#2a4a72" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: general_agent</text>
+        <text x="632" y="301" text-anchor="middle" fill="#7c9cc4" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">vd: general_agent</text>
 
         <!-- Return bus: agents → shared state → Supervisor -->
         <line x1="148" y1="316" x2="148" y2="360" stroke="#34d399" stroke-width="2"/>
@@ -391,9 +477,9 @@
         <text x="396" y="379" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="500">Agent xong → kết quả vào shared State → Supervisor quyết định lại</text>
 
         <!-- State annotation -->
-        <rect x="205" y="398" width="370" height="46" rx="8" fill="rgba(96,165,250,.04)" stroke="rgba(96,165,250,.12)" stroke-width="1" stroke-dasharray="4 2"/>
-        <text x="390" y="417" text-anchor="middle" fill="#3a5070" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 SHARED STATE (mọi node đọc/ghi)</text>
-        <text x="390" y="434" text-anchor="middle" fill="#2a4060" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages  ·  next  ·  kết quả của agent</text>
+        <rect x="205" y="398" width="370" height="46" rx="8" fill="rgba(96,165,250,.07)" stroke="rgba(96,165,250,.28)" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="390" y="417" text-anchor="middle" fill="#8ba2c2" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">📦 SHARED STATE (mọi node đọc/ghi)</text>
+        <text x="390" y="434" text-anchor="middle" fill="#8299bb" font-family="Segoe UI,system-ui,sans-serif" font-size="9.5">messages  ·  next  ·  kết quả của agent</text>
       </svg>
     </div>
 
@@ -417,7 +503,7 @@
 
   <!-- ══ 4. STATE ══ -->
   <section>
-    <h2><span class="n">4</span> State – Trung tâm của LangGraph</h2>
+    <h2><span class="n">5</span> State – Trung tâm của LangGraph</h2>
 
     <div class="two-col">
       <div class="card">
@@ -462,7 +548,7 @@ graph = builder.compile(checkpointer=memory)
 
   <!-- ══ 5. SO SÁNH ══ -->
   <section>
-    <h2><span class="n">5</span> LangGraph vs LangChain</h2>
+    <h2><span class="n">6</span> LangGraph vs LangChain</h2>
 
     <!-- Visual structure comparison -->
     <div class="diagram-box" style="margin-bottom:22px; padding:28px 16px 20px">
@@ -476,7 +562,7 @@ graph = builder.compile(checkpointer=memory)
         <!-- ═══ LEFT: LangChain ═══ -->
         <rect x="3" y="3" width="334" height="316" rx="16" fill="#1c2128" stroke="#d97706" stroke-width="1.8"/>
         <text x="170" y="36" text-anchor="middle" fill="#d97706" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700">⛓️  LangChain</text>
-        <text x="170" y="56" text-anchor="middle" fill="#92400e" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Chuỗi tuyến tính</text>
+        <text x="170" y="56" text-anchor="middle" fill="#d07a2c" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Chuỗi tuyến tính</text>
 
         <!-- A -->
         <circle cx="170" cy="92" r="30" fill="#1e40af" stroke="#60a5fa" stroke-width="2.5"/>
@@ -496,13 +582,13 @@ graph = builder.compile(checkpointer=memory)
         <text x="170" y="312" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="600">✕  chỉ một chiều · không thể loop</text>
 
         <!-- ═══ VS ═══ -->
-        <circle cx="374" cy="164" r="24" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
-        <text x="374" y="170" text-anchor="middle" fill="#6b7280" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="800">vs</text>
+        <circle cx="374" cy="164" r="24" fill="#1a1f29" stroke="#3c4452" stroke-width="1.5"/>
+        <text x="374" y="170" text-anchor="middle" fill="#97a1ae" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="800">vs</text>
 
         <!-- ═══ RIGHT: LangGraph ═══ -->
         <rect x="411" y="3" width="334" height="316" rx="16" fill="#1c2128" stroke="#a78bfa" stroke-width="1.8"/>
         <text x="578" y="36" text-anchor="middle" fill="#a78bfa" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700">🔷  LangGraph</text>
-        <text x="578" y="56" text-anchor="middle" fill="#4c3890" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Đồ thị · phân nhánh · vòng lặp</text>
+        <text x="578" y="56" text-anchor="middle" fill="#9384c8" font-family="Segoe UI,system-ui,sans-serif" font-size="11">Đồ thị · phân nhánh · vòng lặp</text>
 
         <!-- A top-center -->
         <circle cx="578" cy="96" r="30" fill="#1e40af" stroke="#60a5fa" stroke-width="2.5"/>
