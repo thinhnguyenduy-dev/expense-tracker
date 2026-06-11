@@ -8,6 +8,12 @@ load_dotenv()
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/expense_tracker"
+
+    # Read-only, RLS-constrained connection used ONLY by the data_analyst agent's
+    # SQL tool. Connect as the `analyst_ro` role (created by the analyst-rls
+    # migration). When unset, the analyst falls back to DATABASE_URL — RLS is then
+    # bypassed (owner role) and only the in-process string guard protects scoping.
+    ANALYST_DATABASE_URL: Optional[str] = None
     
     # JWT
     JWT_SECRET: str = "your-super-secret-jwt-key-change-in-production"

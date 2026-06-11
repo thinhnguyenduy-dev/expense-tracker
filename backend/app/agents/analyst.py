@@ -5,24 +5,32 @@ from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
+from loguru import logger
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.agents.prompts import ANALYST_SYSTEM_PROMPT
 from app.agents.tools import get_search_tool
 from app.core.llm import get_llm
-from app.core.database import engine
+from app.core.database import engine, analyst_engine
 
 # Tables that carry a `user_id` and must never be queried across users.
 USER_SCOPED_TABLES = ("expenses", "incomes", "categories", "jars", "recurring_expenses")
 
 
-def _make_guarded_query_tool(db: SQLDatabase, user_id: int):
+def _make_guarded_query_tool(query_engine, user_id: int):
     """A drop-in replacement for `sql_db_query` that enforces user scoping.
 
-    Any query touching a user-scoped table is rejected unless it filters by
-    `user_id = <current user>`, and rejected if it references any OTHER user_id.
-    This stops the LLM from "fixing" an empty result by dropping the filter
-    (which would leak other users' data). Heuristic (string-based), not a
-    substitute for DB-level RLS, but blocks the common leak paths.
+    Two layers of defence:
+
+    1. **Database RLS (primary).** The query runs on `query_engine`, which —
+       in production — connects as the read-only `analyst_ro` role. Before each
+       query we set `app.user_id` so Postgres row-level security filters every
+       row to the current user, even across JOINs/subqueries or a `users` scan.
+       See the analyst-rls Alembic migration.
+    2. **String heuristic (fallback).** Rejects queries that drop the `user_id`
+       filter or reference another user's id. This is what protects scoping when
+       ANALYST_DATABASE_URL is unset and RLS is bypassed by the owner role.
     """
 
     @tool("sql_db_query")
@@ -43,7 +51,25 @@ def _make_guarded_query_tool(db: SQLDatabase, user_id: int):
             other_ids = {int(m) for m in re.findall(r"user_id\s*=\s*(\d+)", lowered) if int(m) != user_id}
             if other_ids:
                 return f"ERROR: Query rejected — you may only access user_id = {user_id}, not {sorted(other_ids)}."
-        return db.run(query)
+
+        # Run inside a single transaction so the transaction-local `app.user_id`
+        # GUC applies to the query. Read-only: the transaction is committed but
+        # the SELECT mutates nothing.
+        try:
+            with query_engine.begin() as conn:
+                conn.execute(
+                    text("SELECT set_config('app.user_id', :uid, true)"),
+                    {"uid": str(user_id)},
+                )
+                result = conn.execute(text(query))
+                rows = result.fetchall()
+            if not rows:
+                return ""
+            return str([tuple(r) for r in rows])
+        except SQLAlchemyError as exc:
+            # Mirror SQLDatabase.run's behaviour: hand the error back to the LLM
+            # so it can correct the query.
+            return f"Error: {exc}"
 
     return guarded_sql_db_query
 
@@ -57,9 +83,18 @@ def get_analyst_agent(today: Optional[str] = None, user_id: Optional[int] = None
     `today` / `user_id` are injected into the prompt so the agent can resolve
     relative periods ("this month") and scope queries to the right user.
     """
-    # 1. Setup Database — use the shared engine to avoid pool exhaustion.
+    # 1. Setup Database — prefer the read-only, RLS-constrained analyst engine so
+    #    the LLM's SQL is hard-bounded to the current user at the DB level. Fall
+    #    back to the shared owner engine (string guard only) when unconfigured.
+    query_engine = analyst_engine or engine
+    if analyst_engine is None and user_id is not None:
+        logger.warning(
+            "ANALYST_DATABASE_URL is not set — the data_analyst is running on the "
+            "RLS-bypassing owner role. User scoping relies on the string guard only. "
+            "Set ANALYST_DATABASE_URL to the analyst_ro role for defence-in-depth."
+        )
     db = SQLDatabase(
-        engine,
+        query_engine,
         include_tables=['expenses', 'categories', 'incomes', 'users', 'jars', 'recurring_expenses']
     )
 
@@ -70,7 +105,7 @@ def get_analyst_agent(today: Optional[str] = None, user_id: Optional[int] = None
     sql_tools = SQLDatabaseToolkit(db=db, llm=llm).get_tools()
     if user_id is not None:
         sql_tools = [t for t in sql_tools if t.name != "sql_db_query"]
-        sql_tools.append(_make_guarded_query_tool(db, user_id))
+        sql_tools.append(_make_guarded_query_tool(query_engine, user_id))
     tools = sql_tools + [get_search_tool()]
 
     # 4. Build prompt with runtime context prepended.

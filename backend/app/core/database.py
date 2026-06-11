@@ -11,6 +11,21 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+# Separate engine for the data_analyst agent: connects as the read-only,
+# RLS-constrained `analyst_ro` role so the LLM's SQL is hard-bounded to the
+# current user at the database level. Falls back to None when ANALYST_DATABASE_URL
+# is unset; callers then use the main `engine` (RLS-bypassing owner role).
+analyst_engine = (
+    create_engine(
+        settings.ANALYST_DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+    )
+    if settings.ANALYST_DATABASE_URL
+    else None
+)
+
+
 def get_db():
     """Dependency to get database session."""
     db = SessionLocal()
