@@ -8,7 +8,6 @@ from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
 from sqlalchemy import func
 
 from app.core.database import SessionLocal
-from app.core.budget_service import BudgetService
 from app.models.category import Category
 from app.models.expense import Expense
 from app.models.income import Income
@@ -35,48 +34,6 @@ def make_tools(user_id: int, user_currency: str = "VND"):
     """
     Factory validation to create tools bound to a specific user.
     """
-
-    @tool
-    def check_budget_tool(category_name: str, amount: float) -> str:
-        """
-        Check if an expense of a certain amount in a category would exceed the budget.
-        Returns a warning message if over budget, or a safe message.
-        """
-        db = SessionLocal()
-        try:
-            # 1. Component: Find Category
-            # Simple fuzzy-ish match (case insensitive)
-            category = db.query(Category).filter(
-                Category.user_id == user_id,
-                Category.name.ilike(f"%{category_name}%")
-            ).first()
-            
-            if not category:
-                return f"Category '{category_name}' not found. Please specify a valid category."
-            
-            # 2. Component: Check Budget
-            service = BudgetService(db)
-            status = service.get_budget_status(user_id)
-            
-            # Find the specific category status
-            cat_status = next((c for c in status.get("categories", []) if c["category_id"] == category.id), None)
-            
-            if not cat_status:
-                return f"No budget set for category '{category.name}'."
-            
-            remaining = cat_status["limit"] - cat_status["spent"]
-            new_remaining = remaining - amount
-            
-            if new_remaining < 0:
-                return (
-                    f"⚠️ BUDGET ALERT: Spending {_fmt_money(amount, user_currency)} on '{category.name}' will exceed the budget by {_fmt_money(abs(new_remaining), user_currency)}. "
-                    f"Remaining: {_fmt_money(remaining, user_currency)}, Limit: {_fmt_money(cat_status['limit'], user_currency)}."
-                )
-            else:
-                return f"✅ Budget Safe: You have {_fmt_money(remaining, user_currency)} remaining in '{category.name}'. After this, you will have {_fmt_money(new_remaining, user_currency)}."
-                
-        finally:
-            db.close()
 
     @tool
     def get_recent_expenses_tool(days: int = 7) -> str:
@@ -281,4 +238,4 @@ def make_tools(user_id: int, user_currency: str = "VND"):
     # deterministically by ExchangeRateService at persistence time
     # (see app/core/exchange_rate.py), so the financial agent never needs to
     # scrape exchange rates. General web research is the analyst agent's job.
-    return [check_budget_tool, get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, get_monthly_income_summary_tool]
+    return [get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, get_monthly_income_summary_tool]
