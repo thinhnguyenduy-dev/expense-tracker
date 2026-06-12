@@ -218,22 +218,44 @@
       border-top: 1px solid var(--border);
     }
     footer a { color: var(--teal); text-decoration: none; }
+
+    /* ── PRINT / SAVE AS PDF ── giữ nền tối + tương phản, không bị trắng ── */
+    @media print {
+      html, body { background: #0d1117 !important; }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-shadow: none !important;
+      }
+      .file-nav {
+        position: static !important;
+        -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+        background: var(--bg2) !important;
+      }
+      /* tránh cắt ngang sơ đồ / card / code khi sang trang */
+      .card, .highlight, .cmp-wrap, .diagram-box, .concept-card,
+      .node-card, .tool-card, .ckpt-card, .step, .api-step, pre, svg {
+        break-inside: avoid;
+      }
+      a { text-decoration: none !important; }
+      @page { margin: 12mm; }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="part-badge">Phần 2 / 2</div>
+  <!-- <div class="part-badge">Phần 2 / 2</div> -->
   <h1>LangGraph trong Expense Tracker</h1>
-  <p>Supervisor pattern · 6 nodes · 7 tools · clarification &amp; resume · PostgreSQL checkpointing</p>
+  <!-- <p>Supervisor pattern · 6 nodes · 7 tools · clarification &amp; resume · PostgreSQL checkpointing</p> -->
 </header>
 
-<nav class="file-nav">
+<!-- <nav class="file-nav">
   <span class="label">2 files trong series này:</span>
   <a class="nav-btn nav-other" href="langgraph_intro.html">📘 Phần 1 – LangGraph là gì?</a>
   <span class="label">→</span>
   <a class="nav-btn nav-current" href="langgraph_in_expense_tracker.html">🏗️ Phần 2 – Áp dụng trong Expense Tracker</a>
-</nav>
+</nav> -->
 
 <main>
 
@@ -245,14 +267,14 @@
       <p>
         Graph trong app dùng <strong style="color:var(--text)">Supervisor Pattern</strong>:
         một node trung tâm phân tích câu hỏi và phân công cho agent chuyên biệt.
-        Wiring của graph nằm trong <code style="color:#fb923c">backend/app/agents/graph.py</code>; các node ở <code style="color:#fb923c">nodes.py</code>, prompt ở <code style="color:#fb923c">prompts.py</code>, schema State ở <code style="color:#fb923c">state.py</code>, helper xử lý message ở <code style="color:#fb923c">utils.py</code>.
+        <!-- Wiring của graph nằm trong <code style="color:#fb923c">backend/app/agents/graph.py</code>; các node ở <code style="color:#fb923c">nodes.py</code>, prompt ở <code style="color:#fb923c">prompts.py</code>, schema State ở <code style="color:#fb923c">state.py</code>, helper xử lý message ở <code style="color:#fb923c">utils.py</code>. -->
       </p>
-      <p style="margin-top:6px">
+      <!-- <p style="margin-top:6px">
         Graph có <strong style="color:var(--teal)">6 nodes</strong>: <code style="color:#82aaff">supervisor</code>, <code style="color:#82aaff">financial_agent</code>, <code style="color:#82aaff">financial_tools</code>, <code style="color:#82aaff">clarification_node</code>, <code style="color:#82aaff">data_analyst</code>, <code style="color:#82aaff">general_agent</code>.
         Supervisor chỉ điều phối <strong style="color:var(--teal)">3 agent</strong> — <code style="color:#82aaff">financial_agent</code>, <code style="color:#82aaff">data_analyst</code>, <code style="color:#82aaff">general_agent</code> — bằng cách set <code style="color:#82aaff">state["next"]</code> (hoặc <code style="color:#fb923c">FINISH</code> → END).
         Hai node phụ trợ <code style="color:#82aaff">financial_tools</code> và <code style="color:#82aaff">clarification_node</code> thuộc vòng nội bộ của <code style="color:#82aaff">financial_agent</code> (đi bằng conditional edge riêng), <strong>không</strong> do supervisor chọn.
         Shared <code style="color:#82aaff">AgentState</code> (state.py) gồm 4 field: <code style="color:#82aaff">messages</code> (reducer <code>operator.add</code>), <code style="color:#82aaff">clarification_needed</code>, <code style="color:#82aaff">next</code>, <code style="color:#82aaff">analyst_trace</code> — còn <code>user_id</code>/<code>thread_id</code> nằm trong <code style="color:#82aaff">config["configurable"]</code>, không phải State.
-      </p>
+      </p> -->
     </div>
 
     <!-- MAIN GRAPH DIAGRAM -->
@@ -371,14 +393,14 @@
         <span style="margin-left:auto;padding:3px 9px;background:var(--purple-bg);border:1px solid rgba(167,139,250,.3);border-radius:999px;font-size:.72rem;color:var(--purple)">Entry Point</span>
       </div>
       <p>LLM đọc 10 messages gần nhất (đã <code style="color:#82aaff">sanitize</code>), dùng <strong style="color:var(--text)">structured tool calling</strong> (<code style="color:#82aaff">bind_tools(RouterResponse, tool_choice="RouterResponse")</code>) để quyết định route. <code style="color:#82aaff">RouterResponse</code> có 2 field: <code style="color:#82aaff">next</code> — một trong <code style="color:#c3e88d">"financial_agent"</code>, <code style="color:#c3e88d">"data_analyst"</code>, <code style="color:#c3e88d">"general_agent"</code>, <code style="color:#c3e88d">"FINISH"</code> — và <code style="color:#82aaff">reason</code> (khi FINISH, được thêm vào history dưới dạng AIMessage để UI thấy).</p>
-      <p><strong style="color:var(--orange)">Logic đặc biệt:</strong> Nếu message cuối là AIMessage (agent vừa trả lời), Supervisor <em>tự động</em> set FINISH — tránh agent gọi agent vô hạn.</p>
+      <!-- <p><strong style="color:var(--orange)">Logic đặc biệt:</strong> Nếu message cuối là AIMessage (agent vừa trả lời), Supervisor <em>tự động</em> set FINISH — tránh agent gọi agent vô hạn.</p> -->
     </div>
 
     <div class="three-col">
       <div class="node-card" style="border-color:rgba(251,146,60,.3)">
         <div class="node-label" style="color:var(--orange)">💰 financial_agent</div>
         <h4>Xử lý giao dịch tài chính</h4>
-        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, xem tổng hợp tháng. Categories truyền qua system prompt (không cần tool lookup). Có <strong>tool loop nội bộ</strong> với <code style="color:#82aaff">financial_tools</code>. Cũng chạy <strong>clarification relay</strong> &amp; <strong>resume mode</strong> (xem §2b).</p>
+        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, xem tổng hợp tháng. Có <strong>tool loop nội bộ</strong> với <code style="color:#82aaff">financial_tools</code>. Cũng chạy <strong>clarification relay</strong> &amp; <strong>resume mode</strong></p>
         <div class="route-info">
           <code style="color:#fb923c">tool_calls</code> → <strong>financial_tools</strong><br>
           <code style="color:#f87171">clarification_needed</code> → <strong>clarification_node</strong><br>
@@ -390,7 +412,7 @@
       <div class="node-card" style="border-color:rgba(96,165,250,.3)">
         <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
         <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
-        <p>Wrap <code style="color:#82aaff">get_analyst_agent(today, user_id)</code> từ <code style="color:#fb923c">analyst.py</code> — ReAct subgraph chạy SQL + web search. <code>sql_db_query</code> bị thay bằng bản <strong>guarded</strong>, bắt buộc filter <code style="color:#82aaff">user_id</code> (chống leak dữ liệu user khác).</p>
+        <p>Wrap <code style="color:#82aaff">get_analyst_agent(today, user_id)</code> từ <code style="color:#fb923c">analyst.py</code> — ReAct subgraph chạy SQL + web search. <code>sql_db_query</code> bị thay bằng bản <strong>guarded</strong></p>
         <div class="route-info">
           Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
         </div>
@@ -400,7 +422,7 @@
       <div class="node-card" style="border-color:rgba(52,211,153,.3)">
         <div class="node-label" style="color:var(--teal)">💬 general_agent</div>
         <h4>Xử lý chitchat</h4>
-        <p>LLM trực tiếp, không có tools. Xử lý lời chào, câu hỏi ngoài chủ đề tài chính. Temperature 0.5 để tự nhiên hơn.</p>
+        <p>LLM trực tiếp, không có tools. Xử lý lời chào, câu hỏi ngoài chủ đề tài chính.</p>
         <div class="route-info">
           Sau khi trả lời → về <strong>supervisor</strong>
         </div>
@@ -424,185 +446,12 @@
         <p style="font-size:.85rem">Node <strong style="color:var(--text)">kết thúc graph</strong> (→ END) khi AI cần hỏi thêm. Không gọi LLM — chỉ là điểm thoát. <code style="color:#fb923c">ai.py</code> đọc <code style="color:#82aaff">clarification_needed</code> trong final_state → trả <code style="color:#82aaff">needs_clarification=True</code>. Câu trả lời của user ở lượt sau đến như HumanMessage mới và <code style="color:#fb923c">financial_agent</code> resume.</p>
       </div>
     </div>
-
-    <!-- §2b CLARIFICATION & RESUME -->
-    <h3 style="font-size:1.05rem;font-weight:700;color:var(--text);margin:30px 0 6px">🛑 Clarification &amp; Resume — khi AI cần hỏi lại</h3>
-    <p style="margin-bottom:16px">
-      Khi yêu cầu mơ hồ (nhiều khoản chi trong 1 câu, category không rõ, hoặc <strong style="color:var(--text)">số tiền ở ngoại tệ</strong>),
-      <code style="color:#82aaff">financial_agent</code> gọi <code style="color:#fb923c">ask_clarification_tool</code>. Thay vì dùng <code>interrupt()</code>,
-      app cho graph <strong style="color:var(--text)">kết thúc sạch</strong> tại <code style="color:#f87171">clarification_node</code> và trả <code style="color:#82aaff">needs_clarification=True</code> về frontend.
-      Lượt sau, frontend gọi lại với <code style="color:#82aaff">is_resume=true</code> → bơm <code style="color:#fb923c">RESUME_INSTRUCTION</code> vào prompt để agent <em>bắt buộc</em> submit, không hỏi lại.
-    </p>
-
-    <div class="diagram-box" style="margin-bottom:16px">
-      <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; min-height:200px">
-        <defs>
-          <marker id="cl-r" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#f87171"/></marker>
-          <marker id="cl-y" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fbbf24"/></marker>
-          <marker id="cl-o" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fb923c"/></marker>
-          <marker id="cl-t" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#34d399"/></marker>
-        </defs>
-
-        <!-- TURN 1 label -->
-        <text x="20" y="24" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="700">LƯỢT 1 — câu hỏi mơ hồ</text>
-
-        <!-- user msg -->
-        <rect x="20" y="36" width="150" height="40" rx="9" fill="#2c3340" stroke="#3c4452" stroke-width="1"/>
-        <text x="95" y="54" text-anchor="middle" fill="#e6edf3" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">"chi 50 USD ăn trưa"</text>
-        <text x="95" y="68" text-anchor="middle" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="9">HumanMessage</text>
-
-        <line x1="170" y1="56" x2="208" y2="56" stroke="#fb923c" stroke-width="1.8" marker-end="url(#cl-o)"/>
-
-        <!-- financial_agent -->
-        <rect x="210" y="36" width="150" height="40" rx="9" fill="#1a1405" stroke="#fb923c" stroke-width="1.8"/>
-        <text x="285" y="54" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_agent</text>
-        <text x="285" y="68" text-anchor="middle" fill="#cf9a3a" font-family="Segoe UI,system-ui,sans-serif" font-size="9">ngoại tệ → cần rate</text>
-
-        <line x1="360" y1="56" x2="398" y2="56" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#cl-y)"/>
-
-        <!-- financial_tools -->
-        <rect x="400" y="36" width="160" height="40" rx="9" fill="#130e03" stroke="#fbbf24" stroke-width="1.8"/>
-        <text x="480" y="53" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_tools</text>
-        <text x="480" y="67" text-anchor="middle" fill="#d0a83f" font-family="Segoe UI,system-ui,sans-serif" font-size="9">ask_clarification_tool</text>
-
-        <line x1="560" y1="56" x2="598" y2="56" stroke="#fb923c" stroke-width="1.8" marker-end="url(#cl-o)"/>
-
-        <!-- back to financial_agent relay -->
-        <rect x="600" y="36" width="150" height="40" rx="9" fill="#1a1405" stroke="#fb923c" stroke-width="1.8"/>
-        <text x="675" y="53" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_agent</text>
-        <text x="675" y="67" text-anchor="middle" fill="#cf9a3a" font-family="Segoe UI,system-ui,sans-serif" font-size="9">relay → AIMessage</text>
-
-        <line x1="750" y1="56" x2="788" y2="56" stroke="#f87171" stroke-width="1.8" marker-end="url(#cl-r)"/>
-
-        <!-- clarification_node -->
-        <rect x="790" y="36" width="100" height="40" rx="9" fill="#1a0e0e" stroke="#f87171" stroke-width="1.8"/>
-        <text x="840" y="53" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="700">🛑 END</text>
-        <text x="840" y="67" text-anchor="middle" fill="#c87a7a" font-family="Segoe UI,system-ui,sans-serif" font-size="8.5">needs_clarif=True</text>
-
-        <!-- frontend shows question -->
-        <text x="450" y="108" text-anchor="middle" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">→ Frontend hiển thị câu hỏi: "Tỷ giá USD→VND là bao nhiêu?" và chờ user trả lời</text>
-
-        <!-- divider -->
-        <line x1="20" y1="132" x2="880" y2="132" stroke="#3c4452" stroke-width="1" stroke-dasharray="5 4"/>
-
-        <!-- TURN 2 -->
-        <text x="20" y="162" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="700">LƯỢT 2 — user trả lời (is_resume=true)</text>
-
-        <rect x="20" y="176" width="170" height="40" rx="9" fill="#2c3340" stroke="#3c4452" stroke-width="1"/>
-        <text x="105" y="194" text-anchor="middle" fill="#e6edf3" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="600">"26,300"</text>
-        <text x="105" y="208" text-anchor="middle" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="9">HumanMessage + is_resume</text>
-
-        <line x1="190" y1="196" x2="228" y2="196" stroke="#fb923c" stroke-width="1.8" marker-end="url(#cl-o)"/>
-
-        <rect x="230" y="176" width="210" height="40" rx="9" fill="#1a1405" stroke="#fb923c" stroke-width="1.8"/>
-        <text x="335" y="193" text-anchor="middle" fill="#fb923c" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_agent (RESUME)</text>
-        <text x="335" y="207" text-anchor="middle" fill="#cf9a3a" font-family="Segoe UI,system-ui,sans-serif" font-size="9">+ RESUME_INSTRUCTION → không hỏi lại</text>
-
-        <line x1="440" y1="196" x2="478" y2="196" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#cl-y)"/>
-
-        <rect x="480" y="176" width="180" height="40" rx="9" fill="#130e03" stroke="#fbbf24" stroke-width="1.8"/>
-        <text x="570" y="193" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="700">financial_tools</text>
-        <text x="570" y="207" text-anchor="middle" fill="#d0a83f" font-family="Segoe UI,system-ui,sans-serif" font-size="9">submit_expense_tool (50×26,300)</text>
-
-        <line x1="660" y1="196" x2="698" y2="196" stroke="#34d399" stroke-width="1.8" marker-end="url(#cl-t)"/>
-
-        <rect x="700" y="176" width="190" height="40" rx="9" fill="#0d1a12" stroke="#34d399" stroke-width="1.8"/>
-        <text x="795" y="193" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="700">✅ Draft expense created</text>
-        <text x="795" y="207" text-anchor="middle" fill="#5aa37e" font-family="Segoe UI,system-ui,sans-serif" font-size="9">needs_clarification=False</text>
-
-        <text x="450" y="250" text-anchor="middle" fill="#97a3af" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">Nhờ checkpointing theo thread_id, lượt 2 đọc lại toàn bộ history của lượt 1 — agent nhớ "50 USD ăn trưa".</text>
-        <text x="450" y="272" text-anchor="middle" fill="#6b7d8f" font-family="JetBrains Mono,monospace" font-size="9.5">RESUME_INSTRUCTION: cấm gọi ask_clarification_tool, tự quy đổi ngoại tệ, submit MỌI khoản chi trong câu gốc</text>
-      </svg>
-    </div>
-
-    <!-- last_message vs full_history -->
-    <h3 style="font-size:1.05rem;font-weight:700;color:var(--text);margin:30px 0 6px">🧹 data_analyst trả về gì cho Supervisor? — <code style="color:#82aaff">last_message</code> vs <code style="color:#82aaff">full_history</code></h3>
-    <p style="margin-bottom:16px">
-      <code style="color:#82aaff">data_analyst</code> là một <strong style="color:var(--text)">ReAct subgraph riêng</strong>: khi chạy nó tự sinh ra
-      cả chuỗi <code style="color:#60a5fa">AI → Tool → AI → Tool</code> (mỗi vòng truy vấn SQL). Câu hỏi thiết kế:
-      đẩy <em>toàn bộ</em> chuỗi đó về shared State (<code style="color:#82aaff">full_history</code>),
-      hay chỉ đẩy <em>message cuối</em> (<code style="color:#82aaff">last_message</code>)? App này chọn <code style="color:#82aaff">last_message</code>.
-    </p>
-
-    <div class="diagram-box" style="margin-bottom:16px">
-      <svg viewBox="0 0 900 492" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; min-height:320px">
-        <defs>
-          <marker id="lm-r" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#f87171"/></marker>
-          <marker id="lm-t" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#34d399"/></marker>
-        </defs>
-
-        <!-- ANALYST subgraph (top center) -->
-        <rect x="340" y="16" width="220" height="56" rx="13" fill="#0e1726" stroke="#60a5fa" stroke-width="2"/>
-        <text x="450" y="40" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">📊  data_analyst (ReAct subgraph)</text>
-        <text x="450" y="59" text-anchor="middle" fill="#7c9cc4" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">tự chạy SQL nhiều vòng</text>
-
-        <!-- internal messages it produced -->
-        <text x="450" y="92" text-anchor="middle" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">messages analyst sinh ra (nội bộ):</text>
-        <g font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="600" text-anchor="middle">
-          <rect x="296" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="324" y="115" fill="#60a5fa">AI</text>
-          <rect x="358" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="386" y="115" fill="#60a5fa">Tool</text>
-          <rect x="420" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="448" y="115" fill="#60a5fa">AI</text>
-          <rect x="482" y="100" width="56" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1.3"/><text x="510" y="115" fill="#60a5fa">Tool</text>
-          <rect x="544" y="100" width="60" height="22" rx="5" fill="rgba(52,211,153,.12)" stroke="#34d399" stroke-width="1.5"/><text x="574" y="115" fill="#34d399">AI cuối</text>
-        </g>
-
-        <!-- branch arrows -->
-        <line x1="320" y1="128" x2="200" y2="176" stroke="#f87171" stroke-width="2" marker-end="url(#lm-r)"/>
-        <text x="206" y="150" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="600">return TẤT CẢ</text>
-        <line x1="600" y1="128" x2="710" y2="176" stroke="#34d399" stroke-width="2" marker-end="url(#lm-t)"/>
-        <text x="706" y="150" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" font-weight="600">return [-1]</text>
-
-        <!-- divider -->
-        <line x1="450" y1="140" x2="450" y2="476" stroke="#3c4452" stroke-width="1" stroke-dasharray="4 3"/>
-
-        <!-- ❌ LEFT: full_history -->
-        <text x="210" y="194" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">❌  full_history</text>
-        <rect x="34" y="204" width="352" height="240" rx="12" fill="#222834" stroke="rgba(248,113,113,.4)" stroke-width="1.5"/>
-        <text x="210" y="224" text-anchor="middle" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Supervisor history thấy:</text>
-        <g font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" text-anchor="middle">
-          <rect x="60" y="232" width="300" height="22" rx="5" fill="#2c3340" stroke="#3c4452" stroke-width="1"/><text x="210" y="247" fill="#a7b1bd">Human — "tổng chi tháng này?"</text>
-          <rect x="60" y="258" width="300" height="22" rx="5" fill="rgba(167,139,250,.08)" stroke="rgba(167,139,250,.4)" stroke-width="1"/><text x="210" y="273" fill="#a78bfa">AI — route → data_analyst</text>
-          <rect x="60" y="284" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="299" fill="#60a5fa">AI — sql_db_query(...)</text>
-          <rect x="60" y="310" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="325" fill="#60a5fa">Tool — [rows...]</text>
-          <rect x="60" y="336" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="351" fill="#60a5fa">AI — sql_db_query(...)</text>
-          <rect x="60" y="362" width="300" height="22" rx="5" fill="rgba(96,165,250,.1)" stroke="#60a5fa" stroke-width="1"/><text x="210" y="377" fill="#60a5fa">Tool — [rows...]</text>
-          <rect x="60" y="388" width="300" height="22" rx="5" fill="rgba(52,211,153,.1)" stroke="#34d399" stroke-width="1"/><text x="210" y="403" fill="#34d399">AI — "Tổng chi: 4.2tr"</text>
-        </g>
-        <text x="210" y="430" text-anchor="middle" fill="#f87171" font-family="Segoe UI,system-ui,sans-serif" font-size="10">phình to — lẫn cả tool-call SQL nội bộ</text>
-
-        <!-- ✅ RIGHT: last_message -->
-        <text x="690" y="194" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700">✅  last_message — app dùng</text>
-        <rect x="514" y="204" width="352" height="240" rx="12" fill="#222834" stroke="rgba(52,211,153,.4)" stroke-width="1.5"/>
-        <text x="690" y="224" text-anchor="middle" fill="#a7b1bd" font-family="Segoe UI,system-ui,sans-serif" font-size="10.5">Supervisor history thấy:</text>
-        <g font-family="Segoe UI,system-ui,sans-serif" font-size="10.5" text-anchor="middle">
-          <rect x="540" y="232" width="300" height="22" rx="5" fill="#2c3340" stroke="#3c4452" stroke-width="1"/><text x="690" y="247" fill="#a7b1bd">Human — "tổng chi tháng này?"</text>
-          <rect x="540" y="258" width="300" height="22" rx="5" fill="rgba(167,139,250,.08)" stroke="rgba(167,139,250,.4)" stroke-width="1"/><text x="690" y="273" fill="#a78bfa">AI — route → data_analyst</text>
-          <rect x="540" y="284" width="300" height="22" rx="5" fill="rgba(52,211,153,.12)" stroke="#34d399" stroke-width="1.4"/><text x="690" y="299" fill="#34d399">AI — "Tổng chi: 4.2tr"</text>
-        </g>
-        <text x="690" y="330" text-anchor="middle" fill="#6b7d8f" font-family="JetBrains Mono,monospace" font-size="10">return {"messages": [new_messages[-1]]}</text>
-        <text x="690" y="360" text-anchor="middle" fill="#97a3af" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-style="italic">↑ chuỗi AI/Tool nội bộ của analyst bị bỏ</text>
-        <text x="690" y="430" text-anchor="middle" fill="#34d399" font-family="Segoe UI,system-ui,sans-serif" font-size="10">history sạch — chỉ kết quả cuối</text>
-      </svg>
-    </div>
-
-    <div class="highlight">
-      <p>
-        💡 Mode được chọn qua <code style="color:#82aaff">settings.ANALYST_OUTPUT_MODE</code> (mặc định <code style="color:#82aaff">last_message</code>) và truyền vào
-        <code style="color:#82aaff">config["configurable"]["analyst_output_mode"]</code>. Ở <code style="color:#82aaff">last_message</code>,
-        <code style="color:#fb923c">data_analyst_node</code> đẩy về shared State đúng 1 message cuối
-        (<code style="color:#82aaff">return {"messages": [new_messages[-1]], ...}</code>) — Supervisor không bị ngập trong tool-call SQL nội bộ.
-        <strong style="color:var(--text)">Không mất khả năng truy vết:</strong> chuỗi AI/Tool nội bộ được trích riêng bằng
-        <code style="color:#82aaff">_extract_tool_trace()</code> và lưu vào field <code style="color:#82aaff">analyst_trace</code> của State; <code style="color:#fb923c">ai.py</code> gộp nó vào
-        <code style="color:#82aaff">tool_calls</code> để UI vẫn hiện được các bước SQL. Mode <code style="color:#82aaff">full_history</code> thì merge thẳng mọi message
-        analyst sinh ra (slice off phần history đã có để <code>operator.add</code> không nhân đôi).
-      </p>
-    </div>
   </section>
 
   <!-- ══ 3. 8 TOOLS ══ -->
   <section>
     <h2><span class="n">3</span> 7 Tools của Financial Agent</h2>
-    <p style="margin-bottom:18px">Tất cả được tạo qua factory <code style="color:#82aaff">make_tools(user_id, user_currency)</code> trong <code style="color:#fb923c">backend/app/agents/tools.py</code>. Mỗi tool được bind với <code style="color:#82aaff">user_id</code> (data isolation) và <code style="color:#82aaff">user_currency</code> (format tiền tệ đúng — VND/JPY/KRW không có phần thập phân).</p>
+    <!-- <p style="margin-bottom:18px">Tất cả được tạo qua factory <code style="color:#82aaff">make_tools(user_id, user_currency)</code> trong <code style="color:#fb923c">backend/app/agents/tools.py</code>. Mỗi tool được bind với <code style="color:#82aaff">user_id</code> (data isolation) và <code style="color:#82aaff">user_currency</code> (format tiền tệ đúng — VND/JPY/KRW không có phần thập phân).</p> -->
 
     <div class="tool-grid">
       <div class="tool-card">
@@ -642,13 +491,7 @@
       </div>
     </div>
 
-    <div class="highlight" style="margin-top:18px">
-      <p><strong>🔁 Ngoại tệ / web search:</strong> Financial agent <strong>không</strong> có tool search web. Nếu khoản chi ở ngoại tệ (USD, EUR…), prompt bắt agent gọi <code style="color:#fb923c">ask_clarification_tool</code> <em>một lần</em> để hỏi tỷ giá, rồi tự quy đổi (amount × rate) khi resume — không bao giờ submit ngoại tệ khi chưa có rate xác nhận. Quy đổi deterministic ở tầng API do <code style="color:#fb923c">ExchangeRateService</code> xử lý; tìm kiếm web (DuckDuckGo) là việc của <code style="color:#82aaff">data_analyst</code>.</p>
-    </div>
-
-    <div class="highlight" style="margin-top:18px">
-      <p><strong>⚡ Optimization:</strong> Categories được fetch 1 lần ở API level (<code>process_chat</code>) và truyền vào <code>config["configurable"]["categories"]</code>. Financial agent nhận list này qua system prompt — giảm 33% LLM calls so với việc gọi <code>lookup_categories_tool</code> mỗi request.</p>
-    </div>
+  
   </section>
 
   <!-- ══ 4. CHECKPOINT TABLES ══ -->
@@ -733,20 +576,13 @@
       </div>
     </div>
 
-    <div class="card" style="margin-top:18px;background:linear-gradient(135deg,rgba(167,139,250,.05),rgba(52,211,153,.03));border-color:rgba(167,139,250,.2)">
-      <p style="color:var(--text)">
-        <strong>💡 Tại sao quan trọng?</strong> Không có checkpointing, mỗi request tới <code style="color:#fb923c">POST /api/ai/agent/chat</code> sẽ là hội thoại mới hoàn toàn. Với checkpointing, user có thể hỏi <em>"tháng trước tôi chi bao nhiêu?"</em> rồi tiếp ngay <em>"so với tháng này thì sao?"</em> — agent hiểu được ngữ cảnh nhờ đọc lại checkpoint theo <code style="color:#82aaff">thread_id</code>.
-      </p>
-    </div>
+ 
   </section>
 
   <!-- ══ 5. API INTEGRATION ══ -->
   <section>
     <h2><span class="n">5</span> Luồng API – từ Request đến Response</h2>
-    <p style="margin-bottom:20px">
-      File <code style="color:#fb923c">backend/app/api/ai.py</code> — endpoint <code style="color:#82aaff">POST /api/ai/agent/chat</code>
-    </p>
-
+    
     <div class="two-col">
       <div class="card">
         <div class="api-steps">
@@ -843,21 +679,11 @@ tool_calls_log.<span class="fn">extend</span>(final_state.get(<span class="str">
     </div>
   </section>
 
-  <!-- CTA -->
-  <div class="highlight">
-    <p>
-      <strong>📘 Tổng kết series:</strong>
-      <a href="langgraph_intro.html">Phần 1</a> giải thích LangGraph là gì, ReAct pattern và so sánh LangChain.
-      File này (Phần 2) cho thấy cách áp dụng thực tế: Supervisor routing, tool loop, PostgreSQL checkpointing, và API integration.
-      Source code: <code style="color:#fb923c">backend/app/agents/</code>
-    </p>
-  </div>
+ 
 
 </main>
 
-<footer>
-  Expense Tracker — LangGraph Series &nbsp;|&nbsp;
-  <a href="langgraph_intro.html">← Phần 1: LangGraph là gì?</a>
-</footer>
+
+
 </body>
 </html>

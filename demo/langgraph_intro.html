@@ -169,56 +169,50 @@
       border-top: 1px solid var(--border);
     }
     footer a { color: var(--purple); text-decoration: none; }
+
+    /* ── PRINT / SAVE AS PDF ── giữ nền tối + tương phản, không bị trắng ── */
+    @media print {
+      html, body { background: #0d1117 !important; }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-shadow: none !important;
+      }
+      .file-nav {
+        position: static !important;
+        -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+        background: var(--bg2) !important;
+      }
+      /* tránh cắt ngang sơ đồ / card / code khi sang trang */
+      .card, .highlight, .cmp-wrap, .diagram-box, .concept-card,
+      .node-card, .tool-card, .ckpt-card, .step, .api-step, pre, svg {
+        break-inside: avoid;
+      }
+      a { text-decoration: none !important; }
+      @page { margin: 12mm; }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="part-badge">Phần 1 / 2</div>
+  <!-- <div class="part-badge">Phần 1 / 2</div> -->
   <h1>LangGraph là gì?</h1>
-  <p>AI Agent · Khái niệm cốt lõi · ReAct · State · So sánh LangChain</p>
+  <!-- <p>AI Agent · Khái niệm cốt lõi · ReAct · State · So sánh LangChain</p> -->
 </header>
 
-<nav class="file-nav">
+<!-- <nav class="file-nav">
   <span class="label">2 files trong series này:</span>
   <a class="nav-btn nav-current" href="langgraph_intro.html">📘 Phần 1 – LangGraph là gì?</a>
   <span class="label">→</span>
   <a class="nav-btn nav-other" href="langgraph_in_expense_tracker.html">🏗️ Phần 2 – Áp dụng trong Expense Tracker</a>
-</nav>
+</nav> -->
 
 <main>
 
   <!-- ══ 1. AI · LLM · AI AGENT ══ -->
   <section>
-    <h2><span class="n">1</span> AI, LLM &amp; AI Agent là gì?</h2>
-
-    <div class="card" style="margin-bottom:18px">
-      <p>
-        Trước khi vào LangGraph, cần nắm 3 khái niệm xếp lồng nhau:
-        <strong style="color:var(--blue)">AI</strong> →
-        <strong style="color:var(--teal)">LLM</strong> →
-        <strong style="color:var(--purple)">AI Agent</strong>.
-        LangGraph là công cụ để dựng lớp ngoài cùng — <em style="color:var(--purple)">Agent</em>.
-      </p>
-    </div>
-
-    <div class="concept-grid" style="margin-bottom:18px">
-      <div class="concept-card">
-        <div class="icon">🧠</div>
-        <h4>AI</h4>
-        <p>Trí tuệ nhân tạo — lĩnh vực rộng giúp máy tính làm việc cần "thông minh": nhận diện, dự đoán, ra quyết định.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">💬</div>
-        <h4>LLM</h4>
-        <p>Large Language Model (GPT, Claude, Gemini...). Đoán <em>token tiếp theo</em>, giỏi hiểu &amp; sinh ngôn ngữ — nhưng chỉ <strong style="color:var(--text)">trả lời một lượt</strong>.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">🤖</div>
-        <h4>AI Agent</h4>
-        <p>LLM được trao <em>tool + bộ nhớ + vòng lặp</em> để <strong style="color:var(--text)">tự lập kế hoạch &amp; hành động nhiều bước</strong> đến khi đạt mục tiêu.</p>
-      </div>
-    </div>
+    <h2><span class="n">1</span>LLM vs AI Agent</h2>
 
     <div class="two-col" style="margin-bottom:18px">
       <div class="card">
@@ -264,14 +258,6 @@
         <p>Điều phối: gọi model → chạy tool → đưa kết quả lại model → lặp đến khi đạt mục tiêu.</p>
       </div>
     </div>
-
-    <div class="highlight">
-      <p>
-        💡 <strong>LangGraph chính là khung để dựng "Loop + Memory + Tools" đó một cách bài bản</strong> —
-        bằng đồ thị có trạng thái. Pattern phổ biến nhất để hiện thực vòng lặp này là
-        <strong style="color:var(--purple)">ReAct</strong> (xem mục 3).
-      </p>
-    </div>
   </section>
 
   <!-- ══ 2. LANGGRAPH LÀ GÌ ══ -->
@@ -293,38 +279,14 @@
       </p>
     </div>
 
-    <div class="concept-grid">
-      <div class="concept-card">
-        <div class="icon">🔷</div>
-        <h4>Node (Nút)</h4>
-        <p>Hàm Python thực hiện 1 tác vụ: gọi LLM, chạy tool, xử lý data. Nhận State vào, trả về phần State cập nhật.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">➡️</div>
-        <h4>Edge (Cạnh)</h4>
-        <p>Kết nối giữa các node. <em>Thường</em>: cố định. <em>Conditional</em>: hàm router quyết định đi node nào tùy theo State.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">📦</div>
-        <h4>State (Trạng thái)</h4>
-        <p>TypedDict chia sẻ cho toàn graph. Mọi node đọc/ghi vào đây. Dùng <em>Reducer</em> để merge thay vì ghi đè.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">🔁</div>
-        <h4>Cycle (Vòng lặp)</h4>
-        <p>Graph <em>có thể có chu trình</em>. Agent lặp lại node đến khi điều kiện thoát thỏa mãn — đây là điểm khác biệt cốt lõi.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">🛑</div>
-        <h4>Checkpointing</h4>
-        <p>Snapshot toàn bộ State sau mỗi bước. Agent có thể dừng, tiếp tục sau (Human-in-the-loop), hoặc resume sau crash.</p>
-      </div>
-      <div class="concept-card">
-        <div class="icon">👥</div>
-        <h4>Multi-Agent</h4>
-        <p>Supervisor điều phối nhiều agent chuyên biệt. Mỗi agent là 1 node (hoặc subgraph) riêng, giao tiếp qua shared State.</p>
-      </div>
-    </div>
+    <figure style="margin:0">
+      <img src="what_is_langgraph.png"
+           alt="What is LangGraph? — sơ đồ luồng agent: START → AGENT → Conditional Edge → TOOL → END (Agent Loop)"
+           style="display:block; width:100%; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm);">
+      <figcaption style="text-align:center; color:var(--dim); font-size:.82rem; margin-top:10px">
+        Sơ đồ tổng quan: agent lặp <em>suy luận → hành động (tool) → quan sát</em> qua các node, rẽ nhánh bằng conditional edge cho đến END.
+      </figcaption>
+    </figure>
   </section>
 
   <!-- ══ 2. REACT AGENT ══ -->
@@ -490,60 +452,6 @@
       <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Quay lại Supervisor</strong><span>Agent trả về Supervisor để điều phối bước tiếp theo — lặp đến khi Supervisor chọn FINISH.</span></div></div>
     </div>
 
-    <div class="highlight" style="margin-top:22px">
-      <p>
-        💡 Sơ đồ trên là <strong>generic</strong>. App này <strong>tự viết tay</strong> Supervisor (node
-        <code style="color:#82aaff">bind_tools(RouterResponse)</code>) thay vì dùng thư viện
-        <code style="color:#c3e88d">langgraph-supervisor</code>. Xem chi tiết cụ thể với 3 agent thật ở
-        <a href="supervisor_pattern_explained.html">Supervisor Pattern →</a> và
-        <a href="langgraph_in_expense_tracker.html">Phần 2 →</a>.
-      </p>
-    </div>
-  </section>
-
-  <!-- ══ 4. STATE ══ -->
-  <section>
-    <h2><span class="n">5</span> State – Trung tâm của LangGraph</h2>
-
-    <div class="two-col">
-      <div class="card">
-        <h3>State là gì?</h3>
-        <p>Một <code style="color:#c792ea">TypedDict</code> chia sẻ cho tất cả các node. Mỗi node nhận state cũ, xử lý, trả về <em>partial update</em>.</p>
-        <p>LangGraph dùng <strong style="color:var(--teal)">Reducer</strong> để merge: field <code style="color:#82aaff">messages</code> dùng <code>operator.add</code> — <em>cộng dồn list</em> thay vì ghi đè, giúp giữ toàn bộ lịch sử hội thoại.</p>
-        <div style="margin-top:14px;padding:12px 15px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
-          <p style="margin:0;color:var(--text);font-size:.85rem"><strong>Tại sao quan trọng?</strong></p>
-          <p style="margin:5px 0 0;font-size:.82rem">Không có State, mỗi node chỉ nhận output của node trước → không thể loop, không thể nhớ ngữ cảnh, không thể checkpointing.</p>
-        </div>
-      </div>
-
-      <pre><code><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">END</span>, <span class="cls">START</span>
-<span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">TypedDict</span>, <span class="cls">Annotated</span>
-<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cls">BaseMessage</span>
-<span class="kw">import</span> operator
-
-<span class="cm"># ① Định nghĩa State</span>
-<span class="kw">class</span> <span class="cls">AgentState</span>(<span class="cls">TypedDict</span>):
-    messages: <span class="cls">Annotated</span>[
-        list[<span class="cls">BaseMessage</span>],
-        operator.add    <span class="cm"># Reducer: cộng dồn, không ghi đè</span>
-    ]
-    next: str           <span class="cm"># node tiếp theo (dùng trong Supervisor)</span>
-    user_id: int
-
-<span class="cm"># ② Node function – chỉ trả partial update</span>
-<span class="kw">def</span> <span class="fn">agent_node</span>(state: <span class="cls">AgentState</span>):
-    response = llm.invoke(state[<span class="str">"messages"</span>])
-    <span class="kw">return</span> {<span class="str">"messages"</span>: [response]}  <span class="cm"># không cần ghi lại toàn bộ</span>
-
-<span class="cm"># ③ Build graph</span>
-builder = <span class="cls">StateGraph</span>(<span class="cls">AgentState</span>)
-builder.add_node(<span class="str">"agent"</span>, agent_node)
-builder.add_edge(<span class="cls">START</span>, <span class="str">"agent"</span>)
-
-<span class="cm"># ④ Compile với checkpointing</span>
-graph = builder.compile(checkpointer=memory)
-</code></pre>
-    </div>
   </section>
 
   <!-- ══ 5. SO SÁNH ══ -->
@@ -693,22 +601,7 @@ graph = builder.compile(checkpointer=memory)
       </div>
     </div>
   </section>
-
-  <!-- CTA -->
-  <div class="highlight">
-    <p>
-      <strong>🏗️ Tiếp theo:</strong>
-      Xem <a href="langgraph_in_expense_tracker.html">Phần 2 →</a>
-      để hiểu cách Expense Tracker áp dụng LangGraph thực tế:
-      Supervisor + 3 agent + clarification/resume + 7 tool + PostgreSQL checkpointing — wiring ở <code style="color:#fb923c">graph.py</code>, còn node/prompt/state/util tách riêng.
-    </p>
-  </div>
-
 </main>
 
-<footer>
-  Expense Tracker — LangGraph Series &nbsp;|&nbsp;
-  <a href="langgraph_in_expense_tracker.html">Phần 2: Áp dụng trong Expense Tracker →</a>
-</footer>
 </body>
 </html>
