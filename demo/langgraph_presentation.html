@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LangGraph là gì? – Phần 1/2</title>
+  <title>LangGraph – Từ khái niệm đến Expense Tracker</title>
   <style>
+
     :root {
       --bg: #1a1f29; --bg2: #222834; --bg3: #2c3340;
       --border: #3c4452; --border2: #4a5363;
@@ -191,24 +192,275 @@
       a { text-decoration: none !important; }
       @page { margin: 12mm; }
     }
+  
+    /* ══ CSS riêng của Phần 2 (node/tool/checkpoint/api) ══ */
+
+    :root {
+      --bg: #1a1f29; --bg2: #222834; --bg3: #2c3340;
+      --border: #3c4452; --border2: #4a5363;
+      --text: #e8edf3; --text2: #c9d2dd; --dim: #9aa5b2;
+      --purple: #a3aede; --purple-bg: rgba(163,174,222,.10);
+      --teal: #84bfa6; --teal-bg: rgba(132,191,166,.10);
+      --orange: #cfa178; --orange-bg: rgba(207,161,120,.10);
+      --red: #c98f8f; --red-bg: rgba(201,143,143,.10);
+      --blue: #8fb3d9; --blue-bg: rgba(143,179,217,.10);
+      --yellow: #c9b380; --yellow-bg: rgba(201,179,128,.10);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow: 0 8px 28px rgba(0,0,0,.32);
+      --radius: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 18px; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.72;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: rgba(143,179,217,.3); color: #fff; }
+    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2c333d; border-radius: 8px; border: 2px solid var(--bg); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 44px 24px 38px; text-align: center;
+    }
+    .part-badge {
+      display: inline-block; padding: 4px 14px;
+      border: 1px solid rgba(52,211,153,.35); border-radius: 999px;
+      font-size: .72rem; color: var(--teal); letter-spacing: .08em;
+      text-transform: uppercase; margin-bottom: 14px; position: relative;
+    }
+    header h1 {
+      font-size: clamp(1.9rem, 4.5vw, 2.6rem); font-weight: 700; letter-spacing: -.02em;
+      color: var(--text); margin-bottom: 10px; line-height: 1.2;
+    }
+    header p { color: var(--dim); font-size: 1rem; max-width: 600px; margin: 0 auto; }
+
+    .file-nav {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 13px 24px; background: rgba(22,27,34,.82); border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; position: sticky; top: 0; z-index: 30;
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+    .file-nav .label { color: var(--dim); font-size: .82rem; }
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 8px; font-size: .83rem; font-weight: 600;
+      text-decoration: none; transition: border-color .2s, color .2s;
+    }
+    .nav-other { background: var(--bg3); border: 1px solid var(--border); color: var(--dim); }
+    .nav-other:hover { border-color: var(--purple); color: var(--purple); }
+    .nav-current { background: var(--teal-bg); border: 1px solid rgba(52,211,153,.4); color: var(--teal); }
+
+    main { max-width: 1060px; margin: 0 auto; padding: 48px 24px 80px; }
+    section { margin-bottom: 68px; }
+    h2 {
+      font-size: 1.45rem; font-weight: 700; color: var(--text);
+      margin-bottom: 24px; padding-bottom: 15px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; letter-spacing: -.015em;
+    }
+    h2 .n {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 9px;
+      background: var(--bg3); border: 1px solid var(--border);
+      font-size: .85rem; color: var(--text2); font-weight: 700; flex-shrink: 0;
+    }
+    h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 10px; letter-spacing: -.01em; }
+    p { color: var(--text2); margin-bottom: 10px; }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); font-weight: 600; }
+    :not(pre) > code {
+      color: #aec3de; background: rgba(255,255,255,.045);
+      border: 1px solid rgba(255,255,255,.06); border-radius: 5px;
+      padding: 1px 6px; font-size: .85em;
+    }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 780px) { .three-col { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+
+    .diagram-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px 14px; overflow-x: auto;
+      box-shadow: var(--shadow-sm);
+    }
+    .diagram-box svg { display: block; margin: 0 auto; }
+
+    /* NODE CARDS */
+    .node-card {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+      padding: 17px; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .node-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+    .node-card .node-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: 7px;
+    }
+    .node-card h4 { color: var(--text); font-size: .94rem; font-weight: 700; margin-bottom: 6px; }
+    .node-card p { font-size: .83rem; color: var(--text2); margin: 0; }
+    .node-card .route-info {
+      margin-top: 11px; padding: 9px 11px;
+      background: var(--bg2); border-radius: 7px; border: 1px solid var(--border);
+      font-size: .78rem; color: var(--text2); line-height: 1.6;
+    }
+
+    /* TOOL GRID */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .tool-card {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 11px;
+      padding: 15px 16px; display: flex; flex-direction: column; gap: 6px;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .tool-card:hover { box-shadow: var(--shadow-sm); border-color: var(--border2); }
+    .tool-card .tool-name {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: .79rem; font-weight: 700; color: #8fb3d9;
+    }
+    .tool-card .tool-desc { font-size: .81rem; color: var(--text2); line-height: 1.6; }
+    .tool-card .tool-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      width: fit-content;
+    }
+
+    /* CHECKPOINT CARDS — 2×2: card đủ rộng cho tên bảng mono dài + badge */
+    .ckpt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+    @media (max-width: 760px) { .ckpt-grid { grid-template-columns: 1fr; } }
+    .ckpt-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 13px; overflow: hidden;
+      transition: transform .2s ease, box-shadow .2s ease;
+      display: flex; flex-direction: column;
+    }
+    .ckpt-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+    .ckpt-head {
+      padding: 13px 16px 11px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    }
+    .ckpt-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .ckpt-name {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: .88rem; font-weight: 700; color: var(--blue);
+      min-width: 0; overflow-wrap: anywhere;
+    }
+    .ckpt-badge {
+      margin-left: auto; padding: 2px 10px; border-radius: 999px;
+      font-size: .68rem; font-weight: 700;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .ckpt-body { padding: 14px 16px; flex: 1; }
+    .ckpt-desc { font-size: .84rem; color: var(--text); margin-bottom: 12px; line-height: 1.6; }
+    .ckpt-cols { list-style: none; padding: 0; }
+    .ckpt-cols li {
+      display: grid; grid-template-columns: minmax(120px, 165px) 1fr; gap: 10px;
+      align-items: baseline; padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,.05); font-size: .79rem;
+    }
+    .ckpt-cols li:last-child { border-bottom: none; }
+    .col-n { font-family: 'JetBrains Mono','Fira Code',monospace; color: #8fb3d9; overflow-wrap: anywhere; line-height: 1.45; }
+    .col-d { color: var(--text2); line-height: 1.5; }
+
+    /* CODE */
+    pre {
+      background: #12161f; border: 1px solid var(--border); border-radius: 11px;
+      padding: 20px; overflow-x: auto; font-size: .8rem; line-height: 1.72;
+    }
+    code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .kw { color: #b3a7d6; } .fn { color: #8fb3d9; } .str { color: #a8c690; }
+    .cm { color: #6b7d8f; font-style: italic; } .cls { color: #cdb88a; }
+
+    /* API FLOW STEPS */
+    .api-steps { position: relative; padding-left: 24px; }
+    .api-steps::before {
+      content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px;
+      width: 2px; background: var(--border);
+    }
+    .api-step { position: relative; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 13px; }
+    .api-dot {
+      position: absolute; left: -20px; top: 4px;
+      width: 12px; height: 12px; border-radius: 50%; border: 2px solid;
+      background: var(--bg);
+    }
+    .api-content {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 15px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .api-content:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+    .api-content strong { color: var(--text); font-size: .89rem; display: block; margin-bottom: 3px; }
+    .api-content span { color: var(--text2); font-size: .82rem; line-height: 1.6; }
+    .api-tag {
+      display: inline-block; margin-top: 5px; padding: 2px 7px; border-radius: 4px;
+      font-size: .7rem; font-family: 'JetBrains Mono','Fira Code',monospace; font-weight: 600;
+    }
+
+    .highlight {
+      background: var(--bg2);
+      border: 1px solid var(--border); border-left: 3px solid var(--blue);
+      border-radius: 12px; padding: 18px 22px;
+    }
+    .highlight p { color: var(--text); margin: 0; font-size: .92rem; line-height: 1.72; }
+    .highlight a { color: var(--blue); text-decoration: none; font-weight: 600; }
+    .highlight a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center; padding: 24px; color: var(--dim); font-size: .8rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--teal); text-decoration: none; }
+
+    /* ── PRINT / SAVE AS PDF ── giữ nền tối + tương phản, không bị trắng ── */
+    @media print {
+      html, body { background: #0d1117 !important; }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-shadow: none !important;
+      }
+      .file-nav {
+        position: static !important;
+        -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+        background: var(--bg2) !important;
+      }
+      /* tránh cắt ngang sơ đồ / card / code khi sang trang */
+      .card, .highlight, .cmp-wrap, .diagram-box, .concept-card,
+      .node-card, .tool-card, .ckpt-card, .step, .api-step, pre, svg {
+        break-inside: avoid;
+      }
+      a { text-decoration: none !important; }
+      @page { margin: 12mm; }
+    }
+  
+    /* ══ PART DIVIDER (file present gộp) ══ */
+    .part-divider {
+      display: flex; align-items: center; gap: 18px;
+      max-width: 1060px; margin: 56px auto 8px; padding: 0 24px;
+    }
+    .part-divider::before, .part-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .part-divider span {
+      font-size: .95rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--dim); white-space: nowrap;
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <!-- <div class="part-badge">Phần 1 / 2</div> -->
-  <h1>LangGraph là gì?</h1>
-  <!-- <p>AI Agent · Khái niệm cốt lõi · ReAct · State · So sánh LangChain</p> -->
+  <h1>LangGraph – Từ khái niệm đến Expense Tracker</h1>
+  <p>Phần 1: LangGraph là gì? &nbsp;·&nbsp; Phần 2: Áp dụng trong Expense Tracker</p>
 </header>
 
-<!-- <nav class="file-nav">
-  <span class="label">2 files trong series này:</span>
-  <a class="nav-btn nav-current" href="langgraph_intro.html">📘 Phần 1 – LangGraph là gì?</a>
-  <span class="label">→</span>
-  <a class="nav-btn nav-other" href="langgraph_in_expense_tracker.html">🏗️ Phần 2 – Áp dụng trong Expense Tracker</a>
-</nav> -->
+<div class="part-divider"><span>Phần 1 — LangGraph là gì?</span></div>
 
 <main>
+
 
   <!-- ══ 1. AI · LLM · AI AGENT ══ -->
   <section>
@@ -601,6 +853,338 @@
       </div>
     </div>
   </section>
+
+</main>
+
+<div class="part-divider"><span>Phần 2 — LangGraph trong Expense Tracker</span></div>
+
+<main>
+
+
+  <!-- ══ 1. TỔNG QUAN ══ -->
+  <section>
+    <h2><span class="n">1</span> Kiến trúc tổng quan</h2>
+
+    <div class="card" style="margin-bottom:18px">
+      <p>
+        Graph trong app dùng <strong>Supervisor Pattern</strong>:
+        một node trung tâm phân tích câu hỏi và phân công cho agent chuyên biệt.
+        <!-- Wiring của graph nằm trong <code>backend/app/agents/graph.py</code>; các node ở <code>nodes.py</code>, prompt ở <code>prompts.py</code>, schema State ở <code>state.py</code>, helper xử lý message ở <code>utils.py</code>. -->
+      </p>
+      <!-- <p style="margin-top:6px">
+        Graph có <strong>6 nodes</strong>: <code>supervisor</code>, <code>financial_agent</code>, <code>financial_tools</code>, <code>clarification_node</code>, <code>data_analyst</code>, <code>general_agent</code>.
+        Supervisor chỉ điều phối <strong>3 agent</strong> — <code>financial_agent</code>, <code>data_analyst</code>, <code>general_agent</code> — bằng cách set <code>state["next"]</code> (hoặc <code>FINISH</code> → END).
+        Hai node phụ trợ <code>financial_tools</code> và <code>clarification_node</code> thuộc vòng nội bộ của <code>financial_agent</code> (đi bằng conditional edge riêng), <strong>không</strong> do supervisor chọn.
+        Shared <code>AgentState</code> (state.py) gồm 4 field: <code>messages</code> (reducer <code>operator.add</code>), <code>clarification_needed</code>, <code>next</code>, <code>analyst_trace</code> — còn <code>user_id</code>/<code>thread_id</code> nằm trong <code>config["configurable"]</code>, không phải State.
+      </p> -->
+    </div>
+
+    <!-- MAIN GRAPH DIAGRAM -->
+    <div class="diagram-box">
+      <img src="MAIN_GRAPH_DIAGRAM.png"
+           alt="Sơ đồ graph chính: START → Supervisor (Router LLM) phân công financial_agent / data_analyst / general_agent, vòng tool nội bộ, nhánh clarification, kết thúc tại END"
+           style="display:block; width:100%; height:auto; border-radius:10px;">
+    </div>
+  </section>
+
+  <!-- ══ 2. 5 NODES ══ -->
+  <section>
+    <h2><span class="n">2</span> Chi tiết 6 Nodes</h2>
+
+    <!-- Supervisor -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:1.4rem">🎯</span>
+        <code style="color:var(--purple);font-size:.95rem;font-family:'JetBrains Mono','Fira Code',monospace;font-weight:700">supervisor_node</code>
+        <span style="margin-left:auto;padding:3px 9px;background:var(--purple-bg);border:1px solid var(--border);border-radius:999px;font-size:.72rem;color:var(--purple)">Entry Point</span>
+      </div>
+      <p>LLM đọc 10 messages gần nhất (đã <code>sanitize</code>), dùng <strong>structured tool calling</strong> (<code>bind_tools(RouterResponse, tool_choice="RouterResponse")</code>) để quyết định route. <code>RouterResponse</code> có 2 field: <code>next</code> — một trong <code>"financial_agent"</code>, <code>"data_analyst"</code>, <code>"general_agent"</code>, <code>"FINISH"</code> — và <code>reason</code> (khi FINISH, được thêm vào history dưới dạng AIMessage để UI thấy).</p>
+      <!-- <p><strong>Logic đặc biệt:</strong> Nếu message cuối là AIMessage (agent vừa trả lời), Supervisor <em>tự động</em> set FINISH — tránh agent gọi agent vô hạn.</p> -->
+    </div>
+
+    <div class="three-col">
+      <div class="node-card">
+        <div class="node-label" style="color:var(--orange)">💰 financial_agent</div>
+        <h4>Xử lý giao dịch tài chính</h4>
+        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, xem tổng hợp tháng. Có <strong>tool loop nội bộ</strong> với <code>financial_tools</code>. Cũng chạy <strong>clarification relay</strong> &amp; <strong>resume mode</strong></p>
+        <div class="route-info">
+          <code>tool_calls</code> → <strong>financial_tools</strong><br>
+          <code>clarification_needed</code> → <strong>clarification_node</strong><br>
+          còn lại → <strong>supervisor</strong>
+        </div>
+      </div>
+
+      <!-- data_analyst -->
+      <div class="node-card">
+        <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
+        <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
+        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph chạy SQL + web search. <code>sql_db_query</code> bị thay bằng bản <strong>guarded</strong></p>
+        <div class="route-info">
+          Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
+        </div>
+      </div>
+
+      <!-- general_agent -->
+      <div class="node-card">
+        <div class="node-label" style="color:var(--teal)">💬 general_agent</div>
+        <h4>Xử lý chitchat</h4>
+        <p>LLM trực tiếp, không có tools. Xử lý lời chào, câu hỏi ngoài chủ đề tài chính.</p>
+        <div class="route-info">
+          Sau khi trả lời → về <strong>supervisor</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:14px">
+      <div class="node-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="node-label" style="color:var(--yellow);margin:0">🔧 financial_tools</div>
+          <span style="padding:2px 8px;background:var(--yellow-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--yellow)">ToolNode</span>
+        </div>
+        <p style="font-size:.85rem">Bọc LangGraph's <code>ToolNode</code> — nhìn vào <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State. <strong>Đặc biệt:</strong> nếu phát hiện <code>ask_clarification_tool</code>, nó surface câu hỏi vào <code>clarification_needed</code>. Sau đó luôn quay về <code>financial_agent</code>.</p>
+      </div>
+
+      <div class="node-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="node-label" style="color:var(--red);margin:0">🛑 clarification_node</div>
+          <span style="padding:2px 8px;background:var(--red-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--red)">Terminal</span>
+        </div>
+        <p style="font-size:.85rem">Node <strong>kết thúc graph</strong> (→ END) khi AI cần hỏi thêm. Không gọi LLM — chỉ là điểm thoát. <code>ai.py</code> đọc <code>clarification_needed</code> trong final_state → trả <code>needs_clarification=True</code>. Câu trả lời của user ở lượt sau đến như HumanMessage mới và <code>financial_agent</code> resume.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3. 8 TOOLS ══ -->
+  <section>
+    <h2><span class="n">3</span> 7 Tools của Financial Agent</h2>
+    <!-- <p style="margin-bottom:18px">Tất cả được tạo qua factory <code>make_tools(user_id, user_currency)</code> trong <code>backend/app/agents/tools.py</code>. Mỗi tool được bind với <code>user_id</code> (data isolation) và <code>user_currency</code> (format tiền tệ đúng — VND/JPY/KRW không có phần thập phân).</p> -->
+
+    <div class="tool-grid">
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
+        <div class="tool-name">submit_expense_tool</div>
+        <div class="tool-desc">Tạo draft expense. Categories được truyền qua system prompt (không cần gọi tool lookup). Trả về <code>"Draft Created|..."</code>.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
+        <div class="tool-name">submit_income_tool</div>
+        <div class="tool-desc">Tạo draft income với amount và source. Trả về tín hiệu hoàn thành để frontend hiển thị form confirm.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--yellow-bg);color:var(--yellow)">Clarify</span>
+        <div class="tool-name">ask_clarification_tool</div>
+        <div class="tool-desc">Hỏi user khi thiếu thông tin (category không rõ, amount mơ hồ). Graph tạm dừng, đợi user trả lời, sau đó resume.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
+        <div class="tool-name">get_monthly_summary_tool</div>
+        <div class="tool-desc">Tổng chi tiêu và breakdown theo category cho một tháng. Dùng khi user hỏi "tháng này tôi chi bao nhiêu?"</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
+        <div class="tool-name">get_monthly_income_summary_tool</div>
+        <div class="tool-desc">Tổng thu nhập và breakdown theo nguồn (source) cho một tháng. Dùng khi user hỏi "tháng này tôi kiếm được bao nhiêu?"</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
+        <div class="tool-name">get_recent_expenses_tool</div>
+        <div class="tool-desc">10 expense gần nhất trong N ngày qua (default 7). Dùng để kiểm tra expense đã thêm chưa.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
+        <div class="tool-name">get_recent_incomes_tool</div>
+        <div class="tool-desc">20 income gần nhất trong N ngày qua (default 30). Dùng khi user hỏi về thu nhập gần đây.</div>
+      </div>
+    </div>
+
+  
+  </section>
+
+  <!-- ══ 4. CHECKPOINT TABLES ══ -->
+  <section>
+    <h2><span class="n">4</span> Checkpoint – Bộ nhớ dài hạn của Agent</h2>
+
+    <div class="card" style="margin-bottom:20px">
+      <p>
+        Khi gọi <code>AsyncPostgresSaver(pool)</code>, LangGraph <strong>tự tạo 4 bảng</strong> trong PostgreSQL — không cần viết migration thủ công.
+        Nhờ đây, agent <strong>nhớ lịch sử hội thoại</strong> giữa các request và có thể <strong>resume sau crash</strong>.
+      </p>
+    </div>
+
+    <div class="ckpt-grid">
+      <div class="ckpt-card">
+        <div class="ckpt-head">
+          <span class="ckpt-icon">📸</span>
+          <span class="ckpt-name">checkpoints</span>
+          <span class="ckpt-badge" style="background:var(--purple-bg);color:var(--purple)">Core</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-desc"><strong>Snapshot toàn bộ State</strong> sau mỗi node. Mỗi row = 1 bước, liên kết thành chuỗi lịch sử qua parent_id.</p>
+          <ul class="ckpt-cols">
+            <li><span class="col-n">thread_id</span><span class="col-d">ID cuộc hội thoại (UUID)</span></li>
+            <li><span class="col-n">checkpoint_id</span><span class="col-d">UUID của snapshot này</span></li>
+            <li><span class="col-n">parent_checkpoint_id</span><span class="col-d">Trỏ về bước trước → chuỗi lịch sử</span></li>
+            <li><span class="col-n">checkpoint</span><span class="col-d">JSONB: toàn bộ state</span></li>
+            <li><span class="col-n">metadata</span><span class="col-d">step#, source, user_id, currency</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ckpt-card">
+        <div class="ckpt-head">
+          <span class="ckpt-icon">🗜️</span>
+          <span class="ckpt-name">checkpoint_blobs</span>
+          <span class="ckpt-badge" style="background:var(--orange-bg);color:var(--orange)">Storage</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-desc"><strong>Data lớn lưu tách riêng</strong> dưới dạng binary nén. Tránh bảng checkpoints quá nặng khi messages dài.</p>
+          <ul class="ckpt-cols">
+            <li><span class="col-n">thread_id</span><span class="col-d">Khóa liên kết</span></li>
+            <li><span class="col-n">channel</span><span class="col-d">"messages", "agent_outcome"...</span></li>
+            <li><span class="col-n">version</span><span class="col-d">Phiên bản của blob</span></li>
+            <li><span class="col-n">type</span><span class="col-d">"msgpack" hoặc "json"</span></li>
+            <li><span class="col-n">blob</span><span class="col-d">bytea: dữ liệu serialize/nén</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ckpt-card">
+        <div class="ckpt-head">
+          <span class="ckpt-icon">✍️</span>
+          <span class="ckpt-name">checkpoint_writes</span>
+          <span class="ckpt-badge" style="background:var(--teal-bg);color:var(--teal)">WAL</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-desc"><strong>Ghi trung gian</strong> khi node đang chạy. Nếu server crash, LangGraph đọc bảng này để <strong>resume chính xác</strong>.</p>
+          <ul class="ckpt-cols">
+            <li><span class="col-n">checkpoint_id</span><span class="col-d">Checkpoint đang xử lý</span></li>
+            <li><span class="col-n">task_id</span><span class="col-d">Task con đang ghi</span></li>
+            <li><span class="col-n">idx</span><span class="col-d">Thứ tự ghi</span></li>
+            <li><span class="col-n">channel</span><span class="col-d">State channel bị write</span></li>
+            <li><span class="col-n">blob</span><span class="col-d">Giá trị đang ghi (binary)</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ckpt-card">
+        <div class="ckpt-head">
+          <span class="ckpt-icon">🔢</span>
+          <span class="ckpt-name">checkpoint_migrations</span>
+          <span class="ckpt-badge" style="background:var(--red-bg);color:var(--red)">Schema</span>
+        </div>
+        <div class="ckpt-body">
+          <p class="ckpt-desc"><strong>Version schema</strong> - LangGraph tự quản lý.</p>
+          <p style="margin-top:10px;font-size:.8rem;color:var(--dim)">Khi upgrade LangGraph, bảng này quyết định migration nào cần chạy thêm.</p>
+        </div>
+      </div>
+    </div>
+
+ 
+  </section>
+
+  <!-- ══ 5. API INTEGRATION ══ -->
+  <section>
+    <h2><span class="n">5</span> Luồng API – từ Request đến Response</h2>
+    
+    <div class="two-col">
+      <div class="card">
+        <div class="api-steps">
+
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--teal)"></div>
+            <div class="api-content">
+              <strong>Frontend gửi request</strong>
+              <span><code>{ message, thread_id?, is_resume }</code> — thread_id là UUID nhận từ response trước (null → tạo mới). <code>is_resume=true</code> khi user đang trả lời câu hỏi clarification.</span>
+            </div>
+          </div>
+
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--blue)"></div>
+            <div class="api-content">
+              <strong>Lấy preferences + categories</strong>
+              <span>Query DB lấy <code>user_lang</code>, <code>user_currency</code> và <strong>danh sách categories (1 lần)</strong>. Cùng với <code>analyst_output_mode</code> &amp; <code>is_resume</code>, tất cả đưa vào <code>config.configurable</code>; <code>AILoggingCallbackHandler</code> gắn vào <code>config.callbacks</code>.</span>
+            </div>
+          </div>
+
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--purple)"></div>
+            <div class="api-content">
+              <strong>Tạo AsyncPostgresSaver</strong>
+              <span>Mở connection pool → tạo checkpointer → compile graph với checkpointer đã attach.</span>
+              <div><span class="api-tag" style="background:var(--purple-bg);color:var(--purple)">AsyncPostgresSaver(pool)</span></div>
+            </div>
+          </div>
+
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--orange)"></div>
+            <div class="api-content">
+              <strong>LangGraph đọc checkpoint cũ</strong>
+              <span>Tìm checkpoint mới nhất theo <code>thread_id</code> → khôi phục messages, ngữ cảnh trước đó vào State.</span>
+              <div><span class="api-tag" style="background:var(--orange-bg);color:var(--orange)">READ checkpoints</span></div>
+            </div>
+          </div>
+
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--purple)"></div>
+            <div class="api-content">
+              <strong>graph.ainvoke() – chạy toàn bộ graph</strong>
+              <span>Supervisor → agent → (tools loop) → Supervisor → FINISH. recursion_limit=12 để tránh vòng lặp vô hạn.</span>
+            </div>
+          </div>
+
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--teal)"></div>
+            <div class="api-content">
+              <strong>Trả response + thread_id</strong>
+              <span>Nếu final_state có <code>clarification_needed</code> → trả <code>needs_clarification=True</code> ngay. Ngược lại parse các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, gộp <code>analyst_trace</code> vào tool_calls. <code>GraphRecursionError</code> → trả lời an toàn.</span>
+              <div><span class="api-tag" style="background:var(--teal-bg);color:var(--teal)">{ response, expense_data, income_data, tool_calls, thread_id, needs_clarification }</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <pre><code><span class="cm"># ai.py – process_chat() (rút gọn)</span>
+<span class="kw">async with</span> <span class="cls">AsyncConnectionPool</span>(conninfo=db_url) <span class="kw">as</span> pool:
+    checkpointer = <span class="cls">AsyncPostgresSaver</span>(pool)
+    graph = <span class="fn">compile_graph</span>(checkpointer=checkpointer)
+
+    config = {
+        <span class="str">"configurable"</span>: {
+            <span class="str">"user_id"</span>: user_id,
+            <span class="str">"thread_id"</span>: final_thread_id,   <span class="cm"># key cho checkpoint</span>
+            <span class="str">"user_lang"</span>: user_lang,
+            <span class="str">"user_currency"</span>: user_currency,
+            <span class="str">"categories"</span>: category_list,     <span class="cm"># fetch 1 lần, đưa vào prompt</span>
+            <span class="str">"is_resume"</span>: is_resume,          <span class="cm"># bật RESUME_INSTRUCTION</span>
+            <span class="str">"analyst_output_mode"</span>: settings.ANALYST_OUTPUT_MODE,
+        },
+        <span class="str">"callbacks"</span>: [<span class="cls">AILoggingCallbackHandler</span>()],
+        <span class="str">"recursion_limit"</span>: <span class="num" style="color:#cf9d83">12</span>  <span class="cm"># tránh loop vô hạn</span>
+    }
+
+    final_state = <span class="kw">await</span> graph.<span class="fn">ainvoke</span>(input_state, config=config)
+
+<span class="cm"># Graph dừng tại clarification_node? → cần hỏi lại user</span>
+<span class="kw">if</span> final_state.get(<span class="str">"clarification_needed"</span>):
+    <span class="kw">return</span> {<span class="str">"needs_clarification"</span>: <span class="kw">True</span>, ...}
+
+<span class="cm"># Parse kết quả: gom NHIỀU submit_expense_tool thành list</span>
+messages = final_state[<span class="str">"messages"</span>]
+<span class="kw">for</span> msg <span class="kw">in</span> messages[last_human_idx:]:
+    <span class="kw">if</span> <span class="fn">isinstance</span>(msg, <span class="cls">AIMessage</span>) <span class="kw">and</span> msg.tool_calls:
+        <span class="kw">for</span> tc <span class="kw">in</span> msg.tool_calls:
+            <span class="kw">if</span> tc[<span class="str">"name"</span>] == <span class="str">"submit_expense_tool"</span>:
+                <span class="cm"># ... parse draft expense</span>
+
+<span class="cm"># Gộp trace SQL/search của analyst (last_message mode)</span>
+tool_calls_log.<span class="fn">extend</span>(final_state.get(<span class="str">"analyst_trace"</span>) <span class="kw">or</span> [])</code></pre>
+    </div>
+  </section>
+
+ 
+
+
 </main>
 
 </body>
