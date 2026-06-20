@@ -9,9 +9,6 @@ class AgentState(TypedDict, total=False):
     # Messages are appended to the list (reducer pattern).
     messages: Annotated[List[BaseMessage], operator.add]
 
-    # If the agent needs to ask the user a question.
-    clarification_needed: Optional[str]
-
     # Supervisor routing decision.
     next: Optional[str]
 

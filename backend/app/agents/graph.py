@@ -9,7 +9,6 @@ from typing import Literal
 from langgraph.graph import END, StateGraph
 
 from app.agents.nodes import (
-    clarification_node,
     data_analyst_node,
     financial_agent_node,
     financial_tools_node,
@@ -21,13 +20,10 @@ from app.agents.state import AgentState
 
 def _should_continue_financial(
     state: AgentState,
-) -> Literal["financial_tools", "clarification_node", "supervisor"]:
+) -> Literal["financial_tools", "supervisor"]:
     last_message = state["messages"][-1]
     if getattr(last_message, "tool_calls", None):
         return "financial_tools"
-    # After clarification relay AIMessage, end the turn so frontend gets needs_clarification=True
-    if state.get("clarification_needed"):
-        return "clarification_node"
     return "supervisor"
 
 
@@ -37,7 +33,6 @@ def get_agent_graph():
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("financial_agent", financial_agent_node)
     workflow.add_node("financial_tools", financial_tools_node)
-    workflow.add_node("clarification_node", clarification_node)
     workflow.add_node("data_analyst", data_analyst_node)
     workflow.add_node("general_agent", general_agent_node)
 
@@ -56,11 +51,9 @@ def get_agent_graph():
 
     workflow.add_conditional_edges("financial_agent", _should_continue_financial)
 
-    # financial_tools always loops back to financial_agent.
+    # financial_tools always loops back to financial_agent. If ask_clarification_tool
+    # runs, interrupt() pauses the graph here until Command(resume=...) arrives.
     workflow.add_edge("financial_tools", "financial_agent")
-
-    # clarification_node is terminal — ai.py reads clarification_needed from final_state.
-    workflow.add_edge("clarification_node", END)
 
     workflow.add_edge("data_analyst", "supervisor")
     workflow.add_edge("general_agent", "supervisor")

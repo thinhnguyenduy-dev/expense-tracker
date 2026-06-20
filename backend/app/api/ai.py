@@ -95,6 +95,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
     # Import here to avoid circular dependencies if any
     from app.agents.graph import compile_graph
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+    from langgraph.types import Command
     from psycopg_pool import AsyncConnectionPool
     from app.core.config import settings
     from app.core.database import SessionLocal
@@ -137,7 +138,6 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "user_lang": user_lang,
                 "user_currency": user_currency,
                 "categories": category_list,  # Pass categories to agents
-                "is_resume": is_resume,
                 "analyst_output_mode": settings.ANALYST_OUTPUT_MODE,
             },
             "callbacks": [AILoggingCallbackHandler()],
@@ -145,14 +145,22 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
         }
         
         try:
-            # When resuming after clarification, clear the old flag so the
-            # financial_agent doesn't re-enter the clarification branch.
+            # When resuming after a clarification, the graph may be paused inside
+            # ask_clarification_tool's interrupt(). Feed the answer back via
+            # Command(resume=...) so the tool returns it and execution continues
+            # from exactly where it stopped.
+            #
+            # But the model doesn't always route a question through the tool — it
+            # sometimes just asks in plain text, leaving no interrupt to resume.
+            # So only use Command when the graph is genuinely paused; otherwise
+            # treat the answer as a normal turn (history carries the context).
+            resume_pending = False
             if is_resume:
-                input_state = {
-                    "messages": [HumanMessage(content=message)],
-                    "clarification_needed": None,
-                    "analyst_trace": None,  # clear last turn's trace
-                }
+                snapshot = await graph.aget_state(config)
+                resume_pending = bool(getattr(snapshot, "interrupts", None))
+
+            if resume_pending:
+                input_state = Command(resume=message)
             else:
                 input_state = {
                     "messages": [HumanMessage(content=message)],
@@ -161,9 +169,15 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
 
             final_state = await graph.ainvoke(input_state, config=config)
 
-            # Detect if graph ended at clarification_node (no interrupt() needed)
-            if final_state.get("clarification_needed"):
-                question = str(final_state["clarification_needed"])
+            # Detect human-in-the-loop pause: the graph hit interrupt() and is
+            # waiting for the user's answer to a clarification question.
+            if final_state.get("__interrupt__"):
+                interrupt_payload = final_state["__interrupt__"][0].value
+                question = (
+                    interrupt_payload.get("question")
+                    if isinstance(interrupt_payload, dict)
+                    else str(interrupt_payload)
+                )
                 return {
                     "response": question,
                     "is_completed": False,
@@ -173,7 +187,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                     "tool_calls": [],
                     "thread_id": final_thread_id,
                 }
-            
+
             messages = final_state["messages"]
             last_message = messages[-1]
             
@@ -242,10 +256,16 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                         except (ValueError, TypeError):
                             payload = {}
                         if payload.get("status") == "draft_created":
+                            # Prefer the tool's echoed values: for a foreign-currency
+                            # expense the tool converted amount/currency and rewrote the
+                            # description, so the original args are stale.
                             expense_list.append({
                                 **args,
                                 "category": payload.get("category") or args.get("category"),
                                 "category_id": payload.get("category_id"),
+                                "amount": payload.get("amount", args.get("amount")),
+                                "currency": payload.get("currency", args.get("currency")),
+                                "description": payload.get("description", args.get("description")),
                             })
                             is_completed = True
                         del pending_expense_tool_calls[call_id]

@@ -26,55 +26,34 @@ SUPERVISOR_PROMPT = (
     "- If the user's request is satisfied, respond with FINISH."
 )
 
-# Filled with: {date}, {user_lang}, {question}
-CLARIFICATION_RELAY_PROMPT = (
-    "You are a helpful Financial Assistant. Current Date: {date}.\n"
-    "Relay the following clarification question to the user in a friendly, "
-    "concise way in {user_lang}. Do not add extra questions or commentary.\n"
-    "Question to relay: {question}"
-)
-
-# Appended into FINANCIAL_SYSTEM_PROMPT only when resuming after a clarification.
-RESUME_INSTRUCTION = (
-    "\n🚨 RESUME MODE — MANDATORY:\n"
-    "The user has answered your clarification (see the last HumanMessage). "
-    "You MUST follow these rules STRICTLY:\n"
-    "1. DO NOT call `ask_clarification_tool` under any circumstances.\n"
-    "2. DO NOT write any question in your response.\n"
-    "3. Pick a category from the available list, then call `submit_expense_tool` for EACH expense.\n"
-    "4. If a category is still unclear, pick the closest match from the list — do not ask.\n"
-    "5. Submit ALL expenses mentioned in the original message.\n"
-    "6. If your clarification asked for an exchange rate, convert the foreign amount to the base\n"
-    "   currency yourself (amount × rate), submit that base-currency amount with currency set to\n"
-    "   the base currency, and put the original like \"50 USD @ 26,318\" in the description.\n"
-)
-
-# Filled with: {date}, {resume_instruction}, {categories}, {user_lang}, {user_currency}
+# Filled with: {date}, {categories}, {user_lang}, {user_currency}
 FINANCIAL_SYSTEM_PROMPT = (
     "You are a helpful Financial Assistant. Current Date: {date}.\n"
-    "{resume_instruction}"
     "📋 **AVAILABLE CATEGORIES:** {categories}\n\n"
     "AVAILABLE TOOLS:\n"
     "- `submit_expense_tool`: Log a new expense (use exact category name from the list above).\n"
     "- `submit_income_tool`: Log a new income.\n"
-    "- `ask_clarification_tool`: Ask for missing/ambiguous info. Use ONLY ONCE per original request.\n"
+    "- `ask_clarification_tool`: Ask the user ONE question when a single expense is\n"
+    "  genuinely ambiguous. It PAUSES the conversation and RETURNS the user's answer\n"
+    "  to you — once you have the answer, proceed; do NOT ask the same thing again.\n"
     "- `get_monthly_summary_tool`: Get monthly EXPENSE total + breakdown by category.\n"
     "- `get_monthly_income_summary_tool`: Get monthly INCOME total + breakdown by source.\n"
     "- `get_recent_expenses_tool`: List recent expenses (last N days) — use to check for duplicates before logging.\n"
     "- `get_recent_incomes_tool`: List recent incomes (last N days) — use when the user asks about their earnings.\n"
     "\n"
     "CURRENCY RULE:\n"
-    "- The base currency is {user_currency}. If an expense amount is given in a DIFFERENT\n"
-    "  currency (e.g. USD, '$', EUR, '€'), you MUST call `ask_clarification_tool` ONCE to ask\n"
-    "  the user for the exchange rate to {user_currency}.\n"
-    "- NEVER submit a foreign-currency expense without a confirmed rate — the app cannot be\n"
-    "  trusted to auto-convert it correctly.\n"
+    "- The base currency is {user_currency}. If an expense amount is in a DIFFERENT\n"
+    "  currency (e.g. USD, '$', EUR, '€'), simply call `submit_expense_tool` with that\n"
+    "  currency and amount. The app will AUTOMATICALLY pause and ask the user for the\n"
+    "  exchange rate, then convert it for you — do NOT ask for the rate yourself, and do\n"
+    "  NOT use `ask_clarification_tool` for currency.\n"
     "\n"
-    "WORKFLOW FOR LOGGING AN EXPENSE:\n"
-    "1. If the request is ambiguous OR the amount is in a foreign currency, call\n"
-    "   `ask_clarification_tool` ONCE. Do not call it again.\n"
-    "2. Pick the exact category name from the list above.\n"
-    "3. Call `submit_expense_tool` with the exact category name.\n"
+    "WORKFLOW FOR LOGGING EXPENSES:\n"
+    "1. If a SINGLE expense is genuinely ambiguous (missing amount/date, or no category\n"
+    "   is a reasonable match), call `ask_clarification_tool` and wait for the answer.\n"
+    "2. If the user listed several expenses and each is clear, DO NOT ask — pick the\n"
+    "   exact category for each and call `submit_expense_tool` for EVERY expense.\n"
+    "3. Always use the exact category name from the list above (closest match if unsure).\n"
     "\n"
     "Always respond in {user_lang}. Currency: {user_currency}."
 )

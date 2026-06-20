@@ -103,45 +103,14 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
     user_lang = cfg.get("user_lang", "vi")
     user_currency = cfg.get("user_currency", "VND")
     categories = cfg.get("categories", [])
-    is_resume = cfg.get("is_resume", False)
     lang_name = _LANG_NAMES.get(user_lang, user_lang)
 
-    # ── Clarification relay mode ──────────────────────────────────────────────
-    # Triggered ONLY when the last message in history is a ToolMessage from
-    # ask_clarification_tool (i.e. financial_tools_node just ran it).
-    # We relay the question as a friendly text AIMessage (no tools bound) so
-    # history always ends on a clean AIMessage. We use the message history —
-    # NOT state["clarification_needed"] — to avoid stale-state issues.
     messages = state["messages"]
-    last_msg = messages[-1] if messages else None
-    is_clarification_relay = (
-        isinstance(last_msg, ToolMessage)
-        and getattr(last_msg, "name", "") == "ask_clarification_tool"
-    )
-    if is_clarification_relay:
-        question = str(last_msg.content)
-        logger.debug(f"Relaying clarification question: {question[:80]}")
-        relay_model = get_llm(temperature=0)
-        relay_prompt = ChatPromptTemplate.from_messages([
-            ("system", prompts.CLARIFICATION_RELAY_PROMPT),
-        ])
-        relay_chain = relay_prompt.partial(
-            date=str(_date.today()),
-            user_lang=lang_name,
-            question=question,
-        ) | relay_model
-        response = relay_chain.invoke({})
-        logger.debug("Clarification relayed as text AIMessage")
-        # Set clarification_needed so ai.py detects needs_clarification=True
-        return {"messages": [response], "clarification_needed": question}
-
-    # ── Normal / resume mode ──────────────────────────────────────────────────
     tools = make_tools(user_id, user_currency)
     logger.debug("Binding tools...")
     model = get_llm(temperature=0).bind_tools(tools)
 
     categories_str = ", ".join(categories) if categories else "No categories available"
-    resume_instruction = prompts.RESUME_INSTRUCTION if is_resume else ""
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", prompts.FINANCIAL_SYSTEM_PROMPT),
@@ -152,7 +121,6 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
         user_lang=lang_name,
         user_currency=user_currency,
         categories=categories_str,
-        resume_instruction=resume_instruction,
     ) | model
 
     logger.debug("Invoking financial chain...")
@@ -162,39 +130,20 @@ def financial_agent_node(state: AgentState, config: RunnableConfig):
         logger.debug(f"Financial response tool_calls: {response.tool_calls}")
 
     logger.debug("Financial chain returned")
-    # Clear clarification_needed when generating the final response (no more tool calls).
-    # This ensures ai.py sees needs_clarification=False after a successful resume+submit.
-    extra = {} if getattr(response, "tool_calls", None) else {"clarification_needed": None}
-    return {"messages": [response], **extra}
+    return {"messages": [response]}
 
 
 def financial_tools_node(state: AgentState, config: RunnableConfig):
-    """Execute financial tool calls, surfacing clarification questions into state."""
+    """Execute financial tool calls.
+
+    If ask_clarification_tool runs, its interrupt() pauses the whole graph here
+    (human-in-the-loop) until ai.py resumes with Command(resume=<answer>).
+    """
     cfg = config.get("configurable", {})
     user_id = cfg.get("user_id")
     user_currency = cfg.get("user_currency", "VND")
     tools = make_tools(user_id, user_currency)
-    node = ToolNode(tools)
-    result = node.invoke(state, config)
-
-    # Detect ask_clarification_tool call and surface the question into state
-    for msg in result.get("messages", []):
-        if isinstance(msg, ToolMessage) and getattr(msg, "name", "") == "ask_clarification_tool":
-            return {**result, "clarification_needed": str(msg.content)}
-
-    return result
-
-
-def clarification_node(state: AgentState):
-    """Terminal node signalling the AI needs more info from the user.
-
-    The graph ends here; ai.py detects `clarification_needed` in the final state
-    and returns needs_clarification=True to the frontend. On the next user turn
-    the answer arrives as a new HumanMessage and the financial_agent resumes with
-    full conversation history.
-    """
-    logger.debug(f"Clarification needed: {state.get('clarification_needed')}")
-    return {}  # state already has clarification_needed set by financial_tools_node
+    return ToolNode(tools).invoke(state, config)
 
 
 def _extract_tool_trace(messages) -> list[dict]:

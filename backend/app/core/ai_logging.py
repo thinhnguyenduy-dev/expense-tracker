@@ -47,8 +47,22 @@ class AILoggingCallbackHandler(BaseCallbackHandler):
         print(f"\n✅ [TOOL END] {name} | Result: {result}")
 
     def on_tool_error(self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any) -> None:
-        """Run when a tool raises — log which tool failed."""
+        """Run when a tool raises — log which tool failed.
+
+        A GraphInterrupt is NOT an error: it's how `interrupt()` (human-in-the-loop)
+        pauses the graph to wait for the user. Log it as a pause, not a failure.
+        """
         name = self._tool_names.pop(kwargs.get("run_id"), None) or self._tool_name({}, kwargs)
+        from langgraph.errors import GraphInterrupt
+        if isinstance(error, GraphInterrupt):
+            payload = error.args[0] if error.args else error
+            question = None
+            try:
+                question = payload[0].value.get("question")
+            except (AttributeError, IndexError, TypeError):
+                pass
+            print(f"\n⏸️ [TOOL PAUSE] {name} | waiting for user: {question or payload}")
+            return
         print(f"\n❌ [TOOL LỖI] {name} | {error}")
 
     def on_llm_start(

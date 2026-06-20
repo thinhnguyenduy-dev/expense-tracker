@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from langchain_core.tools import tool
 from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
+from langgraph.types import interrupt
 from sqlalchemy import func
 
 from app.core.database import SessionLocal
@@ -16,6 +17,25 @@ from app.models.income import Income
 def get_search_tool() -> DuckDuckGoSearchRun:
     """Shared DuckDuckGo search tool (reused by the analyst agent too)."""
     return DuckDuckGoSearchRun()
+
+
+def _parse_rate(answer: str) -> Optional[float]:
+    """Extract an exchange rate (a number) from a free-text user answer.
+
+    Handles plain numbers and common phrasings: "26318", "26,318", "26.318",
+    "1 USD = 25000 VND". VND-style rates are integers in the thousands, so any
+    ',' / '.' is treated as a grouping separator and stripped. The largest
+    number in the answer is taken as the rate (avoids grabbing the '1' in
+    "1 USD = 25000").
+    """
+    import re
+
+    candidates = []
+    for token in re.findall(r"\d[\d.,]*", str(answer)):
+        digits = token.replace(",", "").replace(".", "")
+        if digits.isdigit():
+            candidates.append(float(digits))
+    return max(candidates) if candidates else None
 
 
 def _fmt_money(amount: float, currency: str) -> str:
@@ -80,7 +100,6 @@ def make_tools(user_id: int, user_currency: str = "VND"):
             db.close()
 
 
-
     @tool
     def submit_expense_tool(
         amount: float,
@@ -93,8 +112,38 @@ def make_tools(user_id: int, user_currency: str = "VND"):
         """
         Call this tool when you have gathered all necessary information to create the expense draft.
         Pick the exact category name from the list provided in the system prompt.
+        If the amount is in a foreign currency, just pass that currency and amount —
+        the app pauses and asks the user for the exchange rate automatically; you do
+        NOT need to ask for it yourself.
         This signals that the conversation is complete.
         """
+        # ── Deterministic human-in-the-loop for foreign currency ──────────────
+        # A foreign-currency expense can't be saved without a confirmed rate, and
+        # that's a code-level rule — not a judgement call for the LLM. So we pause
+        # HERE via interrupt() (re-asking until we get a parseable number) and do
+        # the conversion ourselves, rather than relying on the model to remember.
+        if currency and currency.upper() != user_currency.upper():
+            from_ccy = currency.upper()
+            prompt = (
+                f"Tỷ giá {from_ccy} sang {user_currency} là bao nhiêu? "
+                f"(1 {from_ccy} = ? {user_currency})"
+            )
+            rate = None
+            while rate is None:
+                answer = interrupt({
+                    "question": prompt,
+                    "type": "exchange_rate",
+                    "from_currency": from_ccy,
+                    "to_currency": user_currency,
+                    "original_amount": amount,
+                })
+                rate = _parse_rate(answer)
+                prompt = f"Mình chưa đọc được tỷ giá. Vui lòng nhập một con số, ví dụ 26318."
+            original = f"{amount:g} {from_ccy} @ {rate:,.0f}"
+            amount = amount * rate
+            currency = user_currency
+            description = f"{description} ({original})" if description else original
+
         db = SessionLocal()
         try:
             resolved_category = None
@@ -119,6 +168,11 @@ def make_tools(user_id: int, user_currency: str = "VND"):
                 "status": "draft_created",
                 "category_id": category_id,
                 "category": resolved_category,
+                # Echo back the (possibly converted) values so ai.py / the frontend
+                # persist the base-currency amount, not the original foreign one.
+                "amount": amount,
+                "currency": currency,
+                "description": description,
             }, ensure_ascii=False)
         finally:
             db.close()
@@ -126,14 +180,23 @@ def make_tools(user_id: int, user_currency: str = "VND"):
     @tool
     def ask_clarification_tool(question: str) -> str:
         """
-        Call this tool when the user's request is ambiguous and you need more information before proceeding.
-        Use this when:
-        - The user mentions multiple expenses in one message
-        - The category is unclear or could match multiple options
+        Ask the user ONE clarifying question when a SINGLE expense is genuinely
+        ambiguous and you cannot proceed. Use this when:
+        - The category is unclear AND no option in the list is a reasonable match
         - The amount or date is missing or ambiguous
-        Do NOT call submit_expense_tool until the user has answered.
+        Do NOT use this for foreign currency / exchange rates — submit_expense_tool
+        handles that automatically.
+        Ask the question in the user's language. This PAUSES the conversation and
+        returns the user's answer as a string — continue once you have it.
+        Do NOT call this just because the user listed several expenses: if each one
+        is clear, call submit_expense_tool for EACH of them instead.
+        Do NOT call submit_expense_tool for an expense until it is unambiguous.
         """
-        return question
+        # Human-in-the-loop: interrupt() checkpoints the graph here and returns
+        # control to the caller. On resume via Command(resume=<answer>) this call
+        # returns the user's answer and the tool continues.
+        answer = interrupt({"question": question})
+        return answer
 
     @tool
     def submit_income_tool(
