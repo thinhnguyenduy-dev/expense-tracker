@@ -275,10 +275,10 @@
         <!-- Wiring của graph nằm trong <code>backend/app/agents/graph.py</code>; các node ở <code>nodes.py</code>, prompt ở <code>prompts.py</code>, schema State ở <code>state.py</code>, helper xử lý message ở <code>utils.py</code>. -->
       </p>
       <!-- <p style="margin-top:6px">
-        Graph có <strong>6 nodes</strong>: <code>supervisor</code>, <code>financial_agent</code>, <code>financial_tools</code>, <code>clarification_node</code>, <code>data_analyst</code>, <code>general_agent</code>.
+        Graph có <strong>5 nodes</strong>: <code>supervisor</code>, <code>financial_agent</code>, <code>financial_tools</code>, <code>data_analyst</code>, <code>general_agent</code>.
         Supervisor chỉ điều phối <strong>3 agent</strong> — <code>financial_agent</code>, <code>data_analyst</code>, <code>general_agent</code> — bằng cách set <code>state["next"]</code> (hoặc <code>FINISH</code> → END).
-        Hai node phụ trợ <code>financial_tools</code> và <code>clarification_node</code> thuộc vòng nội bộ của <code>financial_agent</code> (đi bằng conditional edge riêng), <strong>không</strong> do supervisor chọn.
-        Shared <code>AgentState</code> (state.py) gồm 4 field: <code>messages</code> (reducer <code>operator.add</code>), <code>clarification_needed</code>, <code>next</code>, <code>analyst_trace</code> — còn <code>user_id</code>/<code>thread_id</code> nằm trong <code>config["configurable"]</code>, không phải State.
+        Node phụ trợ <code>financial_tools</code> thuộc vòng nội bộ của <code>financial_agent</code> (đi bằng conditional edge riêng), <strong>không</strong> do supervisor chọn. Việc hỏi lại user dùng <code>interrupt()</code> chứ không có node riêng.
+        Shared <code>AgentState</code> (state.py) gồm 3 field: <code>messages</code> (reducer <code>operator.add</code>), <code>next</code>, <code>analyst_trace</code> — còn <code>user_id</code>/<code>thread_id</code> nằm trong <code>config["configurable"]</code>, không phải State.
       </p> -->
     </div>
 
@@ -292,7 +292,7 @@
 
   <!-- ══ 2. 5 NODES ══ -->
   <section>
-    <h2><span class="n">2</span> Chi tiết 6 Nodes</h2>
+    <h2><span class="n">2</span> Chi tiết 5 Nodes</h2>
 
     <!-- Supervisor -->
     <div class="card" style="margin-bottom:14px">
@@ -309,10 +309,9 @@
       <div class="node-card">
         <div class="node-label" style="color:var(--orange)">💰 financial_agent</div>
         <h4>Xử lý giao dịch tài chính</h4>
-        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, xem tổng hợp tháng. Có <strong>tool loop nội bộ</strong> với <code>financial_tools</code>. Cũng chạy <strong>clarification relay</strong> &amp; <strong>resume mode</strong></p>
+        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, xem tổng hợp tháng. Có <strong>tool loop nội bộ</strong> với <code>financial_tools</code>. Việc hỏi lại user dùng <strong>interrupt()</strong> (xem Section 6).</p>
         <div class="route-info">
           <code>tool_calls</code> → <strong>financial_tools</strong><br>
-          <code>clarification_needed</code> → <strong>clarification_node</strong><br>
           còn lại → <strong>supervisor</strong>
         </div>
       </div>
@@ -338,22 +337,12 @@
       </div>
     </div>
 
-    <div class="two-col" style="margin-top:14px">
-      <div class="node-card">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <div class="node-label" style="color:var(--yellow);margin:0">🔧 financial_tools</div>
-          <span style="padding:2px 8px;background:var(--yellow-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--yellow)">ToolNode</span>
-        </div>
-        <p style="font-size:.85rem">Bọc LangGraph's <code>ToolNode</code> — nhìn vào <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State. <strong>Đặc biệt:</strong> nếu phát hiện <code>ask_clarification_tool</code>, nó surface câu hỏi vào <code>clarification_needed</code>. Sau đó luôn quay về <code>financial_agent</code>.</p>
+    <div class="node-card" style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="node-label" style="color:var(--yellow);margin:0">🔧 financial_tools</div>
+        <span style="padding:2px 8px;background:var(--yellow-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--yellow)">ToolNode</span>
       </div>
-
-      <div class="node-card">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <div class="node-label" style="color:var(--red);margin:0">🛑 clarification_node</div>
-          <span style="padding:2px 8px;background:var(--red-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--red)">Terminal</span>
-        </div>
-        <p style="font-size:.85rem">Node <strong>kết thúc graph</strong> (→ END) khi AI cần hỏi thêm. Không gọi LLM — chỉ là điểm thoát. <code>ai.py</code> đọc <code>clarification_needed</code> trong final_state → trả <code>needs_clarification=True</code>. Câu trả lời của user ở lượt sau đến như HumanMessage mới và <code>financial_agent</code> resume.</p>
-      </div>
+      <p style="font-size:.85rem">Bọc LangGraph's <code>ToolNode</code> — nhìn vào <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State. <strong>Đặc biệt:</strong> nếu một tool gọi <code>interrupt()</code> (ngoại tệ trong <code>submit_expense_tool</code>, hoặc <code>ask_clarification_tool</code>), graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code>. Bình thường thì quay về <code>financial_agent</code>. Việc "hỏi lại user" (HITL) giờ do <code>interrupt()</code> lo, <strong>không còn node <code>clarification_node</code> riêng</strong> — chi tiết ở Section 6.</p>
     </div>
   </section>
 
@@ -366,7 +355,7 @@
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
         <div class="tool-name">submit_expense_tool</div>
-        <div class="tool-desc">Tạo draft expense. Categories được truyền qua system prompt (không cần gọi tool lookup). Trả về <code>"Draft Created|..."</code>.</div>
+        <div class="tool-desc">Tạo draft expense. Nếu là <strong>ngoại tệ</strong> → tự <code>interrupt()</code> hỏi tỷ giá rồi quy đổi sang base currency. Categories truyền qua system prompt. Trả JSON <code>draft_created</code> (kèm amount đã đổi).</div>
       </div>
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
@@ -376,7 +365,7 @@
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--yellow-bg);color:var(--yellow)">Clarify</span>
         <div class="tool-name">ask_clarification_tool</div>
-        <div class="tool-desc">Hỏi user khi thiếu thông tin (category không rõ, amount mơ hồ). Graph tạm dừng, đợi user trả lời, sau đó resume.</div>
+        <div class="tool-desc">Hỏi khi 1 khoản <strong>mơ hồ</strong> (thiếu số tiền, category không rõ). Gọi <code>interrupt()</code> → graph tạm dừng, resume khi user trả lời. <strong>KHÔNG</strong> dùng cho ngoại tệ — <code>submit_expense_tool</code> tự lo.</div>
       </div>
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--teal-bg);color:var(--teal)">Read</span>
@@ -505,7 +494,7 @@
             <div class="api-dot" style="border-color:var(--blue)"></div>
             <div class="api-content">
               <strong>Lấy preferences + categories</strong>
-              <span>Query DB lấy <code>user_lang</code>, <code>user_currency</code> và <strong>danh sách categories (1 lần)</strong>. Cùng với <code>analyst_output_mode</code> &amp; <code>is_resume</code>, tất cả đưa vào <code>config.configurable</code>; <code>AILoggingCallbackHandler</code> gắn vào <code>config.callbacks</code>.</span>
+              <span>Query DB lấy <code>user_lang</code>, <code>user_currency</code> và <strong>danh sách categories (1 lần)</strong>. Cùng với <code>analyst_output_mode</code>, tất cả đưa vào <code>config.configurable</code>; <code>AILoggingCallbackHandler</code> gắn vào <code>config.callbacks</code>.</span>
             </div>
           </div>
 
@@ -539,7 +528,7 @@
             <div class="api-dot" style="border-color:var(--teal)"></div>
             <div class="api-content">
               <strong>Trả response + thread_id</strong>
-              <span>Nếu final_state có <code>clarification_needed</code> → trả <code>needs_clarification=True</code> ngay. Ngược lại parse các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, gộp <code>analyst_trace</code> vào tool_calls. <code>GraphRecursionError</code> → trả lời an toàn.</span>
+              <span>Nếu final_state có <code>__interrupt__</code> (graph đang treo) → trả <code>needs_clarification=True</code> ngay. Ngược lại parse các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, gộp <code>analyst_trace</code> vào tool_calls. <code>GraphRecursionError</code> → trả lời an toàn.</span>
               <div><span class="api-tag" style="background:var(--teal-bg);color:var(--teal)">{ response, expense_data, income_data, tool_calls, thread_id, needs_clarification }</span></div>
             </div>
           </div>
@@ -559,7 +548,6 @@
             <span class="str">"user_lang"</span>: user_lang,
             <span class="str">"user_currency"</span>: user_currency,
             <span class="str">"categories"</span>: category_list,     <span class="cm"># fetch 1 lần, đưa vào prompt</span>
-            <span class="str">"is_resume"</span>: is_resume,          <span class="cm"># bật RESUME_INSTRUCTION</span>
             <span class="str">"analyst_output_mode"</span>: settings.ANALYST_OUTPUT_MODE,
         },
         <span class="str">"callbacks"</span>: [<span class="cls">AILoggingCallbackHandler</span>()],
@@ -568,9 +556,10 @@
 
     final_state = <span class="kw">await</span> graph.<span class="fn">ainvoke</span>(input_state, config=config)
 
-<span class="cm"># Graph dừng tại clarification_node? → cần hỏi lại user</span>
-<span class="kw">if</span> final_state.get(<span class="str">"clarification_needed"</span>):
-    <span class="kw">return</span> {<span class="str">"needs_clarification"</span>: <span class="kw">True</span>, ...}
+<span class="cm"># Graph đang treo trên interrupt()? → cần hỏi lại user</span>
+<span class="kw">if</span> final_state.get(<span class="str">"__interrupt__"</span>):
+    q = final_state[<span class="str">"__interrupt__"</span>][<span class="num" style="color:#cf9d83">0</span>].value[<span class="str">"question"</span>]
+    <span class="kw">return</span> {<span class="str">"needs_clarification"</span>: <span class="kw">True</span>, <span class="str">"response"</span>: q, ...}
 
 <span class="cm"># Parse kết quả: gom NHIỀU submit_expense_tool thành list</span>
 messages = final_state[<span class="str">"messages"</span>]
@@ -585,7 +574,142 @@ tool_calls_log.<span class="fn">extend</span>(final_state.get(<span class="str">
     </div>
   </section>
 
- 
+  <!-- ══ 6. HUMAN-IN-THE-LOOP ══ -->
+  <section>
+    <h2><span class="n">6</span> Human-in-the-Loop (HITL)</h2>
+
+    <div class="card" style="margin-bottom:18px">
+      <p>
+        Có lúc agent <strong>cần hỏi lại user</strong> giữa chừng rồi mới làm tiếp — ví dụ chi tiêu bằng
+        ngoại tệ thì phải biết tỷ giá. LangGraph cho việc này bằng cặp primitive
+        <code>interrupt()</code> &amp; <code>Command(resume=...)</code>: <code>interrupt()</code> <strong>tạm dừng</strong>
+        graph ngay tại chỗ đang chạy và ghi state xuống checkpointer; lượt sau gọi
+        <code>Command(resume=&lt;đáp án&gt;)</code> thì graph <strong>chạy tiếp đúng điểm dừng</strong>, không khởi động lại từ đầu.
+      </p>
+    </div>
+
+    <h3 style="margin-bottom:12px">⚠️ "Tạm dừng" = state bền trong DB, KHÔNG phải process sống</h3>
+    <div class="highlight" style="margin-bottom:22px">
+      <p>
+        Mỗi request mở pool → <code>ainvoke()</code> → gặp <code>interrupt()</code> là <strong>return ngay</strong>, pool đóng,
+        hàm kết thúc sạch. Điểm dừng được ghi vào Postgres chứ không có coroutine/thread nào bị giữ trong RAM.
+        Nhờ vậy 10.000 hội thoại "đang chờ tỷ giá" vẫn tốn <strong>0% CPU</strong> — chúng chỉ là vài dòng checkpoint.
+      </p>
+    </div>
+
+    <h3 style="margin-bottom:12px">Hai đường kích hoạt interrupt</h3>
+    <div class="two-col" style="margin-bottom:24px">
+      <div class="node-card">
+        <div class="node-label" style="color:var(--teal)">🔒 Deterministic — bằng CODE</div>
+        <h4>Ngoại tệ → pause trong submit_expense_tool</h4>
+        <p>Quy tắc <code>currency != base</code> là việc code kiểm tra được, không cần LLM phán đoán. Tool tự gọi
+          <code>interrupt()</code> hỏi tỷ giá, quy đổi rồi tạo draft. <strong>Chắc chắn 100%</strong>, không phụ thuộc model có nhớ hỏi không.</p>
+        <div class="route-info">
+          User: "đi Green SM 5 USD" → LLM submit USD → <strong>code pause</strong>
+        </div>
+      </div>
+      <div class="node-card">
+        <div class="node-label" style="color:var(--yellow)">🤔 Fuzzy — bằng LLM</div>
+        <h4>Mơ hồ → ask_clarification_tool</h4>
+        <p>Thiếu số tiền, category nhập nhằng — những ca cần LLM <em>phán đoán</em> mới biết có nên hỏi không.
+          Tool là <strong>kênh duy nhất</strong> để LLM ra hiệu một interrupt (LLM chỉ xuất được text hoặc tool_call, không tự gọi <code>interrupt()</code> được).</p>
+        <div class="route-info">
+          User: "tôi mua cà phê" → LLM gọi <strong>ask_clarification_tool</strong>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:12px">Luồng ngoại tệ — 2 lượt request</h3>
+    <div class="two-col" style="margin-bottom:24px">
+      <div class="card">
+        <div class="api-steps">
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--teal)"></div>
+            <div class="api-content">
+              <strong>Lượt 1 · "đi Green SM 5 USD"</strong>
+              <span>supervisor → financial_agent. LLM gọi <code>submit_expense_tool(amount=5, currency="USD")</code>.</span>
+            </div>
+          </div>
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--red)"></div>
+            <div class="api-content">
+              <strong>interrupt() bên trong tool</strong>
+              <span>Phát hiện <code>USD != VND</code> → <code>interrupt()</code> ném <code>GraphInterrupt</code> → LangGraph
+                <strong>checkpoint state vào Postgres</strong> ngay tại đây (trước khi đụng DB) rồi <code>ainvoke()</code> return.</span>
+              <div><span class="api-tag" style="background:var(--red-bg);color:var(--red)">🔴 CHECKPOINT + return</span></div>
+            </div>
+          </div>
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--orange)"></div>
+            <div class="api-content">
+              <strong>ai.py phát hiện pause</strong>
+              <span>Đọc <code>final_state["__interrupt__"]</code> → trả <code>needs_clarification=True</code> + câu hỏi tỷ giá.
+                Graph <strong>vẫn treo</strong> trong checkpointer, chờ.</span>
+            </div>
+          </div>
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--purple)"></div>
+            <div class="api-content">
+              <strong>Lượt 2 · user trả lời "26318"</strong>
+              <span><code>aget_state().interrupts</code> còn → <code>Command(resume="26318")</code>. Graph chạy tiếp
+                <strong>ngay tại dòng interrupt()</strong>: parse tỷ giá → <code>5 × 26318 = 131,590 VND</code> → draft.</span>
+              <div><span class="api-tag" style="background:var(--purple-bg);color:var(--purple)">Command(resume=...)</span></div>
+            </div>
+          </div>
+          <div class="api-step">
+            <div class="api-dot" style="border-color:var(--teal)"></div>
+            <div class="api-content">
+              <strong>Hoàn tất</strong>
+              <span>financial_agent chốt lời → FINISH. <code>expense_data</code> lấy <strong>giá trị đã quy đổi</strong> từ
+                payload (131,590 VND), desc <code>"5 USD @ 26,318"</code> — không lưu nhầm 5 USD.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <pre><code><span class="cm"># tools.py – submit_expense_tool (rút gọn)</span>
+<span class="kw">if</span> currency.<span class="fn">upper</span>() != user_currency.<span class="fn">upper</span>():
+    rate = <span class="kw">None</span>
+    <span class="kw">while</span> rate <span class="kw">is</span> <span class="kw">None</span>:                 <span class="cm"># hỏi lại nếu nhập rác</span>
+        answer = <span class="fn">interrupt</span>({
+            <span class="str">"question"</span>: <span class="str">f"Tỷ giá {from_ccy} sang {user_currency}?"</span>,
+            <span class="str">"type"</span>: <span class="str">"exchange_rate"</span>,
+        })
+        rate = <span class="fn">_parse_rate</span>(answer)   <span class="cm"># "26318" / "26,318" → 26318.0</span>
+    amount = amount * rate            <span class="cm"># 5 × 26318 = 131590</span>
+    currency = user_currency
+    description = <span class="str">f"5 USD @ 26,318"</span>
+
+<span class="cm"># ai.py – resume an toàn</span>
+<span class="kw">if</span> is_resume:
+    snapshot = <span class="kw">await</span> graph.<span class="fn">aget_state</span>(config)
+    resume_pending = <span class="fn">bool</span>(snapshot.interrupts)
+
+input_state = (
+    <span class="cls">Command</span>(resume=message) <span class="kw">if</span> resume_pending
+    <span class="kw">else</span> {<span class="str">"messages"</span>: [<span class="cls">HumanMessage</span>(message)]}
+)
+final_state = <span class="kw">await</span> graph.<span class="fn">ainvoke</span>(input_state, config)
+
+<span class="kw">if</span> final_state.get(<span class="str">"__interrupt__"</span>):       <span class="cm"># đang treo chờ user</span>
+    q = final_state[<span class="str">"__interrupt__"</span>][<span class="num" style="color:#cf9d83">0</span>].value[<span class="str">"question"</span>]
+    <span class="kw">return</span> {<span class="str">"needs_clarification"</span>: <span class="kw">True</span>, <span class="str">"response"</span>: q}</code></pre>
+    </div>
+
+    <h3 style="margin-bottom:12px">Khi user bỏ ngang — dọn thread treo</h3>
+    <div class="card">
+      <p style="margin-bottom:10px">
+        Bỏ ngang <strong>không rò rỉ process</strong> (pause chỉ là state bền), nhưng để lại checkpoint rác trong DB
+        và có thể "lệch pha": user quay lại gõ tin mới khi thread vẫn còn interrupt treo. Hai biện pháp:
+      </p>
+      <ul style="margin:0 0 4px 20px; color:var(--text2); font-size:.9rem; line-height:1.8">
+        <li><strong>Vá lỗ hổng lệch pha:</strong> luôn check <code>snapshot.interrupts</code>; nếu treo mà user gửi tin
+          mới (<code>is_resume=false</code>) → coi như hủy, gọi <code>checkpointer.adelete_thread(thread_id)</code> rồi bắt đầu lượt mới.</li>
+        <li><strong>Job quét định kỳ:</strong> dùng <code>AsyncIOScheduler</code> sẵn có (<code>main.py</code>) thêm job 24h
+          gọi <code>adelete_thread()</code> cho các thread treo quá hạn — khớp pattern recurring/reminder job hiện tại.</li>
+      </ul>
+    </div>
+  </section>
 
 </main>
 

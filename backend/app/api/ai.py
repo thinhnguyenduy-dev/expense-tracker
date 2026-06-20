@@ -145,27 +145,37 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
         }
         
         try:
-            # When resuming after a clarification, the graph may be paused inside
-            # ask_clarification_tool's interrupt(). Feed the answer back via
-            # Command(resume=...) so the tool returns it and execution continues
-            # from exactly where it stopped.
-            #
-            # But the model doesn't always route a question through the tool — it
-            # sometimes just asks in plain text, leaving no interrupt to resume.
-            # So only use Command when the graph is genuinely paused; otherwise
-            # treat the answer as a normal turn (history carries the context).
-            resume_pending = False
-            if is_resume:
-                snapshot = await graph.aget_state(config)
-                resume_pending = bool(getattr(snapshot, "interrupts", None))
+            # Decide how to feed this turn into the graph. We ALWAYS check whether
+            # the thread is actually paused on an interrupt — never trust the
+            # `is_resume` flag alone, because it can be stale or wrong:
+            #   • is_resume=True but NOT paused — the model asked its question in
+            #     plain text (no interrupt fired). Treat as a normal turn; history
+            #     carries the context.
+            #   • is_resume=False but STILL paused — the user ignored the pending
+            #     question and typed something new. If we just sent a HumanMessage,
+            #     the pending interrupt would re-fire and re-ask forever. So we
+            #     ABANDON the stale interrupt (delete the thread) and start fresh.
+            fresh_turn = {
+                "messages": [HumanMessage(content=message)],
+                "analyst_trace": None,  # clear last turn's trace
+            }
+            snapshot = await graph.aget_state(config)
+            paused = bool(getattr(snapshot, "interrupts", None))
 
-            if resume_pending:
+            if paused and is_resume:
+                # User is answering the clarification → resume from the interrupt.
                 input_state = Command(resume=message)
+            elif paused and not is_resume:
+                # User walked away from the question → drop the paused thread so the
+                # interrupt can't re-fire, then process the new message cleanly.
+                # NOTE: this clears the thread's history too (LangGraph has no
+                # surgical "cancel one interrupt"); acceptable since the user
+                # explicitly abandoned that flow.
+                logger.info(f"Abandoning stale interrupt on thread {final_thread_id}")
+                await checkpointer.adelete_thread(final_thread_id)
+                input_state = fresh_turn
             else:
-                input_state = {
-                    "messages": [HumanMessage(content=message)],
-                    "analyst_trace": None,  # clear last turn's trace
-                }
+                input_state = fresh_turn
 
             final_state = await graph.ainvoke(input_state, config=config)
 
