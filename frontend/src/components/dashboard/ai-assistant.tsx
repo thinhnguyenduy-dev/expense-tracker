@@ -99,17 +99,22 @@ export function AIAssistant() {
       };
       
       const loadHistory = async () => {
-          const storedThreadId = localStorage.getItem("ai_thread_id");
-          if (!storedThreadId) return;
-          
           try {
-              const { data } = await aiApi.getHistory(storedThreadId);
-              if (data && data.length > 0) {
-                  setConversation(data);
+              const storedThreadId = localStorage.getItem("ai_thread_id");
+              if (storedThreadId) {
+                  const { data } = await aiApi.getHistory(storedThreadId);
+                  if (data && data.length > 0) setConversation(data);
+                  return;
+              }
+              // No local thread (e.g. just logged in) → restore the user's most
+              // recent thread from the server.
+              const { data } = await aiApi.getLatestThread();
+              if (data.thread_id) {
+                  localStorage.setItem("ai_thread_id", data.thread_id);
+                  if (data.history && data.history.length > 0) setConversation(data.history);
               }
           } catch (error) {
               console.error("Failed to load chat history", error);
-              // Optional: Clear thread_id if invalid?
           }
       };
 

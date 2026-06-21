@@ -90,6 +90,46 @@ async def chat_with_agent(
 from app.core.cache import acached
 from loguru import logger
 
+
+def _thread_belongs_to(thread_id: Optional[str], user_id: int) -> bool:
+    """Threads are namespaced as ``<user_id>:<uuid>``. A thread belongs to a user
+    only when that prefix matches the requester. This is the check that stops user B
+    from reading user A's chat by reusing or guessing a thread_id — the checkpointer
+    itself keys only on thread_id and has no concept of ownership.
+    """
+    return bool(thread_id) and thread_id.split(":", 1)[0] == str(user_id)
+
+
+def _extract_text(content) -> str:
+    """Flatten a message's content (str, or list of text/parts) into plain text."""
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict) and "text" in item:
+                parts.append(item["text"])
+            elif isinstance(item, str):
+                parts.append(item)
+        return "\n".join(parts) if parts else str(content)
+    return str(content)
+
+
+def _format_chat_history(messages) -> List[Dict[str, str]]:
+    """Turn stored LangChain messages into [{role, content}] for the chat UI.
+
+    Tool/system messages are skipped — only the user/agent turns are shown.
+    """
+    out: List[Dict[str, str]] = []
+    for msg in messages:
+        if isinstance(msg, AIMessage):
+            role = "agent"
+        elif isinstance(msg, HumanMessage):
+            role = "user"
+        else:
+            continue
+        out.append({"role": role, "content": _extract_text(msg.content)})
+    return out
+
+
 # @acached(prefix="ai_chat", ttl=60)
 async def process_chat(user_id: int, message: str, thread_id: Optional[str] = None, is_resume: bool = False) -> Dict[str, Any]:
     # Import here to avoid circular dependencies if any
@@ -127,8 +167,13 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
         
         graph = compile_graph(checkpointer=checkpointer)
         
-        # Thread ID logic
-        final_thread_id = thread_id or str(uuid.uuid4())
+        # Thread ID logic — namespace every thread by user and NEVER continue a
+        # thread owned by someone else (a stale/forged thread_id from another user
+        # is discarded, so the new turn starts a fresh, owned thread).
+        if thread_id and not _thread_belongs_to(thread_id, user_id):
+            logger.warning(f"thread_id {thread_id!r} not owned by user {user_id} — starting a new thread")
+            thread_id = None
+        final_thread_id = thread_id or f"{user_id}:{uuid.uuid4()}"
 
         from app.core.ai_logging import AILoggingCallbackHandler
         config = {
@@ -158,6 +203,7 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             fresh_turn = {
                 "messages": [HumanMessage(content=message)],
                 "analyst_trace": None,  # clear last turn's trace
+                "agents_run": [],       # reset the reactive supervisor's per-turn guard
             }
             snapshot = await graph.aget_state(config)
             paused = bool(getattr(snapshot, "interrupts", None))
@@ -200,7 +246,15 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
 
             messages = final_state["messages"]
             last_message = messages[-1]
-            
+
+            # Index of the last HumanMessage — agent output produced THIS turn lives
+            # after it.
+            last_human_idx = -1
+            for i in range(len(messages) - 1, -1, -1):
+                if isinstance(messages[i], HumanMessage):
+                    last_human_idx = i
+                    break
+
             if isinstance(last_message, HumanMessage):
                 # Supervisor decided to FINISH immediately without any agent output.
                 # To avoid echoing, we provide a fallback response (localized).
@@ -210,18 +264,21 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                     else "I'm always here to help! You can ask me to add an expense, check your budget, or analyze your spending habits."
                 )
             else:
-                content = last_message.content
-                if isinstance(content, list):
-                    text_parts = []
-                    for item in content:
-                        if isinstance(item, dict) and "text" in item:
-                            text_parts.append(item["text"])
-                        elif isinstance(item, str):
-                            text_parts.append(item)
-                    response_text = "\n".join(text_parts) if text_parts else str(content)
-                else:
-                    response_text = str(content)
-            
+                # A turn may now run SEVERAL agents (e.g. financial_agent then
+                # data_analyst). Concatenate every agent's final text answer this
+                # turn — not just the last — so no part of the reply is dropped.
+                # Skip messages that only carry tool_calls (no user-facing text).
+                answer_parts: list[str] = []
+                for msg in messages[last_human_idx + 1:]:
+                    if isinstance(msg, AIMessage) and not getattr(msg, "tool_calls", None):
+                        text = _extract_text(msg.content).strip()
+                        if text and (not answer_parts or answer_parts[-1] != text):
+                            answer_parts.append(text)
+                response_text = (
+                    "\n\n".join(answer_parts) if answer_parts
+                    else _extract_text(last_message.content)
+                )
+
             is_completed = False
             expense_list: list[dict] = []   # collect all submit_expense_tool calls
             income_data = None
@@ -335,6 +392,12 @@ async def get_chat_history(
     from psycopg_pool import AsyncConnectionPool
     from app.core.config import settings
 
+    # Ownership check — never return a thread that doesn't belong to this user.
+    # Without this, anyone could read another user's chat by passing their thread_id.
+    if not _thread_belongs_to(thread_id, current_user.id):
+        logger.warning(f"User {current_user.id} requested history for foreign thread {thread_id!r} — denied")
+        return []
+
     db_url = settings.DATABASE_URL.replace("postgresql://", "postgresql://")
     
     async with AsyncConnectionPool(conninfo=db_url) as pool:
@@ -352,38 +415,49 @@ async def get_chat_history(
         
         # Get the latest state
         snapshot = await graph.aget_state(config)
-        
+
         if not snapshot.values:
             return []
-            
-        messages = snapshot.values.get("messages", [])
-        
-        # Format for frontend
-        formatted_history = []
-        for msg in messages:
-            role = "user"
-            if isinstance(msg, AIMessage):
-                role = "agent"
-            elif isinstance(msg, HumanMessage):
-                role = "user"
-            else:
-                continue # Skip tool messages for simple display, or handle if needed
-                
-            content = msg.content
-            if isinstance(content, list):
-                text_parts = []
-                for item in content:
-                    if isinstance(item, dict) and "text" in item:
-                        text_parts.append(item["text"])
-                    elif isinstance(item, str):
-                        text_parts.append(item)
-                content = "\n".join(text_parts) if text_parts else str(content)
-            else:
-                content = str(content)
-                
-            formatted_history.append({
-                "role": role,
-                "content": content
-            })
-            
-        return formatted_history
+
+        return _format_chat_history(snapshot.values.get("messages", []))
+
+
+@router.get("/agent/threads/latest", response_model=Dict[str, Any])
+async def get_latest_thread(
+    current_user: User = Depends(deps.get_current_user),
+):
+    """Return the user's MOST RECENT chat thread (id + formatted history).
+
+    Used on login to restore the last conversation. Threads are namespaced as
+    ``<user_id>:<uuid>``, so we find this user's latest by filtering checkpoints on
+    their prefix only — never touching another user's threads. `checkpoint_id` is
+    time-sortable, so MAX(checkpoint_id) per thread gives the most recent.
+    """
+    from sqlalchemy import text
+    from app.core.database import engine
+    from app.agents.graph import compile_graph
+    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+    from psycopg_pool import AsyncConnectionPool
+    from app.core.config import settings
+
+    with engine.connect() as conn:
+        row = conn.execute(
+            text(
+                "SELECT thread_id FROM checkpoints WHERE thread_id LIKE :prefix "
+                "GROUP BY thread_id ORDER BY MAX(checkpoint_id) DESC LIMIT 1"
+            ),
+            {"prefix": f"{current_user.id}:%"},
+        ).fetchone()
+
+    if not row:
+        return {"thread_id": None, "history": []}
+
+    thread_id = row[0]
+    async with AsyncConnectionPool(conninfo=settings.DATABASE_URL) as pool:
+        graph = compile_graph(checkpointer=AsyncPostgresSaver(pool))
+        snapshot = await graph.aget_state(
+            {"configurable": {"user_id": current_user.id, "thread_id": thread_id}}
+        )
+
+    messages = snapshot.values.get("messages", []) if snapshot.values else []
+    return {"thread_id": thread_id, "history": _format_chat_history(messages)}

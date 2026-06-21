@@ -24,74 +24,80 @@ from app.core.logging import app_logger as logger
 _LANG_NAMES = {"vi": "Vietnamese", "en": "English"}
 
 
+_WORKERS = ("financial_agent", "data_analyst", "general_agent")
+
+
 class RouterResponse(BaseModel):
-    """Select the next agent to handle the request."""
+    """Pick the next worker to act, or FINISH."""
 
     next: Literal["financial_agent", "data_analyst", "general_agent", "FINISH"] = Field(
-        description="The next worker to act. Use 'FINISH' if user is satisfied."
+        description="The next worker to handle the next unhandled part. 'FINISH' when the whole request is done.",
     )
     reason: Optional[str] = Field(
         default=None,
-        description="The final message to the user if returning FINISH (e.g., answer, refusal, or clarification).",
+        description="Reply to the user when finishing immediately without any worker (direct answer / refusal).",
     )
 
 
+# Safety cap on how many workers one turn may chain — backstop for the reactive loop.
+MAX_AGENT_HOPS = 3
+
+
 def supervisor_node(state: AgentState):
-    """Decide which agent to route to (or FINISH)."""
+    """Textbook REACTIVE supervisor.
+
+    After EVERY worker, re-ask the LLM which worker should act next (or FINISH),
+    based on the conversation so far. This is the defining trait of the supervisor
+    pattern: it reacts to what a worker actually produced, at the cost of one routing
+    LLM call per step. Two safety nets bound the loop (the local model otherwise
+    re-routes greetings forever): a per-worker guard (never re-run a worker that
+    already acted this turn) and a hard hop cap.
+    """
     logger.info("👉 [NODE] Entering supervisor")
     messages = state["messages"]
+    agents_run = state.get("agents_run") or []  # workers that already acted this turn
+
+    # Hard safety cap.
+    if len(agents_run) >= MAX_AGENT_HOPS:
+        logger.info(f"🏁 [NODE] supervisor → FINISH (hop cap {MAX_AGENT_HOPS} reached)")
+        return {"next": "FINISH"}
 
     model = get_llm(temperature=0)
-
-    logger.debug(f"Supervisor State Messages Count: {len(messages)}")
-    if messages:
-        last_msg = messages[-1]
-        logger.debug(f"Last Message Role: {last_msg.type}")
-        logger.debug(f"Last Message Content: {str(last_msg.content)[:100]}...")
-
-        # Force stop if the last message was from an AI: this prevents the
-        # Supervisor from routing an AI's answer back to an AI.
-        if last_msg.type == "ai":
-            logger.info("🏁 [NODE] supervisor → FINISH (fast-path: last message is AI, no LLM call)")
-            return {"next": "FINISH"}
-
-        if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-            logger.debug(f"Last Message Tool Calls: {last_msg.tool_calls}")
-
-    # Use standard tool calling for compatibility with Groq/Llama.
+    # Standard tool calling for routing (compatible with Groq/Llama).
     model_with_tool = model.bind_tools([RouterResponse], tool_choice="RouterResponse")
-
-    logger.debug("Invoking Supervisor Model...")
     try:
         response = model_with_tool.invoke([
             SystemMessage(content=prompts.SUPERVISOR_PROMPT),
             *sanitize_messages_for_model(messages)[-10:],  # Context window (sanitized)
         ])
-        logger.debug(f"Supervisor Response Tool Calls: {response.tool_calls}")
     except Exception as e:
         logger.debug(f"Supervisor invocation failed: {e}")
         return {"next": "FINISH"}
 
-    to_return = {}
+    next_node, reason = "FINISH", None
     if response.tool_calls:
         args = response.tool_calls[0]["args"]
-        next_node = args.get("next")
+        next_node = args.get("next") or "FINISH"
         reason = args.get("reason")
-        logger.debug(f"Supervisor Decided: {next_node}, Reason: {reason}")
-
-        valid_nodes = ["financial_agent", "data_analyst", "general_agent", "FINISH"]
-        if next_node not in valid_nodes:
-            logger.debug(f"Invalid next_node '{next_node}', defaulting to FINISH")
+        if next_node not in _WORKERS and next_node != "FINISH":
             next_node = "FINISH"
 
-        if reason and next_node == "FINISH":
-            # Add the reasoning as an AIMessage so the UI sees it.
-            to_return["messages"] = [AIMessage(content=reason)]
-    else:
-        logger.debug("Supervisor made no decision (no tool call)")
+    to_return = {}
+    # Loop guard: never re-run a worker that already acted this turn (the usual cause
+    # of supervisor↔worker ping-pong). Routing to a DIFFERENT worker still chains fine.
+    if next_node in agents_run:
+        logger.info(f"🏁 [NODE] supervisor → FINISH ({next_node} already ran this turn)")
         next_node = "FINISH"
 
-    logger.info(f"🧭 [NODE] supervisor → {next_node} (routed by LLM)")
+    if next_node == "FINISH":
+        # Surface the supervisor's own reply only on an immediate finish (no worker ran).
+        if reason and not agents_run:
+            to_return["messages"] = [AIMessage(content=reason)]
+        logger.info("🏁 [NODE] supervisor → FINISH")
+    else:
+        to_return["agents_run"] = agents_run + [next_node]
+        logger.info(f"🧭 [NODE] supervisor → {next_node} (reactive; đã chạy: {agents_run or '—'})")
+
     to_return["next"] = next_node
     return to_return
 

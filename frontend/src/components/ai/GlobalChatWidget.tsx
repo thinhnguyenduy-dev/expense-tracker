@@ -253,13 +253,20 @@ export function GlobalChatWidget() {
       };
       
       const loadHistory = async () => {
-          const storedThreadId = localStorage.getItem("ai_thread_id");
-          if (!storedThreadId) return;
-          
           try {
-              const { data } = await aiApi.getHistory(storedThreadId);
-              if (data && data.length > 0) {
-                  setConversation(data);
+              const storedThreadId = localStorage.getItem("ai_thread_id");
+              if (storedThreadId) {
+                  // Have a thread locally → load its history directly.
+                  const { data } = await aiApi.getHistory(storedThreadId);
+                  if (data && data.length > 0) setConversation(data);
+                  return;
+              }
+              // No local thread (e.g. just logged in) → recover this user's most
+              // recent thread from the server and restore it.
+              const { data } = await aiApi.getLatestThread();
+              if (data.thread_id) {
+                  localStorage.setItem("ai_thread_id", data.thread_id);
+                  if (data.history && data.history.length > 0) setConversation(data.history);
               }
           } catch (error) {
               console.error("Failed to load chat history", error);

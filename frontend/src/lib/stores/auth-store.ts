@@ -58,6 +58,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Logout error', error);
     } finally {
       localStorage.removeItem('token');
+      // Clear the AI chat thread so the next user who logs in on this browser
+      // never reuses (and reloads) the previous user's conversation.
+      localStorage.removeItem('ai_thread_id');
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== 'undefined') {
         window.location.href = '/login';

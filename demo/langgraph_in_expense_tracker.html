@@ -320,7 +320,7 @@
       <div class="node-card">
         <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
         <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
-        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph chạy SQL + web search.</p>
+        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph với <strong>5 tool</strong> (SQL + web search). Chi tiết ở Section 3.</p>
         <div class="route-info">
           Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
         </div>
@@ -348,9 +348,10 @@
 
   <!-- ══ 3. 8 TOOLS ══ -->
   <section>
-    <h2><span class="n">3</span> 7 Tools của Financial Agent</h2>
+    <h2><span class="n">3</span> Tools của các Agent</h2>
     <!-- <p style="margin-bottom:18px">Tất cả được tạo qua factory <code>make_tools(user_id, user_currency)</code> trong <code>backend/app/agents/tools.py</code>. Mỗi tool được bind với <code>user_id</code> (data isolation) và <code>user_currency</code> (format tiền tệ đúng — VND/JPY/KRW không có phần thập phân).</p> -->
 
+    <h3 style="margin-bottom:14px">💰 Financial Agent — 7 tools</h3>
     <div class="tool-grid">
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
@@ -389,7 +390,35 @@
       </div>
     </div>
 
-  
+    <h3 style="margin:30px 0 14px">📊 Data Analyst — 5 tools</h3>
+    <!-- <p style="margin-bottom:18px">Tools của ReAct analyst (<code>analyst.py</code>): bộ <code>SQLDatabaseToolkit</code> + web search. Bản <code>sql_db_query</code> gốc bị thay bằng bản <strong>guarded</strong> để ép user-scoping.</p> -->
+    <div class="tool-grid">
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--blue-bg);color:var(--blue)">SQL · Guarded</span>
+        <div class="tool-name">sql_db_query</div>
+        <div class="tool-desc">Chạy <code>SELECT</code> PostgreSQL. Bản <strong>guarded</strong> thay bản gốc: bắt buộc <code>user_id = &lt;id&gt;</code>, chặn truy cập user khác (RLS + heuristic chuỗi).</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--blue-bg);color:var(--blue)">Schema</span>
+        <div class="tool-name">sql_db_schema</div>
+        <div class="tool-desc">Trả schema + sample rows của các bảng chỉ định. Agent dùng để biết cấu trúc cột trước khi viết query.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--blue-bg);color:var(--blue)">Schema</span>
+        <div class="tool-name">sql_db_list_tables</div>
+        <div class="tool-desc">Liệt kê các bảng có trong DB (<code>expenses</code>, <code>categories</code>, <code>incomes</code>, <code>jars</code>...).</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--yellow-bg);color:var(--yellow)">Validate</span>
+        <div class="tool-name">sql_db_query_checker</div>
+        <div class="tool-desc">Nhờ LLM soát lại câu SQL trước khi chạy — giảm lỗi cú pháp/PostgreSQL dialect.</div>
+      </div>
+      <div class="tool-card">
+        <span class="tool-tag" style="background:var(--purple-bg);color:var(--purple)">Web</span>
+        <div class="tool-name">duckduckgo_search</div>
+        <div class="tool-desc">Tìm kiếm web qua package <code>ddgs</code>. Dùng cho dữ liệu thị trường / sự kiện hiện tại (vd: giá vàng, tỷ giá).</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 4. CHECKPOINT TABLES ══ -->

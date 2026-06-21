@@ -447,4 +447,6 @@ export interface ChatResponse {
 export const aiApi = {
   chat: (data: ChatRequest) => api.post<ChatResponse>('/ai/agent/chat', data),
   getHistory: (threadId: string) => api.get<{role: 'user' | 'agent', content: string}[]>(`/ai/agent/history/${threadId}`),
+  // Most recent thread for the logged-in user — used to restore chat after login.
+  getLatestThread: () => api.get<{ thread_id: string | null, history: {role: 'user' | 'agent', content: string}[] }>(`/ai/agent/threads/latest`),
 };
