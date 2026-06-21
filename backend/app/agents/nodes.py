@@ -38,7 +38,7 @@ class RouterResponse(BaseModel):
 
 def supervisor_node(state: AgentState):
     """Decide which agent to route to (or FINISH)."""
-    logger.debug("Entering supervisor_node")
+    logger.info("👉 [NODE] Entering supervisor")
     messages = state["messages"]
 
     model = get_llm(temperature=0)
@@ -52,7 +52,7 @@ def supervisor_node(state: AgentState):
         # Force stop if the last message was from an AI: this prevents the
         # Supervisor from routing an AI's answer back to an AI.
         if last_msg.type == "ai":
-            logger.debug("Last message was from AI. Forcing FINISH.")
+            logger.info("🏁 [NODE] supervisor → FINISH (fast-path: last message is AI, no LLM call)")
             return {"next": "FINISH"}
 
         if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
@@ -91,6 +91,7 @@ def supervisor_node(state: AgentState):
         logger.debug("Supervisor made no decision (no tool call)")
         next_node = "FINISH"
 
+    logger.info(f"🧭 [NODE] supervisor → {next_node} (routed by LLM)")
     to_return["next"] = next_node
     return to_return
 

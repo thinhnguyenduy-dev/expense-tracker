@@ -320,7 +320,7 @@
       <div class="node-card">
         <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
         <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
-        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph chạy SQL + web search. <code>sql_db_query</code> bị thay bằng bản <strong>guarded</strong></p>
+        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph chạy SQL + web search.</p>
         <div class="route-info">
           Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
         </div>
@@ -478,7 +478,7 @@
   <section>
     <h2><span class="n">5</span> Luồng API – từ Request đến Response</h2>
     
-    <div class="two-col">
+    <div class="one-col">
       <div class="card">
         <div class="api-steps">
 
@@ -535,42 +535,6 @@
 
         </div>
       </div>
-
-      <pre><code><span class="cm"># ai.py – process_chat() (rút gọn)</span>
-<span class="kw">async with</span> <span class="cls">AsyncConnectionPool</span>(conninfo=db_url) <span class="kw">as</span> pool:
-    checkpointer = <span class="cls">AsyncPostgresSaver</span>(pool)
-    graph = <span class="fn">compile_graph</span>(checkpointer=checkpointer)
-
-    config = {
-        <span class="str">"configurable"</span>: {
-            <span class="str">"user_id"</span>: user_id,
-            <span class="str">"thread_id"</span>: final_thread_id,   <span class="cm"># key cho checkpoint</span>
-            <span class="str">"user_lang"</span>: user_lang,
-            <span class="str">"user_currency"</span>: user_currency,
-            <span class="str">"categories"</span>: category_list,     <span class="cm"># fetch 1 lần, đưa vào prompt</span>
-            <span class="str">"analyst_output_mode"</span>: settings.ANALYST_OUTPUT_MODE,
-        },
-        <span class="str">"callbacks"</span>: [<span class="cls">AILoggingCallbackHandler</span>()],
-        <span class="str">"recursion_limit"</span>: <span class="num" style="color:#cf9d83">12</span>  <span class="cm"># tránh loop vô hạn</span>
-    }
-
-    final_state = <span class="kw">await</span> graph.<span class="fn">ainvoke</span>(input_state, config=config)
-
-<span class="cm"># Graph đang treo trên interrupt()? → cần hỏi lại user</span>
-<span class="kw">if</span> final_state.get(<span class="str">"__interrupt__"</span>):
-    q = final_state[<span class="str">"__interrupt__"</span>][<span class="num" style="color:#cf9d83">0</span>].value[<span class="str">"question"</span>]
-    <span class="kw">return</span> {<span class="str">"needs_clarification"</span>: <span class="kw">True</span>, <span class="str">"response"</span>: q, ...}
-
-<span class="cm"># Parse kết quả: gom NHIỀU submit_expense_tool thành list</span>
-messages = final_state[<span class="str">"messages"</span>]
-<span class="kw">for</span> msg <span class="kw">in</span> messages[last_human_idx:]:
-    <span class="kw">if</span> <span class="fn">isinstance</span>(msg, <span class="cls">AIMessage</span>) <span class="kw">and</span> msg.tool_calls:
-        <span class="kw">for</span> tc <span class="kw">in</span> msg.tool_calls:
-            <span class="kw">if</span> tc[<span class="str">"name"</span>] == <span class="str">"submit_expense_tool"</span>:
-                <span class="cm"># ... parse draft expense</span>
-
-<span class="cm"># Gộp trace SQL/search của analyst (last_message mode)</span>
-tool_calls_log.<span class="fn">extend</span>(final_state.get(<span class="str">"analyst_trace"</span>) <span class="kw">or</span> [])</code></pre>
     </div>
   </section>
 
