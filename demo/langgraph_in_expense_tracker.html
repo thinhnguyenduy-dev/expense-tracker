@@ -275,86 +275,68 @@
     <!-- MAIN GRAPH DIAGRAM -->
     <div class="diagram-box">
       <img src="MAIN_GRAPH_DIAGRAM.png"
-           alt="Sơ đồ graph chính: START → Supervisor (Router LLM) phân công financial_agent / data_analyst / general_agent, vòng tool nội bộ, nhánh clarification, kết thúc tại END"
+           alt="Sơ đồ graph: START → agent (LLM, vòng ReAct) ⇄ tools, agent kết thúc tại END khi không còn tool call"
            style="display:block; width:100%; height:auto; border-radius:10px;">
     </div>
 
-    <h3 style="margin:26px 0 12px">Supervisor Pattern hoạt động thế nào</h3>
+    <h3 style="margin:26px 0 12px">ReAct Agent hoạt động thế nào</h3>
     <p style="margin-bottom:18px">
-      App dùng <strong>Supervisor Pattern</strong>: một <strong>Supervisor</strong> ở trung tâm đọc State,
-      quyết định <em>agent nào</em> xử lý tiếp (set <code>state["next"]</code>), agent chạy xong trả kết quả về
-      qua shared State, rồi Supervisor lại quyết định — cho đến khi <code>FINISH</code>.
+      App dùng kiến trúc <strong>một ReAct Agent duy nhất</strong> (dựng bằng <code>create_react_agent</code>): một agent
+      sở hữu <strong>toàn bộ tool</strong>, tự suy luận và quyết định gọi tool nào, chạy tool, đọc kết quả, rồi <em>lặp lại</em>
+      cho đến khi đủ thông tin để trả lời.</strong>.
     </p>
     <div class="steps">
-      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>Supervisor nhận request</strong><span>Đọc các message gần nhất trong State, dùng <strong>structured tool calling</strong> để chọn agent.</span></div></div>
-      <div class="step"><div class="step-n">2</div><div class="step-body"><strong>Conditional edge route</strong><span>Dựa trên <code>state["next"]</code> → đi tới Agent tương ứng. Nếu xong việc → <code>FINISH</code> → END.</span></div></div>
-      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Agent xử lý</strong><span>Agent chuyên biệt chạy (có thể tự là một ReAct loop riêng), ghi kết quả vào shared State.</span></div></div>
-      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Quay lại Supervisor</strong><span>Agent trả về Supervisor để điều phối bước tiếp theo — lặp đến khi Supervisor chọn FINISH.</span></div></div>
+      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>Agent nhận request</strong><span>LLM đọc history + system prompt (đã nhúng ngày, categories, tiền tệ, <code>user_id</code>), quyết định: trả lời thẳng hay gọi tool.</span></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-body"><strong>Gọi tool (nếu cần)</strong><span>Node <code>tools</code> thực thi các <code>tool_calls</code>, ghi <code>ToolMessage</code> vào State rồi quay lại agent.</span></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Lặp ReAct</strong><span>Agent đọc kết quả tool → gọi tool tiếp hay trả lời. Vd: <code>duckduckgo_search</code> → tính tổng → <code>submit_expense_tool</code> — nhiều bước trong CÙNG một lượt.</span></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Kết thúc</strong><span>Khi agent trả lời bằng text (không còn tool call) → <code>END</code>. An toàn nằm ở chính các tool (SQL read-only, user-scoping) và system prompt.</span></div></div>
     </div>
   </section>
 
-  <!-- ══ 2. 5 NODES ══ -->
+  <!-- ══ 2. 2 NODES ══ -->
   <section>
-    <h2><span class="n">2</span> Chi tiết 5 Nodes</h2>
+    <h2><span class="n">2</span> Chi tiết 2 Nodes</h2>
 
-    <!-- Supervisor -->
+    <p style="margin-bottom:18px"><code>create_react_agent</code> sinh ra một graph cực gọn chỉ gồm <strong>2 node</strong>: <code>agent</code> (LLM)
+      và <code>tools</code> (ToolNode). Toàn bộ logic "làm gì tiếp theo" do chính LLM quyết định qua tool calling — agent xuất
+      <code>tool_calls</code> để dùng tool, hoặc trả lời để kết thúc.</p>
+
+    <!-- agent -->
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span style="font-size:1.4rem">🎯</span>
-        <code style="color:var(--purple);font-size:.95rem;font-family:'JetBrains Mono','Fira Code',monospace;font-weight:700">supervisor_node</code>
+        <span style="font-size:1.4rem">🧠</span>
+        <code style="color:var(--purple);font-size:.95rem;font-family:'JetBrains Mono','Fira Code',monospace;font-weight:700">agent</code>
         <span style="margin-left:auto;padding:3px 9px;background:var(--purple-bg);border:1px solid var(--border);border-radius:999px;font-size:.72rem;color:var(--purple)">Entry Point</span>
       </div>
-      <p>LLM đọc 10 messages gần nhất (đã <code>sanitize</code>), dùng <strong>structured tool calling</strong> (<code>bind_tools(RouterResponse, tool_choice="RouterResponse")</code>) để quyết định route. <code>RouterResponse</code> có 2 field: <code>next</code> — một trong <code>"financial_agent"</code>, <code>"data_analyst"</code>, <code>"general_agent"</code>, <code>"FINISH"</code> — và <code>reason</code> (khi FINISH, được thêm vào history dưới dạng AIMessage để UI thấy).</p>
-      <!-- <p><strong>Logic đặc biệt:</strong> Nếu message cuối là AIMessage (agent vừa trả lời), Supervisor <em>tự động</em> set FINISH — tránh agent gọi agent vô hạn.</p> -->
-    </div>
-
-    <div class="three-col">
-      <div class="node-card">
-        <div class="node-label" style="color:var(--orange)">💰 financial_agent</div>
-        <h4>Xử lý giao dịch tài chính</h4>
-        <p>Gọi LLM với 7 tools để thêm chi tiêu, thu nhập, xem tổng hợp tháng. Có <strong>tool loop nội bộ</strong> với <code>financial_tools</code>. Việc hỏi lại user dùng <strong>interrupt()</strong> (xem Section 6).</p>
-        <div class="route-info">
-          <code>tool_calls</code> → <strong>financial_tools</strong><br>
-          còn lại → <strong>supervisor</strong>
-        </div>
-      </div>
-
-      <!-- data_analyst -->
-      <div class="node-card">
-        <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
-        <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
-        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph với <strong>5 tool</strong> (SQL + web search).</p>
-        <div class="route-info">
-          Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
-        </div>
-      </div>
-
-      <!-- general_agent -->
-      <div class="node-card">
-        <div class="node-label" style="color:var(--teal)">💬 general_agent</div>
-        <h4>Xử lý chitchat</h4>
-        <p>LLM trực tiếp, không có tools. Xử lý lời chào, câu hỏi ngoài chủ đề tài chính.</p>
-        <div class="route-info">
-          Sau khi trả lời → về <strong>supervisor</strong>
-        </div>
+      <p>LLM được bind <strong>toàn bộ tool</strong> (giao dịch + đọc + SQL read-only + web search). Mỗi lượt nó đọc history +
+        system prompt (đã nhúng ngày, categories, tiền tệ, <code>user_id</code>) rồi xuất hoặc <code>tool_calls</code> (cần dùng tool)
+        hoặc câu trả lời cuối. An toàn (từ chối phá hoại / lộ <code>.env</code>) đến từ <strong>system prompt + giới hạn của tool</strong>.</p>
+      <div class="route-info" style="margin-top:11px">
+        có <code>tool_calls</code> → <strong>tools</strong><br>
+        không còn tool call (trả lời text) → <strong>END</strong>
       </div>
     </div>
 
     <div class="node-card" style="margin-top:14px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div class="node-label" style="color:var(--yellow);margin:0">🔧 financial_tools</div>
+        <div class="node-label" style="color:var(--yellow);margin:0">🔧 tools</div>
         <span style="padding:2px 8px;background:var(--yellow-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--yellow)">ToolNode</span>
       </div>
-      <p style="font-size:.85rem">Bọc LangGraph's <code>ToolNode</code> — nhìn vào <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State. <strong>Đặc biệt:</strong> nếu một tool gọi <code>interrupt()</code> (ngoại tệ trong <code>submit_expense_tool</code>, hoặc <code>ask_clarification_tool</code>), graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code>. Bình thường thì quay về <code>financial_agent</code>. </p>
+      <p style="font-size:.85rem">LangGraph's <code>ToolNode</code> — nhìn <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State,
+        rồi <strong>luôn quay về <code>agent</code></strong> để LLM đọc kết quả và quyết bước kế (đây chính là vòng ReAct).
+        <strong>Đặc biệt:</strong> nếu một tool gọi <code>interrupt()</code> (ngoại tệ trong <code>submit_expense_tool</code>, hoặc <code>ask_clarification_tool</code>),
+        graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code> (xem Section 6).</p>
     </div>
   </section>
 
-  <!-- ══ 3. 8 TOOLS ══ -->
+  <!-- ══ 3. 12 TOOLS ══ -->
   <section>
-    <h2><span class="n">3</span> Tools của các Agent</h2>
-    <!-- <p style="margin-bottom:18px">Tất cả được tạo qua factory <code>make_tools(user_id, user_currency)</code> trong <code>backend/app/agents/tools.py</code>. Mỗi tool được bind với <code>user_id</code> (data isolation) và <code>user_currency</code> (format tiền tệ đúng — VND/JPY/KRW không có phần thập phân).</p> -->
+    <h2><span class="n">3</span> Toolset của Agent (12 tools)</h2>
+    <p style="margin-bottom:18px">Một agent duy nhất sở hữu <strong>cả 12 tool</strong> (gộp lúc build trong <code>agent.py</code>):
+      tool giao dịch/đọc bind theo <code>user_id</code> + <code>user_currency</code> (<code>make_tools</code>), bộ SQL read-only user-scoped
+      (<code>make_sql_tools</code>) và web search. Hai nhóm dưới chỉ để dễ đọc — với LLM tất cả nằm chung một danh sách.</p>
 
-    <h3 style="margin-bottom:14px">💰 Financial Agent — 7 tools</h3>
+    <h3 style="margin-bottom:14px">💰 Giao dịch &amp; đọc nhanh — 7 tools</h3>
     <div class="tool-grid">
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--orange-bg);color:var(--orange)">Write</span>
@@ -393,13 +375,13 @@
       </div>
     </div>
 
-    <h3 style="margin:30px 0 14px">📊 Data Analyst — 5 tools</h3>
-    <!-- <p style="margin-bottom:18px">Tools của ReAct analyst (<code>analyst.py</code>): bộ <code>SQLDatabaseToolkit</code> + web search. Bản <code>sql_db_query</code> gốc bị thay bằng bản <strong>guarded</strong> để ép user-scoping.</p> -->
+    <h3 style="margin:30px 0 14px">📊 SQL &amp; web research — 5 tools</h3>
+    <p style="margin-bottom:18px">Bộ <code>SQLDatabaseToolkit</code> + web search từ <code>analyst.py</code> (<code>make_sql_tools</code>). Bản <code>sql_db_query</code> gốc bị thay bằng bản <strong>guarded</strong>: chỉ cho <code>SELECT</code> (chặn DROP/DELETE/...) và ép user-scoping.</p>
     <div class="tool-grid">
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--blue-bg);color:var(--blue)">SQL · Guarded</span>
         <div class="tool-name">sql_db_query</div>
-        <div class="tool-desc">Chạy <code>SELECT</code> PostgreSQL. Bản <strong>guarded</strong> thay bản gốc: bắt buộc <code>user_id = &lt;id&gt;</code>, chặn truy cập user khác (RLS + heuristic chuỗi).</div>
+        <div class="tool-desc">Chạy <code>SELECT</code> PostgreSQL. Bản <strong>guarded</strong> thay bản gốc: <strong>chỉ cho SELECT</strong> (chặn DROP/DELETE/INSERT/...), bắt buộc <code>user_id = &lt;id&gt;</code>, chặn truy cập user khác (RLS + heuristic chuỗi).</div>
       </div>
       <div class="tool-card">
         <span class="tool-tag" style="background:var(--blue-bg);color:var(--blue)">Schema</span>
@@ -533,8 +515,8 @@
           <div class="api-step">
             <div class="api-dot" style="border-color:var(--purple)"></div>
             <div class="api-content">
-              <strong>Tạo AsyncPostgresSaver</strong>
-              <span>Mở connection pool → tạo checkpointer → compile graph với checkpointer đã attach.</span>
+              <strong>Tạo AsyncPostgresSaver + build agent</strong>
+              <span>Mở connection pool → tạo checkpointer → <code>compile_graph()</code> build ReAct agent cho user này (tool + prompt đã nhúng context) với checkpointer đã attach.</span>
               <div><span class="api-tag" style="background:var(--purple-bg);color:var(--purple)">AsyncPostgresSaver(pool)</span></div>
             </div>
           </div>
@@ -552,7 +534,7 @@
             <div class="api-dot" style="border-color:var(--purple)"></div>
             <div class="api-content">
               <strong>graph.ainvoke() – chạy toàn bộ graph</strong>
-              <span>Supervisor → agent → (tools loop) → Supervisor → FINISH. recursion_limit=12 để tránh vòng lặp vô hạn.</span>
+              <span>Vòng ReAct: <code>agent</code> ⇄ <code>tools</code> → <code>END</code> khi agent trả lời không kèm tool call. <code>recursion_limit=12</code> chặn vòng lặp tool vô hạn.</span>
             </div>
           </div>
 
@@ -560,7 +542,7 @@
             <div class="api-dot" style="border-color:var(--teal)"></div>
             <div class="api-content">
               <strong>Trả response + thread_id</strong>
-              <span>Nếu final_state có <code>__interrupt__</code> (graph đang treo) → trả <code>needs_clarification=True</code> ngay. Ngược lại parse các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, gộp <code>analyst_trace</code> vào tool_calls. <code>GraphRecursionError</code> → trả lời an toàn.</span>
+              <span>Nếu final_state có <code>__interrupt__</code> (graph đang treo) → trả <code>needs_clarification=True</code> ngay. Ngược lại quét các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, thu thập mọi tool call (SQL/search/submit nằm thẳng trong <code>messages</code>). <code>GraphRecursionError</code> → trả lời an toàn.</span>
               <div><span class="api-tag" style="background:var(--teal-bg);color:var(--teal)">{ response, expense_data, income_data, tool_calls, thread_id, needs_clarification }</span></div>
             </div>
           </div>
@@ -623,7 +605,7 @@
             <div class="api-dot" style="border-color:var(--teal)"></div>
             <div class="api-content">
               <strong>Lượt 1 · "đi Green SM 5 USD"</strong>
-              <span>supervisor → financial_agent. LLM gọi <code>submit_expense_tool(amount=5, currency="USD")</code>.</span>
+              <span><code>agent</code> gọi <code>submit_expense_tool(amount=5, currency="USD")</code>.</span>
             </div>
           </div>
           <div class="api-step">
@@ -656,7 +638,7 @@
             <div class="api-dot" style="border-color:var(--teal)"></div>
             <div class="api-content">
               <strong>Hoàn tất</strong>
-              <span>financial_agent chốt lời → FINISH. <code>expense_data</code> lấy <strong>giá trị đã quy đổi</strong> từ
+              <span><code>agent</code> chốt lời → END. <code>expense_data</code> lấy <strong>giá trị đã quy đổi</strong> từ
                 payload (131,590 VND), desc <code>"5 USD @ 26,318"</code> — không lưu nhầm 5 USD.</span>
             </div>
           </div>

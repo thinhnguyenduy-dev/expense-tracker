@@ -7,7 +7,6 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from app.core import deps
 from app.models.user import User
-from app.agents.graph import get_agent_graph
 
 router = APIRouter()
 
@@ -165,8 +164,14 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
         # NOTE: You must run `checkpointer.setup()` once separately to create tables.
         # We assume tables exist to avoid "ActiveSqlTransaction" error in high-concurrency or transaction blocks.
         
-        graph = compile_graph(checkpointer=checkpointer)
-        
+        graph = compile_graph(
+            checkpointer=checkpointer,
+            user_id=user_id,
+            user_currency=user_currency,
+            categories=category_list,
+            user_lang=user_lang,
+        )
+
         # Thread ID logic — namespace every thread by user and NEVER continue a
         # thread owned by someone else (a stale/forged thread_id from another user
         # is discarded, so the new turn starts a fresh, owned thread).
@@ -200,11 +205,9 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             #     question and typed something new. If we just sent a HumanMessage,
             #     the pending interrupt would re-fire and re-ask forever. So we
             #     ABANDON the stale interrupt (delete the thread) and start fresh.
-            fresh_turn = {
-                "messages": [HumanMessage(content=message)],
-                "analyst_trace": None,  # clear last turn's trace
-                "agents_run": [],       # reset the reactive supervisor's per-turn guard
-            }
+            # Single ReAct agent uses a messages-only state — no per-turn routing
+            # bookkeeping to reset.
+            fresh_turn = {"messages": [HumanMessage(content=message)]}
             snapshot = await graph.aget_state(config)
             paused = bool(getattr(snapshot, "interrupts", None))
 
