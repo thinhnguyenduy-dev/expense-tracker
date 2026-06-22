@@ -43,7 +43,7 @@ class RouterResponse(BaseModel):
 MAX_AGENT_HOPS = 3
 
 
-def supervisor_node(state: AgentState):
+def supervisor_node(state: AgentState, config: RunnableConfig):
     """Textbook REACTIVE supervisor.
 
     After EVERY worker, re-ask the LLM which worker should act next (or FINISH),
@@ -56,6 +56,8 @@ def supervisor_node(state: AgentState):
     logger.info("👉 [NODE] Entering supervisor")
     messages = state["messages"]
     agents_run = state.get("agents_run") or []  # workers that already acted this turn
+    user_lang = config.get("configurable", {}).get("user_lang", "vi")
+    lang_name = _LANG_NAMES.get(user_lang, user_lang)
 
     # Hard safety cap.
     if len(agents_run) >= MAX_AGENT_HOPS:
@@ -67,7 +69,7 @@ def supervisor_node(state: AgentState):
     model_with_tool = model.bind_tools([RouterResponse], tool_choice="RouterResponse")
     try:
         response = model_with_tool.invoke([
-            SystemMessage(content=prompts.SUPERVISOR_PROMPT),
+            SystemMessage(content=prompts.SUPERVISOR_PROMPT.format(user_lang=lang_name)),
             *sanitize_messages_for_model(messages)[-10:],  # Context window (sanitized)
         ])
     except Exception as e:

@@ -17,6 +17,54 @@ from app.core.database import engine, analyst_engine
 # Tables that carry a `user_id` and must never be queried across users.
 USER_SCOPED_TABLES = ("expenses", "incomes", "categories", "jars", "recurring_expenses")
 
+# Statement-level keywords that must never appear in an analyst query. The analyst
+# is strictly read-only; anything that writes, alters, grants, or controls a
+# transaction is rejected before it ever reaches the database — even when the
+# RLS-constrained read-only role is unavailable (owner-engine fallback).
+_FORBIDDEN_SQL_KEYWORDS = (
+    "insert", "update", "delete", "drop", "truncate", "alter", "create",
+    "grant", "revoke", "replace", "merge", "call", "copy", "vacuum",
+    "reindex", "comment", "lock", "set", "commit", "rollback", "begin",
+    "savepoint", "attach", "pragma",
+)
+
+
+def _strip_sql_noise(query: str) -> str:
+    """Remove comments and single-quoted string literals from a query.
+
+    Done before keyword scanning so a literal value like `'drop shipping'` or a
+    `-- drop everything` comment can't trip (or evade) the read-only guard.
+    """
+    q = re.sub(r"/\*.*?\*/", " ", query, flags=re.DOTALL)  # /* block comments */
+    q = re.sub(r"--[^\n]*", " ", q)                          # -- line comments
+    q = re.sub(r"'(?:''|[^'])*'", " ", q)                    # 'string literals'
+    return q
+
+
+def _reject_if_not_read_only(query: str) -> Optional[str]:
+    """Return an error string if `query` is anything other than a single SELECT.
+
+    Returns None when the query is a safe, single read-only statement.
+    """
+    cleaned = _strip_sql_noise(query).strip().rstrip(";").strip()
+    if not cleaned:
+        return "ERROR: Empty query."
+    # Single statement only — no stacked `SELECT ...; DROP ...`.
+    if ";" in cleaned:
+        return "ERROR: Query rejected — only a single SELECT statement is allowed (no `;`-separated statements)."
+    # Must be a read query.
+    if not re.match(r"(?is)^\s*(select|with)\b", cleaned):
+        return "ERROR: Query rejected — only read-only SELECT queries are allowed."
+    # No write / DDL / transaction-control keywords anywhere (e.g. inside a CTE).
+    lowered = cleaned.lower()
+    for kw in _FORBIDDEN_SQL_KEYWORDS:
+        if re.search(rf"\b{kw}\b", lowered):
+            return (
+                f"ERROR: Query rejected — the `{kw.upper()}` operation is not permitted. "
+                f"The analyst is read-only; you may only run SELECT queries."
+            )
+    return None
+
 
 def _make_guarded_query_tool(query_engine, user_id: int):
     """A drop-in replacement for `sql_db_query` that enforces user scoping.
@@ -38,6 +86,13 @@ def _make_guarded_query_tool(query_engine, user_id: int):
         """Execute a PostgreSQL SELECT query and return the result.
         The query MUST be scoped to the current user via `user_id = <id>` on any
         user-owned table. Input is a single, valid SQL query string."""
+        # Read-only guard (first line of defence): reject anything that isn't a
+        # single SELECT before touching the DB — covers the owner-engine fallback
+        # where RLS isn't enforcing read-only access.
+        not_read_only = _reject_if_not_read_only(query)
+        if not_read_only:
+            return not_read_only
+
         lowered = query.lower()
         if any(t in lowered for t in USER_SCOPED_TABLES):
             # Must reference the current user's id.
