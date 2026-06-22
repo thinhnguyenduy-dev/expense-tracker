@@ -287,6 +287,30 @@
         Sơ đồ tổng quan: agent lặp <em>suy luận → hành động (tool) → quan sát</em> qua các node, rẽ nhánh bằng conditional edge cho đến END.
       </figcaption>
     </figure>
+
+    <p style="margin:24px 0 14px">Mọi đồ thị LangGraph được lắp từ <strong>3 viên gạch cốt lõi</strong> — chính là các thành phần bạn thấy trong sơ đồ trên:</p>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="icon">🔵</div>
+        <h4>Node (Nút)</h4>
+        <p>Một <strong>bước xử lý</strong>, thường là một hàm Python. Node đọc State, làm việc của nó (gọi LLM, chạy tool…), rồi ghi kết quả trở lại State. Trong hình: <code>AGENT</code> và <code>TOOL</code> là các node.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">➡️</div>
+        <h4>Edge (Cạnh)</h4>
+        <p>Đường nối quyết định <strong>node nào chạy tiếp</strong>. Edge thường (normal) đi cố định: node A xong → luôn sang node B.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">🔀</div>
+        <h4>Conditional Edge</h4>
+        <p>Cạnh <strong>rẽ nhánh động</strong>: một hàm đọc State rồi chọn đích đến (vd: có <code>tool_calls</code> → Tool Node; không → END). Đây là thứ tạo ra <strong>phân nhánh &amp; vòng lặp</strong>.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon">📦</div>
+        <h4>State (Trạng thái)</h4>
+        <p><strong>Bộ nhớ dùng chung</strong> mọi node đọc/ghi — thường là một <code>TypedDict</code> chứa <code>messages</code>, kết quả tool… Truyền xuyên suốt graph nên agent "nhớ" được ngữ cảnh giữa các bước.</p>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 2. REACT AGENT ══ -->
@@ -367,96 +391,44 @@
     </div>
   </section>
 
-  <!-- ══ 3. SUPERVISOR PATTERN ══ -->
+  <!-- ══ MULTI-AGENT ARCHITECTURES ══ -->
   <section>
-    <h2><span class="n">4</span> Supervisor Pattern – Điều phối nhiều agent</h2>
+    <h2><span class="n">4</span> Kiến trúc Multi-Agent trong LangGraph</h2>
 
-    <p style="margin-bottom:18px">
-      ReAct ở trên là <strong>một</strong> agent tự lặp. Khi bài toán cần
-      <strong>nhiều agent chuyên biệt</strong>, ta đặt một
-      <strong>Supervisor</strong> ở trung tâm: nó đọc State, quyết định
-      <em>agent nào</em> xử lý tiếp (set <code>state["next"]</code>), agent chạy xong
-      trả kết quả về qua shared State, rồi Supervisor lại quyết định — cho đến khi <code>FINISH</code>.
+    <p style="margin-bottom:14px">
+      Khi một agent đơn lẻ không đủ, ta chia bài toán cho <strong>nhiều agent chuyên biệt</strong>
     </p>
 
-    <div class="diagram-box" style="margin-bottom:22px">
-      <svg viewBox="0 0 780 462" xmlns="http://www.w3.org/2000/svg" style="max-width:780px; width:100%; min-height:300px">
-        <defs>
-          <marker id="sp-p" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#a3aede"/></marker>
-          <marker id="sp-g" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#84bfa6"/></marker>
-          <marker id="sp-r" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#c98f8f"/></marker>
-        </defs>
+    <p style="margin-bottom:20px">Theo <a href="https://www.langchain.com/blog/langgraph-multi-agent-workflows" style="color:var(--blue);font-weight:600;text-decoration:none">blog chính thức của LangGraph</a>, có <strong>3 kiến trúc multi-agent</strong>:</p>
 
-        <!-- START -->
-        <rect x="295" y="14" width="190" height="42" rx="21" fill="#252b37" stroke="#84bfa6" stroke-width="2"/>
-        <text x="390" y="40" text-anchor="middle" fill="#84bfa6" font-family="Segoe UI,system-ui,sans-serif" font-size="16" font-weight="700">▶  START</text>
+    <figure style="margin:0 0 28px">
+      <img src="ma_collaboration.png" alt="Multi-Agent Collaboration — các agent chung một scratchpad" style="display:block; width:100%; max-width:auto; margin:0 auto; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; padding:16px">
+      <figcaption style="margin-top:14px; text-align:left">
+        <h3 style="margin-bottom:6px">1 · Multi-Agent Collaboration</h3>
+        <p style="font-size:.9rem; color:var(--text2)">Các agent <strong>chung một scratchpad / State</strong> — mọi bước trung gian của agent này đều hiện ra cho agent kia thấy. Đơn giản, hợp khi cần phối hợp chặt; nhược điểm: context dễ phình to khi nhiều agent.</p>
+      </figcaption>
+    </figure>
 
-        <!-- START → Supervisor -->
-        <line x1="390" y1="56" x2="390" y2="86" stroke="#a3aede" stroke-width="2" marker-end="url(#sp-p)"/>
+    <figure style="margin:0 0 28px">
+      <img src="ma_supervisor.png" alt="Agent Supervisor — supervisor route tới từng agent" style="display:block; width:100%; max-width:auto; margin:0 auto; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; padding:16px">
+      <figcaption style="margin-top:14px; text-align:left">
+        <h3 style="margin-bottom:6px">2 · Agent Supervisor</h3>
+        <p style="font-size:.9rem; color:var(--text2)">Một <strong>supervisor</strong> điều phối, route task tới agent chuyên biệt; mỗi agent có <strong>scratchpad riêng</strong>, chỉ trả kết quả về supervisor (không thấy việc của nhau). </p>
+      </figcaption>
+    </figure>
 
-        <!-- SUPERVISOR NODE -->
-        <rect x="235" y="88" width="310" height="66" rx="14" fill="#252b37" stroke="#a3aede" stroke-width="2.5"/>
-        <text x="390" y="118" text-anchor="middle" fill="#b9c1e6" font-family="Segoe UI,system-ui,sans-serif" font-size="16" font-weight="700">🧭  Supervisor  (Router LLM)</text>
-        <text x="390" y="141" text-anchor="middle" fill="#a9b2c4" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5">Đọc State → chọn agent → set state["next"]</text>
-
-        <!-- Supervisor → END (FINISH) -->
-        <line x1="545" y1="121" x2="598" y2="121" stroke="#c98f8f" stroke-width="2" marker-end="url(#sp-r)"/>
-        <text x="556" y="112" fill="#c98f8f" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5" font-weight="600">FINISH</text>
-        <rect x="600" y="99" width="156" height="44" rx="22" fill="#252b37" stroke="#c98f8f" stroke-width="2"/>
-        <text x="678" y="126" text-anchor="middle" fill="#c98f8f" font-family="Segoe UI,system-ui,sans-serif" font-size="16" font-weight="700">⏹  END</text>
-
-        <!-- Conditional edge box -->
-        <rect x="270" y="166" width="240" height="24" rx="6" fill="rgba(255,255,255,.03)" stroke="#3c4452" stroke-width="1" stroke-dasharray="3 2"/>
-        <text x="390" y="182" text-anchor="middle" fill="#a6aec2" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-style="italic">⚡ route theo state["next"]</text>
-
-        <!-- Supervisor → Agents (3 routing arrows) -->
-        <line x1="340" y1="154" x2="150" y2="248" stroke="#a3aede" stroke-width="2" marker-end="url(#sp-p)"/>
-        <line x1="390" y1="154" x2="390" y2="248" stroke="#a3aede" stroke-width="2" marker-end="url(#sp-p)"/>
-        <line x1="440" y1="154" x2="632" y2="248" stroke="#a3aede" stroke-width="2" marker-end="url(#sp-p)"/>
-
-        <!-- AGENT A -->
-        <rect x="48" y="250" width="200" height="66" rx="13" fill="#252b37" stroke="#cfa178" stroke-width="2"/>
-        <text x="148" y="280" text-anchor="middle" fill="#cfa178" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700">🤖  Agent 1</text>
-        <text x="148" y="301" text-anchor="middle" fill="#bfa98c" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5">vd: financial_agent</text>
-
-        <!-- AGENT B -->
-        <rect x="290" y="250" width="200" height="66" rx="13" fill="#252b37" stroke="#84bfa6" stroke-width="2"/>
-        <text x="390" y="280" text-anchor="middle" fill="#84bfa6" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700">🤖  Agent 2</text>
-        <text x="390" y="301" text-anchor="middle" fill="#9cb8aa" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5">vd: data_analyst</text>
-
-        <!-- AGENT C -->
-        <rect x="532" y="250" width="200" height="66" rx="13" fill="#252b37" stroke="#8fb3d9" stroke-width="2"/>
-        <text x="632" y="280" text-anchor="middle" fill="#8fb3d9" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700">🤖  Agent 3</text>
-        <text x="632" y="301" text-anchor="middle" fill="#9fb0c4" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5">vd: general_agent</text>
-
-        <!-- Return bus: agents → shared state → Supervisor -->
-        <line x1="148" y1="316" x2="148" y2="360" stroke="#84bfa6" stroke-width="2"/>
-        <line x1="390" y1="316" x2="390" y2="360" stroke="#84bfa6" stroke-width="2"/>
-        <line x1="632" y1="316" x2="632" y2="360" stroke="#84bfa6" stroke-width="2"/>
-        <line x1="632" y1="360" x2="20" y2="360" stroke="#84bfa6" stroke-width="2"/>
-        <line x1="20" y1="360" x2="20" y2="121" stroke="#84bfa6" stroke-width="2"/>
-        <line x1="20" y1="121" x2="233" y2="121" stroke="#84bfa6" stroke-width="2" marker-end="url(#sp-g)"/>
-        <text x="396" y="379" text-anchor="middle" fill="#84bfa6" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5" font-weight="500">Agent xong → kết quả vào shared State → Supervisor quyết định lại</text>
-
-        <!-- State annotation -->
-        <rect x="205" y="398" width="370" height="46" rx="8" fill="rgba(143,179,217,.07)" stroke="rgba(143,179,217,.28)" stroke-width="1" stroke-dasharray="4 2"/>
-        <text x="390" y="417" text-anchor="middle" fill="#8ba2c2" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600">📦 SHARED STATE (mọi node đọc/ghi)</text>
-        <text x="390" y="434" text-anchor="middle" fill="#8299bb" font-family="Segoe UI,system-ui,sans-serif" font-size="11.5">messages  ·  next  ·  kết quả của agent</text>
-      </svg>
-    </div>
-
-    <div class="steps">
-      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>Supervisor nhận request</strong><span>Đọc các message gần nhất trong State, dùng <strong>structured tool calling</strong> để chọn agent.</span></div></div>
-      <div class="step"><div class="step-n">2</div><div class="step-body"><strong>Conditional edge route</strong><span>Dựa trên <code>state["next"]</code> → đi tới Agent tương ứng. Nếu xong việc → <code>FINISH</code> → END.</span></div></div>
-      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Agent xử lý</strong><span>Agent chuyên biệt chạy (có thể tự là một ReAct loop riêng), ghi kết quả vào shared State.</span></div></div>
-      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Quay lại Supervisor</strong><span>Agent trả về Supervisor để điều phối bước tiếp theo — lặp đến khi Supervisor chọn FINISH.</span></div></div>
-    </div>
-
+    <figure style="margin:0">
+      <img src="ma_hierarchical.png" alt="Hierarchical Agent Teams — các team lồng nhau" style="display:block; width:100%; max-width:auto; margin:0 auto; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; padding:16px">
+      <figcaption style="margin-top:14px; text-align:left">
+        <h3 style="margin-bottom:6px">3 · Hierarchical Agent Teams</h3>
+        <p style="font-size:.9rem; color:var(--text2)">Mỗi "agent" bản thân là <strong>một LangGraph khác</strong> → lồng nhiều tầng, kiểu "supervisor của các supervisor". Dùng khi quá nhiều agent, một supervisor route không xuể.</p>
+      </figcaption>
+    </figure>
   </section>
 
   <!-- ══ 5. SO SÁNH ══ -->
   <section>
-    <h2><span class="n">6</span> LangGraph vs LangChain</h2>
+    <h2><span class="n">5</span> LangGraph vs LangChain</h2>
 
     <!-- Visual structure comparison -->
     <div class="diagram-box" style="margin-bottom:22px; padding:28px 16px 20px">

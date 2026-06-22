@@ -102,6 +102,19 @@
     }
     .diagram-box svg { display: block; margin: 0 auto; }
 
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+    .step { display: flex; gap: 13px; align-items: flex-start; }
+    .step-n {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      background: var(--bg3); border: 1px solid var(--border2);
+      color: var(--text2); font-weight: 700; font-size: .82rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-body { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+    .step-body strong { color: var(--text); font-size: .89rem; display: block; margin-bottom: 3px; }
+    .step-body span { color: var(--text2); font-size: .83rem; }
+
     /* NODE CARDS */
     .node-card {
       background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
@@ -268,25 +281,24 @@
   <section>
     <h2><span class="n">1</span> Kiến trúc tổng quan</h2>
 
-    <div class="card" style="margin-bottom:18px">
-      <p>
-        Graph trong app dùng <strong>Supervisor Pattern</strong>:
-        một node trung tâm phân tích câu hỏi và phân công cho agent chuyên biệt.
-        <!-- Wiring của graph nằm trong <code>backend/app/agents/graph.py</code>; các node ở <code>nodes.py</code>, prompt ở <code>prompts.py</code>, schema State ở <code>state.py</code>, helper xử lý message ở <code>utils.py</code>. -->
-      </p>
-      <!-- <p style="margin-top:6px">
-        Graph có <strong>5 nodes</strong>: <code>supervisor</code>, <code>financial_agent</code>, <code>financial_tools</code>, <code>data_analyst</code>, <code>general_agent</code>.
-        Supervisor chỉ điều phối <strong>3 agent</strong> — <code>financial_agent</code>, <code>data_analyst</code>, <code>general_agent</code> — bằng cách set <code>state["next"]</code> (hoặc <code>FINISH</code> → END).
-        Node phụ trợ <code>financial_tools</code> thuộc vòng nội bộ của <code>financial_agent</code> (đi bằng conditional edge riêng), <strong>không</strong> do supervisor chọn. Việc hỏi lại user dùng <code>interrupt()</code> chứ không có node riêng.
-        Shared <code>AgentState</code> (state.py) gồm 3 field: <code>messages</code> (reducer <code>operator.add</code>), <code>next</code>, <code>analyst_trace</code> — còn <code>user_id</code>/<code>thread_id</code> nằm trong <code>config["configurable"]</code>, không phải State.
-      </p> -->
-    </div>
-
     <!-- MAIN GRAPH DIAGRAM -->
     <div class="diagram-box">
       <img src="MAIN_GRAPH_DIAGRAM.png"
            alt="Sơ đồ graph chính: START → Supervisor (Router LLM) phân công financial_agent / data_analyst / general_agent, vòng tool nội bộ, nhánh clarification, kết thúc tại END"
            style="display:block; width:100%; height:auto; border-radius:10px;">
+    </div>
+
+    <h3 style="margin:26px 0 12px">Supervisor Pattern hoạt động thế nào</h3>
+    <p style="margin-bottom:18px">
+      App dùng <strong>Supervisor Pattern</strong>: một <strong>Supervisor</strong> ở trung tâm đọc State,
+      quyết định <em>agent nào</em> xử lý tiếp (set <code>state["next"]</code>), agent chạy xong trả kết quả về
+      qua shared State, rồi Supervisor lại quyết định — cho đến khi <code>FINISH</code>.
+    </p>
+    <div class="steps">
+      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>Supervisor nhận request</strong><span>Đọc các message gần nhất trong State, dùng <strong>structured tool calling</strong> để chọn agent.</span></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-body"><strong>Conditional edge route</strong><span>Dựa trên <code>state["next"]</code> → đi tới Agent tương ứng. Nếu xong việc → <code>FINISH</code> → END.</span></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Agent xử lý</strong><span>Agent chuyên biệt chạy (có thể tự là một ReAct loop riêng), ghi kết quả vào shared State.</span></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Quay lại Supervisor</strong><span>Agent trả về Supervisor để điều phối bước tiếp theo — lặp đến khi Supervisor chọn FINISH.</span></div></div>
     </div>
   </section>
 
@@ -320,7 +332,7 @@
       <div class="node-card">
         <div class="node-label" style="color:var(--blue)">📊 data_analyst</div>
         <h4>Phân tích &amp; tổng hợp dữ liệu</h4>
-        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph với <strong>5 tool</strong> (SQL + web search). Chi tiết ở Section 3.</p>
+        <p>Wrap <code>get_analyst_agent(today, user_id)</code> từ <code>analyst.py</code> — ReAct subgraph với <strong>5 tool</strong> (SQL + web search).</p>
         <div class="route-info">
           Async node. Sau khi xử lý xong → luôn về <strong>supervisor</strong>
         </div>
@@ -342,7 +354,7 @@
         <div class="node-label" style="color:var(--yellow);margin:0">🔧 financial_tools</div>
         <span style="padding:2px 8px;background:var(--yellow-bg);border:1px solid var(--border);border-radius:999px;font-size:.68rem;color:var(--yellow)">ToolNode</span>
       </div>
-      <p style="font-size:.85rem">Bọc LangGraph's <code>ToolNode</code> — nhìn vào <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State. <strong>Đặc biệt:</strong> nếu một tool gọi <code>interrupt()</code> (ngoại tệ trong <code>submit_expense_tool</code>, hoặc <code>ask_clarification_tool</code>), graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code>. Bình thường thì quay về <code>financial_agent</code>. Việc "hỏi lại user" (HITL) giờ do <code>interrupt()</code> lo, <strong>không còn node <code>clarification_node</code> riêng</strong> — chi tiết ở Section 6.</p>
+      <p style="font-size:.85rem">Bọc LangGraph's <code>ToolNode</code> — nhìn vào <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State. <strong>Đặc biệt:</strong> nếu một tool gọi <code>interrupt()</code> (ngoại tệ trong <code>submit_expense_tool</code>, hoặc <code>ask_clarification_tool</code>), graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code>. Bình thường thì quay về <code>financial_agent</code>. </p>
     </div>
   </section>
 
