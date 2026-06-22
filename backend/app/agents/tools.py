@@ -307,6 +307,6 @@ def make_tools(user_id: int, user_currency: str = "VND"):
 
     # NOTE: No web-search tool here on purpose. Currency conversion is handled
     # deterministically by ExchangeRateService at persistence time
-    # (see app/core/exchange_rate.py), so the financial agent never needs to
-    # scrape exchange rates. General web research is the analyst agent's job.
+    # (see app/core/exchange_rate.py). General web research is added separately
+    # in `build_agent`, alongside these transactional tools.
     return [get_recent_expenses_tool, get_recent_incomes_tool, ask_clarification_tool, submit_expense_tool, submit_income_tool, get_monthly_summary_tool, get_monthly_income_summary_tool]

@@ -188,7 +188,6 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                 "user_lang": user_lang,
                 "user_currency": user_currency,
                 "categories": category_list,  # Pass categories to agents
-                "analyst_output_mode": settings.ANALYST_OUTPUT_MODE,
             },
             "callbacks": [AILoggingCallbackHandler()],
             "recursion_limit": 12
@@ -259,17 +258,16 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                     break
 
             if isinstance(last_message, HumanMessage):
-                # Supervisor decided to FINISH immediately without any agent output.
-                # To avoid echoing, we provide a fallback response (localized).
+                # The graph returned without any agent output. To avoid echoing
+                # the user, provide a localized fallback response.
                 response_text = (
                     "Mình luôn sẵn sàng giúp bạn! Bạn có thể yêu cầu mình thêm khoản chi, kiểm tra ngân sách hoặc phân tích thói quen chi tiêu của bạn."
                     if user_lang == "vi"
                     else "I'm always here to help! You can ask me to add an expense, check your budget, or analyze your spending habits."
                 )
             else:
-                # A turn may now run SEVERAL agents (e.g. financial_agent then
-                # data_analyst). Concatenate every agent's final text answer this
-                # turn — not just the last — so no part of the reply is dropped.
+                # Concatenate every user-facing AI answer produced this turn,
+                # not just the last message, so no useful text is dropped.
                 # Skip messages that only carry tool_calls (no user-facing text).
                 answer_parts: list[str] = []
                 for msg in messages[last_human_idx + 1:]:
@@ -339,14 +337,6 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                             })
                             is_completed = True
                         del pending_expense_tool_calls[call_id]
-
-            # Surface the data_analyst's SQL/search trace. In last_message mode it is
-            # captured separately (not in `messages`), so merge it into tool_calls here.
-            # In full_history mode it is already in `messages` and captured by the scan
-            # above, and analyst_trace is empty — so no double counting.
-            analyst_trace = final_state.get("analyst_trace") or []
-            if analyst_trace:
-                tool_calls_log.extend(analyst_trace)
 
             # Normalise: single expense keeps backward-compat shape; multi returns list
             if len(expense_list) == 1:

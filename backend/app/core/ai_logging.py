@@ -23,7 +23,7 @@ class AILoggingCallbackHandler(BaseCallbackHandler):
         if not serialized:
             return
         name = serialized.get("name", "")
-        if name in ["supervisor", "financial_agent", "general_agent", "data_analyst", "financial_tools"]:
+        if name in ["agent", "tools"]:
             print(f"\n👉 [NODE] Running: {name}...")
 
     def on_tool_start(

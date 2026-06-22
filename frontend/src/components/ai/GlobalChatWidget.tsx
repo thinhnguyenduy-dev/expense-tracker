@@ -90,9 +90,8 @@ function formatToolArgs(args: unknown): string {
     return String(args);
 }
 
-// Collapsible "what the agent did" panel — shows SQL queries / tool calls and
-// their results. Populated from ChatResponse.tool_calls (e.g. the data_analyst's
-// SQL trace when ANALYST_OUTPUT_MODE=full_history).
+// Collapsible "what the agent did" panel — shows tool calls and their results.
+// Populated from ChatResponse.tool_calls.
 const ToolCallTrace = memo(({ calls }: { calls: ToolCall[] }) => {
     const [open, setOpen] = useState(false);
     if (!calls?.length) return null;

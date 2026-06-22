@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List, Literal, Optional
+from typing import List, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/expense_tracker"
 
-    # Read-only, RLS-constrained connection used ONLY by the data_analyst agent's
-    # SQL tool. Connect as the `analyst_ro` role (created by the analyst-rls
-    # migration). When unset, the analyst falls back to DATABASE_URL — RLS is then
-    # bypassed (owner role) and only the in-process string guard protects scoping.
+    # Read-only, RLS-constrained connection used ONLY by the agent's SQL tool.
+    # Connect as the `analyst_ro` role (created by the analyst-rls migration).
+    # When unset, SQL falls back to DATABASE_URL — RLS is then bypassed (owner
+    # role) and only the in-process string guard protects scoping.
     ANALYST_DATABASE_URL: Optional[str] = None
     
     # JWT
@@ -68,12 +68,6 @@ class Settings(BaseSettings):
     
     ANTHROPIC_API_KEY: Optional[str] = None
     ANTHROPIC_MODEL_NAME: str = "claude-3-sonnet-20240229"
-
-    # How much of the data_analyst (ReAct subgraph) message history to merge back
-    # into the supervisor's shared state:
-    #   "last_message"  → only the analyst's final answer (clean history, fewer tokens)
-    #   "full_history"  → all messages the analyst produced (full SQL tool-call trace)
-    ANALYST_OUTPUT_MODE: Literal["last_message", "full_history"] = "last_message"
 
     class Config:
         env_file = ".env"

@@ -1,10 +1,10 @@
 """row-level security for the read-only analyst role
 
-Hard-bounds the data_analyst agent's SQL to the current user. Even if the LLM
+Hard-bounds the agent's SQL tool to the current user. Even if the LLM
 writes a clever JOIN/subquery or scans `users`, Postgres RLS filters every row
 to `user_id = current_setting('app.user_id')`. The main app role owns the
 tables and bypasses RLS, so this is a no-op for normal app traffic; only the
-non-owner `analyst_ro` role (used by the analyst agent) is constrained.
+non-owner `analyst_ro` role (used by the SQL tool) is constrained.
 
 See app/agents/analyst.py — the guarded query tool runs as `analyst_ro` and
 sets `app.user_id` per query. The string-based guard there stays as a second
