@@ -4,7 +4,6 @@ Each function is a LangGraph node. The graph wiring lives in `graph.py`; prompt
 text in `prompts.py`; message helpers in `utils.py`.
 """
 
-import re
 from datetime import date as _date
 from typing import Literal, Optional
 
@@ -28,17 +27,6 @@ _LANG_NAMES = {"vi": "Vietnamese", "en": "English"}
 
 _WORKERS = WORKER_NAMES  # from the worker registry — single source of truth
 
-# Logging/recording intent in the user's own words. Used to DETERMINISTICALLY chain
-# data_analyst → financial_agent for "look it up AND log it" requests. The analyst can
-# only research (read/search), never write, so after it returns the figure the expense
-# still has to be logged — and we don't trust the reactive supervisor to notice, because
-# the analyst's terse answer (or any closing remark) too often makes it FINISH first.
-# Covers common Vietnamese and English phrasings ("ghi vào sổ", "lưu", "log", "record").
-_LOG_INTENT_RE = re.compile(
-    r"ghi|lưu|nhập|vào sổ|\blog\b|\brecord\b|\bsave\b|\btrack\b",
-    re.IGNORECASE,
-)
-
 
 def _latest_human_text(messages) -> str:
     """Plain text of the most recent HumanMessage (the current user request)."""
@@ -48,9 +36,19 @@ def _latest_human_text(messages) -> str:
     return ""
 
 
-def _wants_logging(messages) -> bool:
-    """True when the current user request asks to record/log a transaction."""
-    return bool(_LOG_INTENT_RE.search(_latest_human_text(messages)))
+def _current_turn_messages(messages):
+    """Messages from the latest HumanMessage onward — i.e. the CURRENT turn only.
+
+    Routing hinges on the current request plus whatever workers produced for it
+    THIS turn. Prior, already-answered turns are exactly what pushes a weak local
+    model into a false FINISH (it sees a similar question answered above and assumes
+    the new one is handled too), so we drop them from the supervisor's view entirely
+    instead of merely asking the model to ignore messages it can still see.
+    """
+    for i in range(len(messages) - 1, -1, -1):
+        if isinstance(messages[i], HumanMessage):
+            return messages[i:]
+    return messages
 
 
 class RouterResponse(BaseModel):
@@ -109,7 +107,8 @@ def supervisor_node(state: AgentState, config: RunnableConfig):
     try:
         response = model_with_tool.invoke([
             SystemMessage(content=prompts.SUPERVISOR_PROMPT.format(user_lang=lang_name)),
-            *sanitize_messages_for_model(messages)[-10:],  # Context window (sanitized)
+            # Current turn only (sanitized) — prior turns mislead weak routers into FINISH.
+            *sanitize_messages_for_model(_current_turn_messages(messages))[-10:],
             routing_directive,
         ])
     except Exception as e:
@@ -130,6 +129,14 @@ def supervisor_node(state: AgentState, config: RunnableConfig):
     if next_node in agents_run:
         logger.info(f"🏁 [NODE] supervisor → FINISH ({next_node} already ran this turn)")
         next_node = "FINISH"
+
+    # Safety net for weak routers: a bare FINISH (no worker ran this turn, no refusal
+    # reason) on a real user request means the model dropped a fresh, unhandled message
+    # — almost never correct. Fall back to financial_agent, which covers logging plus the
+    # common reads (expense/income lists, monthly summaries) rather than replying nothing.
+    if next_node == "FINISH" and not agents_run and not reason and _latest_human_text(messages):
+        logger.info("🛟 [NODE] supervisor → financial_agent (bare-FINISH fallback; fresh request dropped)")
+        next_node = "financial_agent"
 
     if next_node == "FINISH":
         # Surface the supervisor's own reply only on an immediate finish (no worker ran).
@@ -252,18 +259,10 @@ async def data_analyst_node(state: AgentState, config: RunnableConfig):
         logger.debug(f"data_analyst output_mode=last_message → merging 1 message, trace={len(trace)} tool calls")
         result = {"messages": [new_messages[-1]], "analyst_trace": trace}
 
-    # Deterministic "look it up AND log it" chaining (see _LOG_INTENT_RE). If the user
-    # asked to RECORD something the analyst just researched, hard-route to financial_agent
-    # next — the analyst's final answer now carries the figure, and financial_agent does
-    # the actual write. Pre-mark agents_run so the supervisor's loop guard won't re-run it
-    # after it returns. `next` is read by the conditional edge in graph.py.
-    agents_run = state.get("agents_run") or []
-    if "financial_agent" not in agents_run and _wants_logging(state["messages"]):
-        result["next"] = "financial_agent"
-        result["agents_run"] = agents_run + ["financial_agent"]
-        logger.info("🧭 [NODE] data_analyst → financial_agent (deterministic log-with-lookup)")
-    else:
-        result["next"] = "supervisor"
+    # Canonical reactive-supervisor pattern: the analyst (like every worker) hands control
+    # back to the supervisor, which re-decides what's next. For "look it up AND log it"
+    # requests the supervisor routes financial_agent to write the researched figure — see
+    # the ⚠️ log-with-lookup rule in SUPERVISOR_PROMPT.
     return result
 
 
