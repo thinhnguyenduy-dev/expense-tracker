@@ -4,10 +4,11 @@ Each function is a LangGraph node. The graph wiring lives in `graph.py`; prompt
 text in `prompts.py`; message helpers in `utils.py`.
 """
 
+import re
 from datetime import date as _date
 from typing import Literal, Optional
 
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableConfig
 from langgraph.prebuilt import ToolNode
@@ -15,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from app.agents import prompts
 from app.agents.analyst import get_analyst_agent
+from app.agents.registry import ROUTE_OPTIONS, WORKER_NAMES
 from app.agents.state import AgentState
 from app.agents.tools import make_tools
 from app.agents.utils import sanitize_messages_for_model, trim_messages
@@ -24,13 +26,37 @@ from app.core.logging import app_logger as logger
 _LANG_NAMES = {"vi": "Vietnamese", "en": "English"}
 
 
-_WORKERS = ("financial_agent", "data_analyst", "general_agent")
+_WORKERS = WORKER_NAMES  # from the worker registry — single source of truth
+
+# Logging/recording intent in the user's own words. Used to DETERMINISTICALLY chain
+# data_analyst → financial_agent for "look it up AND log it" requests. The analyst can
+# only research (read/search), never write, so after it returns the figure the expense
+# still has to be logged — and we don't trust the reactive supervisor to notice, because
+# the analyst's terse answer (or any closing remark) too often makes it FINISH first.
+# Covers common Vietnamese and English phrasings ("ghi vào sổ", "lưu", "log", "record").
+_LOG_INTENT_RE = re.compile(
+    r"ghi|lưu|nhập|vào sổ|\blog\b|\brecord\b|\bsave\b|\btrack\b",
+    re.IGNORECASE,
+)
+
+
+def _latest_human_text(messages) -> str:
+    """Plain text of the most recent HumanMessage (the current user request)."""
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+            return str(m.content)
+    return ""
+
+
+def _wants_logging(messages) -> bool:
+    """True when the current user request asks to record/log a transaction."""
+    return bool(_LOG_INTENT_RE.search(_latest_human_text(messages)))
 
 
 class RouterResponse(BaseModel):
     """Pick the next worker to act, or FINISH."""
 
-    next: Literal["financial_agent", "data_analyst", "general_agent", "FINISH"] = Field(
+    next: Literal[ROUTE_OPTIONS] = Field(  # type: ignore[valid-type]  # enum built from the worker registry
         description="The next worker to handle the next unhandled part. 'FINISH' when the whole request is done.",
     )
     reason: Optional[str] = Field(
@@ -67,10 +93,24 @@ def supervisor_node(state: AgentState, config: RunnableConfig):
     model = get_llm(temperature=0)
     # Standard tool calling for routing (compatible with Groq/Llama).
     model_with_tool = model.bind_tools([RouterResponse], tool_choice="RouterResponse")
+    # Pin the decision to the CURRENT user request. Without this the weak local model
+    # treats a finished PRIOR turn (still in history) as proof the new message is already
+    # handled and wrongly FINISHes — e.g. answering "list expenses" then dropping the
+    # follow-up "list income" with a generic reply.
+    current_request = _latest_human_text(messages)
+    routing_directive = SystemMessage(content=(
+        f'ROUTE THIS — the user\'s CURRENT request is: "{current_request}"\n'
+        "Earlier messages are prior turns, already answered; they are context only and "
+        "do NOT mean this request is handled. Pick the worker for it now. Only FINISH if "
+        "this request itself is already fully handled by a worker THIS turn"
+        + (f" (workers run this turn: {', '.join(agents_run)})." if agents_run
+           else " (no worker has run for it yet, so do not FINISH it as already-done).")
+    ))
     try:
         response = model_with_tool.invoke([
             SystemMessage(content=prompts.SUPERVISOR_PROMPT.format(user_lang=lang_name)),
             *sanitize_messages_for_model(messages)[-10:],  # Context window (sanitized)
+            routing_directive,
         ])
     except Exception as e:
         logger.debug(f"Supervisor invocation failed: {e}")
@@ -204,13 +244,27 @@ async def data_analyst_node(state: AgentState, config: RunnableConfig):
         already_seen = len(state["messages"])
         merged = new_messages[already_seen:]
         logger.debug(f"data_analyst output_mode=full_history → merging {len(merged)} messages back")
-        return {"messages": merged}
+        result = {"messages": merged}
+    else:
+        # last_message: keep shared history clean (only the final answer), but capture
+        # the analyst's tool/SQL trace separately so the UI can still display it.
+        trace = _extract_tool_trace(new_messages[len(state["messages"]):])
+        logger.debug(f"data_analyst output_mode=last_message → merging 1 message, trace={len(trace)} tool calls")
+        result = {"messages": [new_messages[-1]], "analyst_trace": trace}
 
-    # last_message: keep shared history clean (only the final answer), but capture
-    # the analyst's tool/SQL trace separately so the UI can still display it.
-    trace = _extract_tool_trace(new_messages[len(state["messages"]):])
-    logger.debug(f"data_analyst output_mode=last_message → merging 1 message, trace={len(trace)} tool calls")
-    return {"messages": [new_messages[-1]], "analyst_trace": trace}
+    # Deterministic "look it up AND log it" chaining (see _LOG_INTENT_RE). If the user
+    # asked to RECORD something the analyst just researched, hard-route to financial_agent
+    # next — the analyst's final answer now carries the figure, and financial_agent does
+    # the actual write. Pre-mark agents_run so the supervisor's loop guard won't re-run it
+    # after it returns. `next` is read by the conditional edge in graph.py.
+    agents_run = state.get("agents_run") or []
+    if "financial_agent" not in agents_run and _wants_logging(state["messages"]):
+        result["next"] = "financial_agent"
+        result["agents_run"] = agents_run + ["financial_agent"]
+        logger.info("🧭 [NODE] data_analyst → financial_agent (deterministic log-with-lookup)")
+    else:
+        result["next"] = "supervisor"
+    return result
 
 
 def general_agent_node(state: AgentState, config: RunnableConfig):

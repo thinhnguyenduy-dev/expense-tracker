@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from langchain_core.tools import tool
 from langchain_community.tools.ddg_search import DuckDuckGoSearchRun
+from langchain_community.utilities.duckduckgo_search import DuckDuckGoSearchAPIWrapper
 from langgraph.types import interrupt
 from sqlalchemy import func
 
@@ -15,8 +16,16 @@ from app.models.income import Income
 
 
 def get_search_tool() -> DuckDuckGoSearchRun:
-    """Shared DuckDuckGo search tool (reused by the analyst agent too)."""
-    return DuckDuckGoSearchRun()
+    """Shared DuckDuckGo search tool (reused by the analyst agent too).
+
+    Biased toward RECENT, Vietnam-local results. Prices the analyst looks up (fuel,
+    gold, market rates) change often — VN fuel is re-priced every ~10 days — but a
+    default search happily returns months-old pages (which is how a gas-price lookup
+    ended up citing an April figure). `time="m"` keeps hits within the last month and
+    a higher `max_results` gives the model several dated snippets to pick the freshest.
+    """
+    wrapper = DuckDuckGoSearchAPIWrapper(region="vn-vi", time="m", max_results=6)
+    return DuckDuckGoSearchRun(api_wrapper=wrapper)
 
 
 def _parse_rate(answer: str) -> Optional[float]:
@@ -98,7 +107,6 @@ def make_tools(user_id: int, user_currency: str = "VND"):
             return "\n".join(summary)
         finally:
             db.close()
-
 
     @tool
     def submit_expense_tool(

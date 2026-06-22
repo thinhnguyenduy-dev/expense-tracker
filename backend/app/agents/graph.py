@@ -27,6 +27,20 @@ def _should_continue_financial(
     return "supervisor"
 
 
+def _route_after_analyst(
+    state: AgentState,
+) -> Literal["financial_agent", "supervisor"]:
+    """Deterministic hand-off out of the analyst.
+
+    `data_analyst_node` sets `next="financial_agent"` when the user asked to RECORD
+    something it just looked up (a "log-with-lookup" request), so we go straight there
+    instead of bouncing through the supervisor LLM — which the analyst's terse final
+    answer reliably tricks into FINISHing before the expense is ever logged. In every
+    other case control returns to the supervisor as before.
+    """
+    return "financial_agent" if state.get("next") == "financial_agent" else "supervisor"
+
+
 def get_agent_graph():
     workflow = StateGraph(AgentState)
 
@@ -55,7 +69,11 @@ def get_agent_graph():
     # runs, interrupt() pauses the graph here until Command(resume=...) arrives.
     workflow.add_edge("financial_tools", "financial_agent")
 
-    workflow.add_edge("data_analyst", "supervisor")
+    workflow.add_conditional_edges(
+        "data_analyst",
+        _route_after_analyst,
+        {"financial_agent": "financial_agent", "supervisor": "supervisor"},
+    )
     workflow.add_edge("general_agent", "supervisor")
 
     return workflow
