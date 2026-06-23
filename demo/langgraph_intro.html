@@ -106,6 +106,32 @@
     .concept-card h4 { color: var(--text); font-size: .93rem; font-weight: 700; margin-bottom: 6px; }
     .concept-card p { font-size: .83rem; color: var(--text2); margin: 0; }
 
+    /* MULTI-AGENT CARDS */
+    .ma-stack { display: flex; flex-direction: column; gap: 18px; }
+    .ma-card {
+      background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .ma-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--border2); }
+    .ma-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px 4px; }
+    .ma-badge {
+      width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: .9rem; color: var(--accent);
+      background: var(--accent-bg); border: 1px solid var(--border);
+    }
+    .ma-head h3 { margin: 0; font-size: 1.05rem; color: var(--text); }
+    .ma-tag {
+      margin-left: auto; font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--accent); background: var(--accent-bg);
+      border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; white-space: nowrap;
+    }
+    .ma-fig { margin: 0; padding: 14px 20px 0; }
+    .ma-fig img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); background: #fff; padding: 14px; }
+    .ma-desc { padding: 14px 20px 20px; font-size: .89rem; color: var(--text2); line-height: 1.7; margin: 0; }
+    @media (max-width: 520px) { .ma-tag { display: none; } }
+
     /* DIAGRAM */
     .diagram-box {
       background: var(--bg2); border: 1px solid var(--border);
@@ -292,12 +318,12 @@
     <div class="concept-grid">
       <div class="concept-card">
         <div class="icon">🔵</div>
-        <h4>Node (Nút)</h4>
+        <h4>Node/h4>
         <p>Một <strong>bước xử lý</strong>, thường là một hàm Python. Node đọc State, làm việc của nó (gọi LLM, chạy tool…), rồi ghi kết quả trở lại State. Trong hình: <code>AGENT</code> và <code>TOOL</code> là các node.</p>
       </div>
       <div class="concept-card">
         <div class="icon">➡️</div>
-        <h4>Edge (Cạnh)</h4>
+        <h4>Edge</h4>
         <p>Đường nối quyết định <strong>node nào chạy tiếp</strong>. Edge thường (normal) đi cố định: node A xong → luôn sang node B.</p>
       </div>
       <div class="concept-card">
@@ -307,7 +333,7 @@
       </div>
       <div class="concept-card">
         <div class="icon">📦</div>
-        <h4>State (Trạng thái)</h4>
+        <h4>State</h4>
         <p><strong>Bộ nhớ dùng chung</strong> mọi node đọc/ghi — thường là một <code>TypedDict</code> chứa <code>messages</code>, kết quả tool… Truyền xuyên suốt graph nên agent "nhớ" được ngữ cảnh giữa các bước.</p>
       </div>
     </div>
@@ -329,35 +355,49 @@
   <section>
     <h2><span class="n">4</span> Kiến trúc Multi-Agent trong LangGraph</h2>
 
-    <p style="margin-bottom:14px">
-      Khi một agent đơn lẻ không đủ, ta chia bài toán cho <strong>nhiều agent chuyên biệt</strong>
+    <p style="margin-bottom:20px">
+      Khi một agent đơn lẻ không đủ, ta chia bài toán cho <strong>nhiều agent chuyên biệt</strong>. Theo
+      <a href="https://www.langchain.com/blog/langgraph-multi-agent-workflows" style="color:var(--blue);font-weight:600;text-decoration:none">blog chính thức của LangGraph</a>,
+      có <strong>3 kiến trúc multi-agent</strong> phổ biến:
     </p>
 
-    <p style="margin-bottom:20px">Theo <a href="https://www.langchain.com/blog/langgraph-multi-agent-workflows" style="color:var(--blue);font-weight:600;text-decoration:none">blog chính thức của LangGraph</a>, có <strong>3 kiến trúc multi-agent</strong>:</p>
+    <div class="ma-stack">
+      <div class="ma-card" style="--accent:var(--teal); --accent-bg:var(--teal-bg)">
+        <div class="ma-head">
+          <span class="ma-badge">1</span>
+          <h3>Multi-Agent Collaboration</h3>
+          <span class="ma-tag">Shared state</span>
+        </div>
+        <figure class="ma-fig">
+          <img src="ma_collaboration.png" alt="Multi-Agent Collaboration — các agent chung một scratchpad">
+        </figure>
+        <p class="ma-desc">Các agent <strong>chung một scratchpad / State</strong> — mọi bước trung gian của agent này đều hiện ra cho agent kia thấy. Đơn giản, hợp khi cần phối hợp chặt; nhược điểm: context dễ phình to khi nhiều agent.</p>
+      </div>
 
-    <figure style="margin:0 0 28px">
-      <img src="ma_collaboration.png" alt="Multi-Agent Collaboration — các agent chung một scratchpad" style="display:block; width:100%; max-width:auto; margin:0 auto; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; padding:16px">
-      <figcaption style="margin-top:14px; text-align:left">
-        <h3 style="margin-bottom:6px">1 · Multi-Agent Collaboration</h3>
-        <p style="font-size:.9rem; color:var(--text2)">Các agent <strong>chung một scratchpad / State</strong> — mọi bước trung gian của agent này đều hiện ra cho agent kia thấy. Đơn giản, hợp khi cần phối hợp chặt; nhược điểm: context dễ phình to khi nhiều agent.</p>
-      </figcaption>
-    </figure>
+      <div class="ma-card" style="--accent:var(--purple); --accent-bg:var(--purple-bg)">
+        <div class="ma-head">
+          <span class="ma-badge">2</span>
+          <h3>Agent Supervisor</h3>
+          <span class="ma-tag">Router</span>
+        </div>
+        <figure class="ma-fig">
+          <img src="ma_supervisor.png" alt="Agent Supervisor — supervisor route tới từng agent">
+        </figure>
+        <p class="ma-desc">Một <strong>supervisor</strong> điều phối, route task tới agent chuyên biệt; mỗi agent có <strong>scratchpad riêng</strong>, chỉ trả kết quả về supervisor (không thấy việc của nhau).</p>
+      </div>
 
-    <figure style="margin:0 0 28px">
-      <img src="ma_supervisor.png" alt="Agent Supervisor — supervisor route tới từng agent" style="display:block; width:100%; max-width:auto; margin:0 auto; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; padding:16px">
-      <figcaption style="margin-top:14px; text-align:left">
-        <h3 style="margin-bottom:6px">2 · Agent Supervisor</h3>
-        <p style="font-size:.9rem; color:var(--text2)">Một <strong>supervisor</strong> điều phối, route task tới agent chuyên biệt; mỗi agent có <strong>scratchpad riêng</strong>, chỉ trả kết quả về supervisor (không thấy việc của nhau). </p>
-      </figcaption>
-    </figure>
-
-    <figure style="margin:0">
-      <img src="ma_hierarchical.png" alt="Hierarchical Agent Teams — các team lồng nhau" style="display:block; width:100%; max-width:auto; margin:0 auto; height:auto; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; padding:16px">
-      <figcaption style="margin-top:14px; text-align:left">
-        <h3 style="margin-bottom:6px">3 · Hierarchical Agent Teams</h3>
-        <p style="font-size:.9rem; color:var(--text2)">Mỗi "agent" bản thân là <strong>một LangGraph khác</strong> → lồng nhiều tầng, kiểu "supervisor của các supervisor". Dùng khi quá nhiều agent, một supervisor route không xuể.</p>
-      </figcaption>
-    </figure>
+      <div class="ma-card" style="--accent:var(--orange); --accent-bg:var(--orange-bg)">
+        <div class="ma-head">
+          <span class="ma-badge">3</span>
+          <h3>Hierarchical Agent Teams</h3>
+          <span class="ma-tag">Nested graphs</span>
+        </div>
+        <figure class="ma-fig">
+          <img src="ma_hierarchical.png" alt="Hierarchical Agent Teams — các team lồng nhau">
+        </figure>
+        <p class="ma-desc">Mỗi "agent" bản thân là <strong>một LangGraph khác</strong> → lồng nhiều tầng, kiểu "supervisor của các supervisor". Dùng khi quá nhiều agent, một supervisor route không xuể.</p>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 5. SO SÁNH ══ -->
