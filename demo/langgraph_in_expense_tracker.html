@@ -278,29 +278,13 @@
            alt="Sơ đồ graph: START → agent (LLM, vòng ReAct) ⇄ tools, agent kết thúc tại END khi không còn tool call"
            style="display:block; width:100%; height:auto; border-radius:10px;">
     </div>
-
-    <h3 style="margin:26px 0 12px">ReAct Agent hoạt động thế nào</h3>
-    <p style="margin-bottom:18px">
-      App dùng kiến trúc <strong>một ReAct Agent duy nhất</strong> (dựng bằng <code>create_agent</code> của LangChain 1.0,
-      tự fallback sang <code>create_react_agent</code> ở bản cũ): một agent
-      sở hữu <strong>toàn bộ tool</strong>, tự suy luận và quyết định gọi tool nào, chạy tool, đọc kết quả, rồi <em>lặp lại</em>
-      cho đến khi đủ thông tin để trả lời.</strong>.
-    </p>
-    <div class="steps">
-      <div class="step"><div class="step-n">1</div><div class="step-body"><strong>User gửi câu hỏi</strong><span>HumanMessage được thêm vào State. Graph bắt đầu tại START → Agent Node.</span></div></div>
-      <div class="step"><div class="step-n">2</div><div class="step-body"><strong>Agent Node (LLM) phân tích</strong><span>LLM đọc toàn bộ State (messages, ngữ cảnh). Quyết định: "Cần gọi tool?" hay "Đã đủ để trả lời?"</span></div></div>
-      <div class="step"><div class="step-n">3</div><div class="step-body"><strong>Conditional Edge phân nhánh</strong><span>Kiểm tra response: có <code>tool_calls</code>? → sang Tool Node. Không có? → END.</span></div></div>
-      <div class="step"><div class="step-n">4</div><div class="step-body"><strong>Tool Node thực thi</strong><span>Chạy tool (SQL query, gọi API, tìm web...). Kết quả ghi vào State dưới dạng ToolMessage.</span></div></div>
-      <div class="step"><div class="step-n">5</div><div class="step-body"><strong>Vòng lặp quay lại Agent</strong><span>State đã có kết quả tool → LLM đọc lại → quyết định tiếp. Lặp cho đến khi không còn tool_calls.</span></div></div>
-      <div class="step"><div class="step-n">6</div><div class="step-body"><strong>END – Trả kết quả</strong><span>Agent ghi câu trả lời vào State. Graph kết thúc. Message cuối được trả về người dùng.</span></div></div>
-    </div>
   </section>
 
   <!-- ══ 2. 2 NODES ══ -->
   <section>
     <h2><span class="n">2</span> Chi tiết 2 Nodes</h2>
 
-    <p style="margin-bottom:18px"><code>create_agent</code> (LangChain 1.0) sinh ra một graph cực gọn chỉ gồm <strong>2 node</strong>: <code>agent</code> (LLM)
+    <p style="margin-bottom:18px">App gồm <strong>2 node</strong>: <code>agent</code> (LLM)
       và <code>tools</code> (ToolNode). Toàn bộ logic "làm gì tiếp theo" do chính LLM quyết định qua tool calling — agent xuất
       <code>tool_calls</code> để dùng tool, hoặc trả lời để kết thúc.</p>
 
@@ -328,7 +312,7 @@
       <p style="font-size:.85rem">LangGraph's <code>ToolNode</code> — nhìn <code>AIMessage.tool_calls</code>, thực thi tool, ghi <code>ToolMessage</code> vào State,
         rồi <strong>luôn quay về <code>agent</code></strong> để LLM đọc kết quả và quyết bước kế (đây chính là vòng ReAct).
         <strong>Đặc biệt:</strong> nếu một tool gọi <code>interrupt()</code> (ngoại tệ trong <code>submit_expense_tool</code>, hoặc <code>ask_clarification_tool</code>),
-        graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code> (xem Section 6).</p>
+        graph <strong>tạm dừng ngay tại đây</strong> chờ <code>Command(resume)</code></p>
     </div>
   </section>
 
@@ -491,73 +475,9 @@
  
   </section>
 
-  <!-- ══ 5. API INTEGRATION ══ -->
+  <!-- ══ 5. HUMAN-IN-THE-LOOP ══ -->
   <section>
-    <h2><span class="n">5</span> Luồng API – từ Request đến Response</h2>
-    
-    <div class="one-col">
-      <div class="card">
-        <div class="api-steps">
-
-          <div class="api-step">
-            <div class="api-dot" style="border-color:var(--teal)"></div>
-            <div class="api-content">
-              <strong>Frontend gửi request</strong>
-              <span><code>{ message, thread_id?, is_resume }</code> — thread_id nhận từ response trước (null → tạo mới). Backend namespace mọi thread thành <code>&lt;user_id&gt;:&lt;uuid&gt;</code> và kiểm tra ownership: thread_id của user khác bị bỏ → mở thread mới. <code>is_resume=true</code> khi user đang trả lời câu hỏi clarification.</span>
-            </div>
-          </div>
-
-          <div class="api-step">
-            <div class="api-dot" style="border-color:var(--blue)"></div>
-            <div class="api-content">
-              <strong>Lấy preferences + categories</strong>
-              <span>Query DB lấy <code>user_lang</code>, <code>user_currency</code> và <strong>danh sách categories (1 lần)</strong>. Tất cả đưa vào <code>config.configurable</code> (kèm <code>user_id</code>, <code>thread_id</code>); <code>AILoggingCallbackHandler</code> gắn vào <code>config.callbacks</code>.</span>
-            </div>
-          </div>
-
-          <div class="api-step">
-            <div class="api-dot" style="border-color:var(--purple)"></div>
-            <div class="api-content">
-              <strong>Tạo AsyncPostgresSaver + build agent</strong>
-              <span>Mở connection pool → tạo checkpointer → <code>compile_graph()</code> build ReAct agent cho user này (tool + prompt đã nhúng context) với checkpointer đã attach.</span>
-              <div><span class="api-tag" style="background:var(--purple-bg);color:var(--purple)">AsyncPostgresSaver(pool)</span></div>
-            </div>
-          </div>
-
-          <div class="api-step">
-            <div class="api-dot" style="border-color:var(--orange)"></div>
-            <div class="api-content">
-              <strong>LangGraph đọc checkpoint cũ</strong>
-              <span>Tìm checkpoint mới nhất theo <code>thread_id</code> → khôi phục messages, ngữ cảnh trước đó vào State.</span>
-              <div><span class="api-tag" style="background:var(--orange-bg);color:var(--orange)">READ checkpoints</span></div>
-            </div>
-          </div>
-
-          <div class="api-step">
-            <div class="api-dot" style="border-color:var(--purple)"></div>
-            <div class="api-content">
-              <strong>graph.ainvoke() – chạy toàn bộ graph</strong>
-              <span>Vòng ReAct: <code>agent</code> ⇄ <code>tools</code> → <code>END</code> khi agent trả lời không kèm tool call. <code>recursion_limit=12</code> chặn vòng lặp tool vô hạn.</span>
-            </div>
-          </div>
-
-          <div class="api-step">
-            <div class="api-dot" style="border-color:var(--teal)"></div>
-            <div class="api-content">
-              <strong>Trả response + thread_id</strong>
-              <span>Nếu final_state có <code>__interrupt__</code> (graph đang treo) → trả <code>needs_clarification=True</code> ngay. Ngược lại quét các message mới: gom <strong>nhiều</strong> <code>submit_expense_tool</code> thành list, detect income, thu thập mọi tool call (SQL/search/submit nằm thẳng trong <code>messages</code>). <code>GraphRecursionError</code> → trả lời an toàn.</span>
-              <div><span class="api-tag" style="background:var(--teal-bg);color:var(--teal)">{ response, expense_data, income_data, tool_calls, thread_id, needs_clarification }</span></div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ 6. HUMAN-IN-THE-LOOP ══ -->
-  <section>
-    <h2><span class="n">6</span> Human-in-the-Loop (HITL)</h2>
+    <h2><span class="n">5</span> Human-in-the-Loop (HITL)</h2>
 
     <div class="card" style="margin-bottom:18px">
       <p>
