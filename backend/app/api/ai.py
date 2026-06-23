@@ -10,6 +10,8 @@ from app.models.user import User
 
 router = APIRouter()
 
+AI_USAGE_LIMIT_MESSAGE = "AI Service usage limit reached. Please try again later."
+
 class ChatRequest(BaseModel):
     message: str
     thread_id: Optional[str] = None
@@ -29,6 +31,33 @@ class ChatResponse(BaseModel):
     tool_calls: List[ToolCallLog] = []
     thread_id: Optional[str] = None
     needs_clarification: bool = False  # True when graph is paused waiting for user input
+
+
+def _ai_provider_error_text(error: Exception) -> str:
+    """Collect provider error text from common SDK exception shapes."""
+    parts = [str(error)]
+    for attr in ("body", "response"):
+        value = getattr(error, attr, None)
+        if value:
+            parts.append(str(value))
+    return "\n".join(parts)
+
+
+def _is_ai_usage_limit_error(error: Exception) -> bool:
+    """Return True for rate-limit or provider risk-control blocks."""
+    error_text = _ai_provider_error_text(error).lower()
+    return any(
+        marker in error_text
+        for marker in (
+            "rate limit reached",
+            "rate_limit",
+            "429",
+            "risk_control",
+            '"code": "441"',
+            "'code': '441'",
+            "high-frequency non-compliant",
+        )
+    )
 
 @router.post("/agent/chat", response_model=ChatResponse)
 async def chat_with_agent(
@@ -74,15 +103,9 @@ async def chat_with_agent(
     except Exception as e:
         error_str = str(e)
         logger.error(f"AI Agent Error: {error_str}") # Log for debug
-        
-        if "Rate limit reached" in error_str or "429" in error_str:
-             raise HTTPException(status_code=429, detail="AI Service usage limit reached. Please try again later.")
-        
-        # OpenAI / Groq Specific errors might come as objects
-        if hasattr(e, "body") and isinstance(e.body, dict):
-             msg = e.body.get("message", error_str)
-             if "rate_limit" in str(msg).lower():
-                  raise HTTPException(status_code=429, detail="AI Service usage limit reached. Please try again later.")
+
+        if _is_ai_usage_limit_error(e):
+            raise HTTPException(status_code=429, detail=AI_USAGE_LIMIT_MESSAGE)
 
         raise HTTPException(status_code=500, detail=f"AI Error: {error_str}")
 
@@ -132,7 +155,7 @@ def _format_chat_history(messages) -> List[Dict[str, str]]:
 # @acached(prefix="ai_chat", ttl=60)
 async def process_chat(user_id: int, message: str, thread_id: Optional[str] = None, is_resume: bool = False) -> Dict[str, Any]:
     # Import here to avoid circular dependencies if any
-    from app.agents.graph import compile_graph
+    from app.agents.agent import compile_graph
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
     from langgraph.types import Command
     from psycopg_pool import AsyncConnectionPool
@@ -380,7 +403,7 @@ async def get_chat_history(
     """
     Retrieve chat history for a specific thread.
     """
-    from app.agents.graph import compile_graph
+    from app.agents.agent import compile_graph
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
     from psycopg_pool import AsyncConnectionPool
     from app.core.config import settings
@@ -428,7 +451,7 @@ async def get_latest_thread(
     """
     from sqlalchemy import text
     from app.core.database import engine
-    from app.agents.graph import compile_graph
+    from app.agents.agent import compile_graph
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
     from psycopg_pool import AsyncConnectionPool
     from app.core.config import settings

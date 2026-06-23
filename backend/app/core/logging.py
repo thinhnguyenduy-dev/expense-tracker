@@ -3,11 +3,17 @@ Logging configuration with ELK Stack integration
 """
 import sys
 import json
+from pathlib import Path
 from typing import Optional, Dict, Any
 from loguru import logger
 from elasticsearch import Elasticsearch
 from datetime import datetime
 from app.core.config import settings
+
+# Anchor logs to backend/logs regardless of the process CWD (this file lives at
+# backend/app/core/logging.py → parents[2] == backend). A relative "logs/" path
+# would otherwise create a stray logs/ dir wherever the process was started.
+_LOG_DIR = Path(__file__).resolve().parents[2] / "logs"
 
 
 class ElasticsearchHandler:
@@ -93,9 +99,9 @@ def setup_logging():
         colorize=True
     )
     
-    # File handler (rotating)
+    # File handler (rotating) — absolute path so logs always land in backend/logs.
     logger.add(
-        "logs/app_{time:YYYY-MM-DD}.log",
+        str(_LOG_DIR / "app_{time:YYYY-MM-DD}.log"),
         rotation="00:00",  # Rotate at midnight
         retention="30 days",  # Keep logs for 30 days
         compression="zip",  # Compress old logs

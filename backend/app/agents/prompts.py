@@ -1,8 +1,8 @@
 """System prompt for the financial ReAct agent.
 
-A single agent owns every tool, so there is NO supervisor/routing prompt anymore.
-Multi-step requests ("look up the price AND log it") are handled by chaining tool
-calls inside one ReAct loop. Adding a capability means adding a TOOL, not a rule.
+A single agent owns every tool. Multi-step requests ("look up the price AND log
+it") are handled by chaining tool calls inside one ReAct loop. Adding a capability
+means adding a TOOL, not a rule.
 
 Filled with: {date}, {categories}, {user_currency}, {user_lang}, {user_id}.
 """

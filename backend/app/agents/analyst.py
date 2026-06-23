@@ -126,7 +126,7 @@ def _make_guarded_query_tool(query_engine, user_id: int):
 
 
 def make_sql_tools(user_id: Optional[int], llm):
-    """Read-only, user-scoped SQL toolset for the financial agent.
+    """Read-only, user-scoped SQL toolset for the agent.
 
     Returns the standard SQL toolkit (list tables, inspect schema, query checker)
     with the raw `sql_db_query` swapped for the guarded version — read-only and
