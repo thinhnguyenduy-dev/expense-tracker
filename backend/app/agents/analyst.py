@@ -11,7 +11,16 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.database import engine, analyst_engine
 
 # Tables that carry a `user_id` and must never be queried across users.
-USER_SCOPED_TABLES = ("expenses", "incomes", "categories", "jars", "recurring_expenses")
+USER_SCOPED_TABLES = ("expenses", "incomes", "categories")
+
+# Tables the analyst must never touch at all — not even for the current user.
+# `users` holds `hashed_password`; RLS scopes a `SELECT * FROM users` to the
+# requester's own row, but that row's password hash would still leak into the LLM
+# context / chat transcript / provider logs. `jars` and `recurring_expenses` are
+# out of the analyst's scope too. RLS is row-level only, so we block these tables
+# outright here (hiding them from `include_tables` isn't enough — the model can
+# still name them in a hand-written query).
+FORBIDDEN_TABLES = ("users", "jars", "recurring_expenses")
 
 # Statement-level keywords that must never appear in an analyst query. The analyst
 # is strictly read-only; anything that writes, alters, grants, or controls a
@@ -89,6 +98,17 @@ def _make_guarded_query_tool(query_engine, user_id: int):
         if not_read_only:
             return not_read_only
 
+        # Scan with comments/string-literals stripped so a `users` inside a quoted
+        # value or comment can't trip this, and a real reference can't hide there.
+        scan = _strip_sql_noise(query).lower()
+        for forbidden in FORBIDDEN_TABLES:
+            if re.search(rf"\b{forbidden}\b", scan):
+                return (
+                    f"ERROR: Query rejected — the `{forbidden}` table is off-limits. "
+                    f"It holds sensitive account fields; query the user's expenses, "
+                    f"incomes, categories, jars or recurring_expenses instead."
+                )
+
         lowered = query.lower()
         if any(t in lowered for t in USER_SCOPED_TABLES):
             # Must reference the current user's id.
@@ -140,9 +160,17 @@ def make_sql_tools(user_id: Optional[int], llm):
             "role. User scoping + read-only rely on the in-process guards only. Set "
             "ANALYST_DATABASE_URL to the analyst_ro role for defence-in-depth."
         )
+    # NOTE: only the tables the analyst actually needs are exposed; `users`,
+    # `jars` and `recurring_expenses` are deliberately left out (see
+    # FORBIDDEN_TABLES). `users` is the sharp edge — exposing it lets a jailbroken
+    # model run `SELECT * FROM users` which, while RLS-scoped to the user's own
+    # row, still surfaces their `hashed_password` into the LLM context / chat
+    # transcript / provider logs. RLS only does row-level isolation, not
+    # column-level, so the FORBIDDEN_TABLES guard blocks these outright — dropping
+    # them from include_tables alone isn't enough, the model can still name them.
     db = SQLDatabase(
         query_engine,
-        include_tables=['expenses', 'categories', 'incomes', 'users', 'jars', 'recurring_expenses'],
+        include_tables=['expenses', 'categories', 'incomes'],
     )
     sql_tools = SQLDatabaseToolkit(db=db, llm=llm).get_tools()
     if user_id is not None:
