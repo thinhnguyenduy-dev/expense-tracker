@@ -444,9 +444,17 @@ export interface ChatResponse {
   needs_clarification?: boolean;
 }
 
+// A restored history turn. Agent turns carry the tool/SQL trace so a page
+// reload renders the same "Tool calls" panel a live reply shows.
+export interface ChatHistoryItem {
+  role: 'user' | 'agent';
+  content: string;
+  toolCalls?: { name: string; args: any; result?: string }[];
+}
+
 export const aiApi = {
   chat: (data: ChatRequest) => api.post<ChatResponse>('/ai/agent/chat', data),
-  getHistory: (threadId: string) => api.get<{role: 'user' | 'agent', content: string}[]>(`/ai/agent/history/${threadId}`),
+  getHistory: (threadId: string) => api.get<ChatHistoryItem[]>(`/ai/agent/history/${threadId}`),
   // Most recent thread for the logged-in user — used to restore chat after login.
-  getLatestThread: () => api.get<{ thread_id: string | null, history: {role: 'user' | 'agent', content: string}[] }>(`/ai/agent/threads/latest`),
+  getLatestThread: () => api.get<{ thread_id: string | null, history: ChatHistoryItem[] }>(`/ai/agent/threads/latest`),
 };

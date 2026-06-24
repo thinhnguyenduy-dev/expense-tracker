@@ -135,20 +135,42 @@ def _extract_text(content) -> str:
     return str(content)
 
 
-def _format_chat_history(messages) -> List[Dict[str, str]]:
-    """Turn stored LangChain messages into [{role, content}] for the chat UI.
+def _format_chat_history(messages) -> List[Dict[str, Any]]:
+    """Turn stored LangChain messages into [{role, content, toolCalls?}] for the chat UI.
 
-    Tool/system messages are skipped — only the user/agent turns are shown.
+    Tool calls and their results are folded onto the agent turn they belong to,
+    so a page reload restores the same "Tool calls" trace the live reply shows.
+    Previously only role+content were kept, so reloading dropped every tool/SQL
+    trace and agent answers came back bare. The ``toolCalls`` key matches the
+    frontend ``Message`` shape ({name, args, result?}).
     """
-    out: List[Dict[str, str]] = []
+    out: List[Dict[str, Any]] = []
+    # Tool calls accumulated since the last user-facing agent message. ``by_id``
+    # lets a ToolMessage attach its result back onto the originating call.
+    pending: List[Dict[str, Any]] = []
+    by_id: Dict[str, Dict[str, Any]] = {}
+
     for msg in messages:
-        if isinstance(msg, AIMessage):
-            role = "agent"
-        elif isinstance(msg, HumanMessage):
-            role = "user"
-        else:
-            continue
-        out.append({"role": role, "content": _extract_text(msg.content)})
+        if isinstance(msg, HumanMessage):
+            out.append({"role": "user", "content": _extract_text(msg.content)})
+            pending, by_id = [], {}
+        elif isinstance(msg, AIMessage):
+            for tc in (getattr(msg, "tool_calls", None) or []):
+                call = {"name": tc["name"], "args": tc["args"]}
+                pending.append(call)
+                if tc.get("id"):
+                    by_id[tc["id"]] = call
+            # Tool-call-only AIMessages carry no user-facing text — skip the empty
+            # bubble but keep their calls buffered for the next text answer.
+            text = _extract_text(msg.content).strip()
+            if text:
+                out.append({"role": "agent", "content": text, "toolCalls": pending})
+                pending, by_id = [], {}
+        elif isinstance(msg, ToolMessage):
+            call_id = getattr(msg, "tool_call_id", None)
+            target = by_id.get(call_id) if call_id else (pending[-1] if pending else None)
+            if target is not None:
+                target["result"] = str(msg.content)
     return out
 
 

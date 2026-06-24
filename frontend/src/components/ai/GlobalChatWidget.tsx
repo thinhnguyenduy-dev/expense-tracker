@@ -51,8 +51,11 @@ function renderMarkdown(text: string): React.ReactNode {
     const lines = text.split("\n");
     const nodes: React.ReactNode[] = [];
     let i = 0;
+    // Key off the node's own position, not the line index — list blocks consume
+    // several lines, so reusing `i` collides with the next paragraph's key.
     while (i < lines.length) {
         const line = lines[i];
+        const key = nodes.length;
         if (line.startsWith("* ") || line.startsWith("- ")) {
             const items: string[] = [];
             while (i < lines.length && (lines[i].startsWith("* ") || lines[i].startsWith("- "))) {
@@ -60,14 +63,14 @@ function renderMarkdown(text: string): React.ReactNode {
                 i++;
             }
             nodes.push(
-                <ul key={i} className="list-disc pl-4 my-1 space-y-0.5">
+                <ul key={key} className="list-disc pl-4 my-1 space-y-0.5">
                     {items.map((item, j) => <li key={j} className="leading-relaxed">{renderInline(item)}</li>)}
                 </ul>
             );
         } else if (line === "") {
             i++;
         } else {
-            nodes.push(<p key={i} className="mb-1 last:mb-0 leading-relaxed">{renderInline(line)}</p>);
+            nodes.push(<p key={key} className="mb-1 last:mb-0 leading-relaxed">{renderInline(line)}</p>);
             i++;
         }
     }
