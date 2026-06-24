@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover - compatibility with older installs
     from langgraph.prebuilt import create_react_agent as _create_agent
     _USE_LANGCHAIN_CREATE_AGENT = False
 
-from app.agents.analyst import make_sql_tools
+from app.agents.sql_tools import make_sql_tools
 from app.agents.prompts import AGENT_SYSTEM_PROMPT
 from app.agents.tools import get_search_tool, make_tools
 from app.core.llm import get_llm
