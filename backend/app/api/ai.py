@@ -152,6 +152,132 @@ def _format_chat_history(messages) -> List[Dict[str, str]]:
     return out
 
 
+def _clarification_result(interrupt_value, final_thread_id: str) -> Dict[str, Any]:
+    """Shape the response when the graph paused on a clarification interrupt."""
+    question = (
+        interrupt_value.get("question")
+        if isinstance(interrupt_value, dict)
+        else str(interrupt_value)
+    )
+    return {
+        "response": question,
+        "is_completed": False,
+        "needs_clarification": True,
+        "expense_data": None,
+        "income_data": None,
+        "tool_calls": [],
+        "thread_id": final_thread_id,
+    }
+
+
+def _assemble_result(messages, final_thread_id: str, user_lang: str) -> Dict[str, Any]:
+    """Build the structured chat response from a completed graph's messages.
+
+    Shared by the non-streaming (`ainvoke`) and streaming (`astream`) paths so
+    both produce an identical `ChatResponse` shape — only the delivery differs.
+    """
+    last_message = messages[-1]
+
+    # Index of the last HumanMessage — agent output produced THIS turn lives after it.
+    last_human_idx = -1
+    for i in range(len(messages) - 1, -1, -1):
+        if isinstance(messages[i], HumanMessage):
+            last_human_idx = i
+            break
+
+    if isinstance(last_message, HumanMessage):
+        # The graph returned without any agent output. To avoid echoing
+        # the user, provide a localized fallback response.
+        response_text = (
+            "Mình luôn sẵn sàng giúp bạn! Bạn có thể yêu cầu mình thêm khoản chi, kiểm tra ngân sách hoặc phân tích thói quen chi tiêu của bạn."
+            if user_lang == "vi"
+            else "I'm always here to help! You can ask me to add an expense, check your budget, or analyze your spending habits."
+        )
+    else:
+        # Concatenate every user-facing AI answer produced this turn,
+        # not just the last message, so no useful text is dropped.
+        # Skip messages that only carry tool_calls (no user-facing text).
+        answer_parts: list[str] = []
+        for msg in messages[last_human_idx + 1:]:
+            if isinstance(msg, AIMessage) and not getattr(msg, "tool_calls", None):
+                text = _extract_text(msg.content).strip()
+                if text and (not answer_parts or answer_parts[-1] != text):
+                    answer_parts.append(text)
+        response_text = (
+            "\n\n".join(answer_parts) if answer_parts
+            else _extract_text(last_message.content)
+        )
+
+    is_completed = False
+    expense_list: list[dict] = []   # collect all submit_expense_tool calls
+    income_data = None
+    tool_calls_log = []
+
+    # Default to checking all if no human message found (unlikely)
+    start_check_idx = last_human_idx if last_human_idx != -1 else 0
+
+    # Analyze ONLY NEW history to find tool calls and completion
+    # Maps tool_call_id → tool args for resolving category_id from tool result
+    pending_expense_tool_calls: dict[str, dict] = {}
+
+    for msg in messages[start_check_idx:]:
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            for tc in msg.tool_calls:
+                tool_calls_log.append({"name": tc["name"], "args": tc["args"]})
+
+                if tc["name"] == "submit_expense_tool":
+                    pending_expense_tool_calls[tc["id"]] = tc["args"]
+
+                elif tc["name"] == "submit_income_tool":
+                    is_completed = True
+                    income_data = tc["args"]
+
+        if isinstance(msg, ToolMessage):
+            if tool_calls_log:
+                tool_calls_log[-1]["result"] = str(msg.content)
+
+            # Resolve category_id from the tool's JSON return value
+            call_id = getattr(msg, "tool_call_id", None)
+            if call_id and call_id in pending_expense_tool_calls:
+                args = pending_expense_tool_calls[call_id]
+                try:
+                    payload = json.loads(str(msg.content))
+                except (ValueError, TypeError):
+                    payload = {}
+                if payload.get("status") == "draft_created":
+                    # Prefer the tool's echoed values: for a foreign-currency
+                    # expense the tool converted amount/currency and rewrote the
+                    # description, so the original args are stale.
+                    expense_list.append({
+                        **args,
+                        "category": payload.get("category") or args.get("category"),
+                        "category_id": payload.get("category_id"),
+                        "amount": payload.get("amount", args.get("amount")),
+                        "currency": payload.get("currency", args.get("currency")),
+                        "description": payload.get("description", args.get("description")),
+                    })
+                    is_completed = True
+                del pending_expense_tool_calls[call_id]
+
+    # Normalise: single expense keeps backward-compat shape; multi returns list
+    if len(expense_list) == 1:
+        expense_data = expense_list[0]
+    elif len(expense_list) > 1:
+        expense_data = expense_list  # type: ignore[assignment]
+    else:
+        expense_data = None
+
+    return {
+        "response": str(response_text) if response_text else "I've processed that.",
+        "is_completed": is_completed,
+        "needs_clarification": False,
+        "expense_data": expense_data,
+        "income_data": income_data,
+        "tool_calls": tool_calls_log,
+        "thread_id": final_thread_id,
+    }
+
+
 # @acached(prefix="ai_chat", ttl=60)
 async def process_chat(user_id: int, message: str, thread_id: Optional[str] = None, is_resume: bool = False) -> Dict[str, Any]:
     # Import here to avoid circular dependencies if any
@@ -253,131 +379,11 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
             # Detect human-in-the-loop pause: the graph hit interrupt() and is
             # waiting for the user's answer to a clarification question.
             if final_state.get("__interrupt__"):
-                interrupt_payload = final_state["__interrupt__"][0].value
-                question = (
-                    interrupt_payload.get("question")
-                    if isinstance(interrupt_payload, dict)
-                    else str(interrupt_payload)
-                )
-                return {
-                    "response": question,
-                    "is_completed": False,
-                    "needs_clarification": True,
-                    "expense_data": None,
-                    "income_data": None,
-                    "tool_calls": [],
-                    "thread_id": final_thread_id,
-                }
-
-            messages = final_state["messages"]
-            last_message = messages[-1]
-
-            # Index of the last HumanMessage — agent output produced THIS turn lives
-            # after it.
-            last_human_idx = -1
-            for i in range(len(messages) - 1, -1, -1):
-                if isinstance(messages[i], HumanMessage):
-                    last_human_idx = i
-                    break
-
-            if isinstance(last_message, HumanMessage):
-                # The graph returned without any agent output. To avoid echoing
-                # the user, provide a localized fallback response.
-                response_text = (
-                    "Mình luôn sẵn sàng giúp bạn! Bạn có thể yêu cầu mình thêm khoản chi, kiểm tra ngân sách hoặc phân tích thói quen chi tiêu của bạn."
-                    if user_lang == "vi"
-                    else "I'm always here to help! You can ask me to add an expense, check your budget, or analyze your spending habits."
-                )
-            else:
-                # Concatenate every user-facing AI answer produced this turn,
-                # not just the last message, so no useful text is dropped.
-                # Skip messages that only carry tool_calls (no user-facing text).
-                answer_parts: list[str] = []
-                for msg in messages[last_human_idx + 1:]:
-                    if isinstance(msg, AIMessage) and not getattr(msg, "tool_calls", None):
-                        text = _extract_text(msg.content).strip()
-                        if text and (not answer_parts or answer_parts[-1] != text):
-                            answer_parts.append(text)
-                response_text = (
-                    "\n\n".join(answer_parts) if answer_parts
-                    else _extract_text(last_message.content)
+                return _clarification_result(
+                    final_state["__interrupt__"][0].value, final_thread_id
                 )
 
-            is_completed = False
-            expense_list: list[dict] = []   # collect all submit_expense_tool calls
-            income_data = None
-            tool_calls_log = []
-        
-            # Find the index of the last HumanMessage to only check relevant/new Agent responses
-            last_human_idx = -1
-            for i in range(len(messages) - 1, -1, -1):
-                if isinstance(messages[i], HumanMessage):
-                    last_human_idx = i
-                    break
-            
-            # Default to checking all if no human message found (unlikely)
-            start_check_idx = last_human_idx if last_human_idx != -1 else 0
-
-            # Analyze ONLY NEW history to find tool calls and completion
-            # Maps tool_call_id → tool args for resolving category_id from tool result
-            pending_expense_tool_calls: dict[str, dict] = {}
-
-            for msg in messages[start_check_idx:]:
-                if isinstance(msg, AIMessage) and msg.tool_calls:
-                    for tc in msg.tool_calls:
-                        tool_calls_log.append({"name": tc["name"], "args": tc["args"]})
-
-                        if tc["name"] == "submit_expense_tool":
-                            pending_expense_tool_calls[tc["id"]] = tc["args"]
-
-                        elif tc["name"] == "submit_income_tool":
-                            is_completed = True
-                            income_data = tc["args"]
-
-                if isinstance(msg, ToolMessage):
-                    if tool_calls_log:
-                        tool_calls_log[-1]["result"] = str(msg.content)
-
-                    # Resolve category_id from the tool's JSON return value
-                    call_id = getattr(msg, "tool_call_id", None)
-                    if call_id and call_id in pending_expense_tool_calls:
-                        args = pending_expense_tool_calls[call_id]
-                        try:
-                            payload = json.loads(str(msg.content))
-                        except (ValueError, TypeError):
-                            payload = {}
-                        if payload.get("status") == "draft_created":
-                            # Prefer the tool's echoed values: for a foreign-currency
-                            # expense the tool converted amount/currency and rewrote the
-                            # description, so the original args are stale.
-                            expense_list.append({
-                                **args,
-                                "category": payload.get("category") or args.get("category"),
-                                "category_id": payload.get("category_id"),
-                                "amount": payload.get("amount", args.get("amount")),
-                                "currency": payload.get("currency", args.get("currency")),
-                                "description": payload.get("description", args.get("description")),
-                            })
-                            is_completed = True
-                        del pending_expense_tool_calls[call_id]
-
-            # Normalise: single expense keeps backward-compat shape; multi returns list
-            if len(expense_list) == 1:
-                expense_data = expense_list[0]
-            elif len(expense_list) > 1:
-                expense_data = expense_list  # type: ignore[assignment]
-            else:
-                expense_data = None
-
-            return {
-                "response": str(response_text) if response_text else "I've processed that.",
-                "is_completed": is_completed,
-                "needs_clarification": False,
-                "expense_data": expense_data,
-                "income_data": income_data,
-                "tool_calls": tool_calls_log,
-                "thread_id": final_thread_id,
-            }
+            return _assemble_result(final_state["messages"], final_thread_id, user_lang)
         except Exception as e:
             from langgraph.errors import GraphRecursionError
             if isinstance(e, GraphRecursionError):
@@ -394,6 +400,164 @@ async def process_chat(user_id: int, message: str, thread_id: Optional[str] = No
                     "thread_id": final_thread_id
                 }
             raise e
+
+
+def _sse(obj: Dict[str, Any]) -> str:
+    """Encode a dict as a single Server-Sent Events `data:` frame."""
+    return f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+
+
+async def stream_chat(user_id: int, message: str, thread_id: Optional[str] = None, is_resume: bool = False):
+    """Streaming twin of `process_chat`.
+
+    Yields SSE frames as the agent works:
+      • `{"type": "meta", "thread_id": ...}`   — sent first so the client can persist it
+      • `{"type": "token", "content": "..."}`  — incremental answer tokens (live typing)
+      • `{"type": "done", ...ChatResponse...}`  — the SAME structured payload the
+        non-streaming endpoint returns (expense_data, tool_calls, clarification, …)
+      • `{"type": "error", "detail": ...}`      — on failure
+
+    Token frames are a live preview only; the client should replace the preview with
+    `done.response`, which is assembled identically to `process_chat` so the two
+    endpoints never diverge.
+    """
+    from app.agents.agent import compile_graph
+    from langchain_core.messages import AIMessageChunk
+    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+    from langgraph.types import Command
+    from langgraph.errors import GraphRecursionError
+    from psycopg_pool import AsyncConnectionPool
+    from app.core.config import settings
+    from app.core.database import SessionLocal
+    from app.models.user import User
+    from app.models.category import Category
+    import uuid
+
+    db_url = settings.DATABASE_URL.replace("postgresql://", "postgresql://")
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        user_lang = user.language if user else "vi"
+        user_currency = user.currency if user else "VND"
+        categories = db.query(Category).filter(Category.user_id == user_id).all()
+        category_list = [c.name for c in categories] if categories else []
+    finally:
+        db.close()
+
+    # Resolve the thread id up front so every frame (incl. early errors) can carry it.
+    if thread_id and not _thread_belongs_to(thread_id, user_id):
+        logger.warning(f"thread_id {thread_id!r} not owned by user {user_id} — starting a new thread")
+        thread_id = None
+    final_thread_id = thread_id or f"{user_id}:{uuid.uuid4()}"
+
+    # IMPORTANT: everything that can fail — pool open, graph build (schema reflection,
+    # search-tool init), and the agent run — lives inside this try so a failure ALWAYS
+    # emits a terminal `error`/`done` frame. Otherwise an exception before the first
+    # `yield` would close the SSE stream with zero frames and the client would hang on
+    # a spinner forever.
+    try:
+        async with AsyncConnectionPool(conninfo=db_url) as pool:
+            checkpointer = AsyncPostgresSaver(pool)
+            graph = compile_graph(
+                checkpointer=checkpointer,
+                user_id=user_id,
+                user_currency=user_currency,
+                categories=category_list,
+                user_lang=user_lang,
+            )
+
+            from app.core.ai_logging import AILoggingCallbackHandler
+            config = {
+                "configurable": {
+                    "user_id": user_id,
+                    "thread_id": final_thread_id,
+                    "user_lang": user_lang,
+                    "user_currency": user_currency,
+                    "categories": category_list,
+                },
+                "callbacks": [AILoggingCallbackHandler()],
+                "recursion_limit": 12,
+            }
+
+            yield _sse({"type": "meta", "thread_id": final_thread_id})
+
+            # Same resume/abandon logic as process_chat (see there for the rationale).
+            fresh_turn = {"messages": [HumanMessage(content=message)]}
+            snapshot = await graph.aget_state(config)
+            paused = bool(getattr(snapshot, "interrupts", None))
+
+            if paused and is_resume:
+                input_state = Command(resume=message)
+            elif paused and not is_resume:
+                logger.info(f"Abandoning stale interrupt on thread {final_thread_id}")
+                await checkpointer.adelete_thread(final_thread_id)
+                input_state = fresh_turn
+            else:
+                input_state = fresh_turn
+
+            # Stream LLM tokens as they are generated. `stream_mode="messages"` yields
+            # (chunk, metadata); we forward only AI text deltas. Tool-call deltas carry
+            # no `.content`, so they're naturally skipped here.
+            async for chunk, _meta in graph.astream(input_state, config=config, stream_mode="messages"):
+                if isinstance(chunk, AIMessageChunk):
+                    text = _extract_text(chunk.content)
+                    if text:
+                        yield _sse({"type": "token", "content": text})
+
+            # Stream finished — read the authoritative final state and assemble the
+            # structured payload exactly like process_chat.
+            snapshot = await graph.aget_state(config)
+            if getattr(snapshot, "interrupts", None):
+                yield _sse({"type": "done", **_clarification_result(snapshot.interrupts[0].value, final_thread_id)})
+                return
+
+            result = _assemble_result(snapshot.values["messages"], final_thread_id, user_lang)
+            yield _sse({"type": "done", **result})
+    except GraphRecursionError:
+        yield _sse({
+            "type": "done",
+            "response": (
+                "Xin lỗi, yêu cầu quá phức tạp để xử lý. Vui lòng thử lại với câu hỏi đơn giản hơn."
+                if user_lang == "vi"
+                else "Sorry, that request is too complex to process. Please try again with a simpler question."
+            ),
+            "is_completed": False,
+            "needs_clarification": False,
+            "expense_data": None,
+            "income_data": None,
+            "tool_calls": [],
+            "thread_id": final_thread_id,
+        })
+    except Exception as e:
+        logger.error(f"AI Agent stream error: {e}")
+        detail = AI_USAGE_LIMIT_MESSAGE if _is_ai_usage_limit_error(e) else f"AI Error: {e}"
+        yield _sse({"type": "error", "detail": detail, "thread_id": final_thread_id})
+
+
+@router.post("/agent/chat/stream")
+async def chat_with_agent_stream(
+    request: ChatRequest,
+    current_user: User = Depends(deps.get_current_user),
+):
+    """Streaming variant of `/agent/chat` — returns an SSE token stream.
+
+    Same auth and request shape as the non-streaming endpoint; the response is a
+    `text/event-stream` of token frames followed by a final `done` frame carrying
+    the full structured payload.
+    """
+    from fastapi.responses import StreamingResponse
+
+    return StreamingResponse(
+        stream_chat(current_user.id, request.message, request.thread_id, request.is_resume),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # disable nginx proxy buffering so tokens flush live
+        },
+    )
+
 
 @router.get("/agent/history/{thread_id}", response_model=List[Dict[str, Any]])
 async def get_chat_history(

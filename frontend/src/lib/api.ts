@@ -444,8 +444,76 @@ export interface ChatResponse {
   needs_clarification?: boolean;
 }
 
+// Streaming chat event frames emitted by POST /ai/agent/chat/stream (SSE).
+export type ChatStreamEvent =
+  | { type: 'meta'; thread_id: string }
+  | { type: 'token'; content: string }
+  | ({ type: 'done' } & ChatResponse)
+  | { type: 'error'; detail: string; thread_id?: string };
+
+/**
+ * Stream a chat turn token-by-token via SSE.
+ *
+ * Uses `fetch` (axios can't read a streaming body in the browser). Calls `onEvent`
+ * for every frame: `token` for live typing, then a single `done` carrying the full
+ * structured ChatResponse — identical shape to `aiApi.chat`. Pass an AbortSignal to
+ * cancel mid-stream.
+ */
+async function chatStream(
+  data: ChatRequest,
+  onEvent: (event: ChatStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const res = await fetch(`${API_URL}/api/ai/agent/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
+    signal,
+  });
+
+  if (!res.ok || !res.body) {
+    let detail = `Request failed (${res.status})`;
+    try {
+      detail = (await res.json())?.detail ?? detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    onEvent({ type: 'error', detail });
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE frames are separated by a blank line.
+    let sep: number;
+    while ((sep = buffer.indexOf('\n\n')) !== -1) {
+      const frame = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      const line = frame.split('\n').find((l) => l.startsWith('data:'));
+      if (!line) continue;
+      try {
+        onEvent(JSON.parse(line.slice(5).trim()) as ChatStreamEvent);
+      } catch {
+        /* ignore malformed frame */
+      }
+    }
+  }
+}
+
 export const aiApi = {
   chat: (data: ChatRequest) => api.post<ChatResponse>('/ai/agent/chat', data),
+  chatStream,
   getHistory: (threadId: string) => api.get<{role: 'user' | 'agent', content: string}[]>(`/ai/agent/history/${threadId}`),
   // Most recent thread for the logged-in user — used to restore chat after login.
   getLatestThread: () => api.get<{ thread_id: string | null, history: {role: 'user' | 'agent', content: string}[] }>(`/ai/agent/threads/latest`),

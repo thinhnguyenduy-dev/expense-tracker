@@ -5,7 +5,7 @@ import { Send, Sparkles, Loader2, MessageCircle, X, Maximize2, Minimize2, Square
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { aiApi, categoriesApi, expensesApi, incomesApi, Category } from "@/lib/api";
+import { aiApi, categoriesApi, expensesApi, incomesApi, Category, ChatResponse } from "@/lib/api";
 import { cn, getApiErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -25,6 +25,7 @@ type Message = {
     content: string;
     isError?: boolean;
     toolCalls?: ToolCall[];
+    streaming?: boolean;  // true while tokens are still arriving for this agent message
 };
 
 type ExpenseDraft = {
@@ -143,7 +144,19 @@ const ChatMessageItem = memo(({ msg, onRetry }: { msg: Message; onRetry?: () => 
             )}>
                 {msg.role === "agent" && !msg.isError ? (
                     <div className="text-gray-800 dark:text-gray-200">
-                        {renderMarkdown(msg.content)}
+                        {msg.streaming && !msg.content ? (
+                            // Tokens haven't arrived yet — show a typing indicator in-bubble.
+                            <span className="flex items-center gap-2">
+                                <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
+                                <span className="text-xs text-muted-foreground">{tAI('thinking')}</span>
+                            </span>
+                        ) : (
+                            <>
+                                {renderMarkdown(msg.content)}
+                                {/* Blinking caret while the answer is still streaming in. */}
+                                {msg.streaming && <span className="ml-0.5 inline-block w-1.5 h-3.5 align-middle bg-indigo-400 animate-pulse" />}
+                            </>
+                        )}
                         {msg.toolCalls && <ToolCallTrace calls={msg.toolCalls} />}
                     </div>
                 ) : (
@@ -282,24 +295,32 @@ export function GlobalChatWidget() {
     const message = input;
     setInput("");
     setLastUserMessage(message);
-    setConversation(prev => [...prev, { role: "user", content: message }]);
+    // Push the user's turn plus an empty agent bubble we stream tokens into.
+    setConversation(prev => [
+        ...prev,
+        { role: "user", content: message },
+        { role: "agent", content: "", streaming: true },
+    ]);
     setIsChatLoading(true);
 
-    try {
-        const storedThreadId = localStorage.getItem("ai_thread_id") || undefined;
-        const response = await aiApi.chat({
-            message,
-            thread_id: storedThreadId,
-            is_resume: awaitingClarification,
+    // Patch the trailing agent bubble (the one we're streaming into).
+    const updateAgentMsg = (patch: Partial<Message>) => {
+        setConversation(prev => {
+            const next = [...prev];
+            for (let i = next.length - 1; i >= 0; i--) {
+                if (next[i].role === "agent") {
+                    next[i] = { ...next[i], ...patch };
+                    break;
+                }
+            }
+            return next;
         });
-        const data = response.data;
+    };
 
-        if (data.thread_id) {
-            localStorage.setItem("ai_thread_id", data.thread_id);
-        }
-
-        // Add agent response (with the agent's tool/SQL trace, if any)
-        setConversation(prev => [...prev, { role: "agent", content: data.response, toolCalls: data.tool_calls }]);
+    // Apply the final structured payload — identical handling to the old
+    // non-streaming flow (clarification / expense draft / income draft).
+    const applyResult = (data: ChatResponse) => {
+        if (data.thread_id) localStorage.setItem("ai_thread_id", data.thread_id);
 
         // The AI needs more info — keep the input in "answer the question" mode
         // so the next message is sent with is_resume=true.
@@ -310,12 +331,9 @@ export function GlobalChatWidget() {
 
         // If we were resuming and the AI replied with another plain-text question
         // (no tool call), stay in clarification mode.
-        if (awaitingClarification && !data.is_completed) {
-            const looksLikeQuestion = data.response.includes("?");
-            if (looksLikeQuestion) {
-                setAwaitingClarification(true);
-                return;
-            }
+        if (awaitingClarification && !data.is_completed && data.response.includes("?")) {
+            setAwaitingClarification(true);
+            return;
         }
 
         setAwaitingClarification(false);
@@ -341,10 +359,36 @@ export function GlobalChatWidget() {
             setIsIncomeDialogOpen(true);
             toast.info(tAI('incomeDraftReady'));
         }
-    } catch (error: any) {
+    };
+
+    try {
+        const storedThreadId = localStorage.getItem("ai_thread_id") || undefined;
+        let streamed = "";
+        await aiApi.chatStream(
+            { message, thread_id: storedThreadId, is_resume: awaitingClarification },
+            (event) => {
+                if (event.type === "meta") {
+                    localStorage.setItem("ai_thread_id", event.thread_id);
+                } else if (event.type === "token") {
+                    streamed += event.content;
+                    updateAgentMsg({ content: streamed });
+                } else if (event.type === "done") {
+                    // Swap the live preview for the authoritative assembled answer.
+                    updateAgentMsg({
+                        content: event.response || streamed,
+                        toolCalls: event.tool_calls,
+                        streaming: false,
+                    });
+                    applyResult(event);
+                } else if (event.type === "error") {
+                    updateAgentMsg({ content: event.detail, isError: true, streaming: false });
+                }
+            },
+        );
+    } catch (error: unknown) {
         console.error(error);
-        const errorMsg = error.response?.data?.detail || "Something went wrong. Please try again.";
-        setConversation(prev => [...prev, { role: "agent", content: errorMsg, isError: true }]);
+        const errorMsg = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+        updateAgentMsg({ content: errorMsg, isError: true, streaming: false });
     } finally {
         setIsChatLoading(false);
     }
@@ -491,7 +535,10 @@ export function GlobalChatWidget() {
                             <ChatMessageItem key={i} msg={msg} onRetry={msg.isError ? handleRetry : undefined} />
                         ))}
                         
-                        {isChatLoading && (
+                        {/* Global loader only when no streaming bubble is present (e.g. the
+                            brief window before the agent placeholder is appended). The
+                            streaming bubble shows its own in-place typing indicator. */}
+                        {isChatLoading && !conversation.some(m => m.role === "agent" && m.streaming) && (
                             <div className="flex justify-start">
                                 <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-none px-3 py-2 shadow-sm flex items-center gap-2">
                                     <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />

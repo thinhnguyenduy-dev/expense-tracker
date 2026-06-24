@@ -53,9 +53,16 @@ def _resolve_openai_model_name() -> str:
     logger.info(f"Auto-selected OpenAI model: {selected}")
     return selected
 
-def get_llm(temperature: float = 0):
+def get_llm(temperature: float = 0, streaming: bool = False):
     """
     Factory function to return the configured LLM based on AI_PROVIDER settings.
+
+    Set ``streaming=True`` to get token-level streaming. This is required for the
+    SSE chat endpoint: LangGraph's ``stream_mode="messages"`` only emits per-token
+    chunks when the underlying model streams. With ``streaming=False`` the agent
+    does a single non-streaming call and tokens arrive only as one final block.
+    A streaming model is fully backward compatible — ``ainvoke`` transparently
+    aggregates the chunks, so the non-streaming endpoint is unaffected.
     """
     provider = settings.AI_PROVIDER.lower()
     callbacks = [AILoggingCallbackHandler()]
@@ -92,7 +99,8 @@ def get_llm(temperature: float = 0):
             temperature=temperature,
             max_retries=3,
             convert_system_message_to_human=True, # Required for some models, safer to keep on
-            callbacks=callbacks
+            callbacks=callbacks,
+            streaming=streaming,
         )
         
     elif provider == "anthropic":
@@ -102,7 +110,8 @@ def get_llm(temperature: float = 0):
             model=settings.ANTHROPIC_MODEL_NAME,
             api_key=settings.ANTHROPIC_API_KEY,
             temperature=temperature,
-            callbacks=callbacks
+            callbacks=callbacks,
+            streaming=streaming,
         )
         
     elif provider == "groq":
@@ -116,7 +125,8 @@ def get_llm(temperature: float = 0):
             temperature=temperature,
             callbacks=callbacks,
             http_client=http_client,
-            http_async_client=http_async_client
+            http_async_client=http_async_client,
+            streaming=streaming,
         )
 
 
@@ -128,5 +138,6 @@ def get_llm(temperature: float = 0):
         temperature=temperature,
         callbacks=callbacks,
         http_client=http_client,
-        http_async_client=http_async_client
+        http_async_client=http_async_client,
+        streaming=streaming,
     )

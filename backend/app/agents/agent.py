@@ -14,12 +14,19 @@ from typing import Optional
 
 from langgraph.graph import END, START, MessagesState, StateGraph
 
+# Prefer LangGraph's prebuilt `create_react_agent`. It propagates the model's
+# token-streaming events out through the graph, so the SSE chat endpoint can stream
+# the answer token-by-token (`stream_mode="messages"`). LangChain's newer
+# `create_agent` runs the model in a way that swallows those events — the graph only
+# sees `on_chain_*`, never `on_chat_model_stream` — so with it the answer can only be
+# delivered as one final block. Both build the SAME single ReAct agent; this is purely
+# an implementation choice to keep streaming working.
 try:
-    from langchain.agents import create_agent as _create_agent
-    _USE_LANGCHAIN_CREATE_AGENT = True
-except ImportError:  # pragma: no cover - compatibility with older installs
     from langgraph.prebuilt import create_react_agent as _create_agent
     _USE_LANGCHAIN_CREATE_AGENT = False
+except ImportError:  # pragma: no cover - compatibility with older installs
+    from langchain.agents import create_agent as _create_agent
+    _USE_LANGCHAIN_CREATE_AGENT = True
 
 from app.agents.sql_tools import make_sql_tools
 from app.agents.prompts import AGENT_SYSTEM_PROMPT
@@ -44,7 +51,10 @@ def build_agent(
     reads, read-only user-scoped SQL, and web search. Returns a CompiledStateGraph
     whose state is messages-based, so `app/api/ai.py` reads it exactly as before.
     """
-    llm = get_llm(temperature=0)
+    # streaming=True so LangGraph's `stream_mode="messages"` can emit per-token
+    # chunks for the SSE endpoint. Harmless for the non-streaming path — `ainvoke`
+    # aggregates the streamed chunks into one response transparently.
+    llm = get_llm(temperature=0, streaming=True)
 
     tools = list(make_tools(user_id, user_currency))
     tools += make_sql_tools(user_id, llm)
