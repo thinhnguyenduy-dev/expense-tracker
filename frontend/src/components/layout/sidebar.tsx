@@ -37,13 +37,13 @@ export function Sidebar({ className, onClose, staticMode = false }: SidebarProps
   
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    // { href: '/budgets', label: t('budgets'), icon: BarChart3 },
+    { href: '/budgets', label: t('budgets'), icon: BarChart3 },
     { href: '/incomes', label: t('incomes'), icon: CircleDollarSign },
-    // { href: '/jars', label: t('jars'), icon: PiggyBank },
+    { href: '/jars', label: t('jars'), icon: PiggyBank },
     { href: '/expenses', label: t('expenses'), icon: Receipt },
     { href: '/categories', label: t('categories'), icon: Tags },
-    // { href: '/recurring-expenses', label: t('recurring'), icon: Repeat },
-    // { href: '/goals', label: t('goals'), icon: Target },
+    { href: '/recurring-expenses', label: t('recurring'), icon: Repeat },
+    { href: '/goals', label: t('goals'), icon: Target },
     { href: '/reports', label: t('reports'), icon: BarChart3 },
     { href: '/settings', label: t('settings'), icon: Settings },
   ];
