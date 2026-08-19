@@ -10,10 +10,10 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { useTranslations, useLocale } from 'next-intl';
-import { expensesApi, categoriesApi, authApi, ExpenseFilter, PaginatedResponse, Expense } from '@/lib/api';
+import { expensesApi, categoriesApi, authApi, uploadsApi, ExpenseFilter, PaginatedResponse, Expense } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
 
-import { ExpenseDialog, Category, ExpenseFormData } from '@/components/expenses/ExpenseDialog';
+import { ExpenseDialog, Category, ExpenseFormData, ExpenseImagePayload } from '@/components/expenses/ExpenseDialog';
 import { ExpenseFilters, DatePreset } from '@/components/expenses/ExpenseFilters';
 import { ExpenseTable } from '@/components/expenses/ExpenseTable';
 import { ExpenseBulkActions } from '@/components/expenses/ExpenseBulkActions';
@@ -157,17 +157,24 @@ export default function ExpensesPage() {
     setIsDialogOpen(true);
   };
 
-  const onSubmit = useCallback(async (data: ExpenseFormData) => {
+  const onSubmit = useCallback(async (data: ExpenseFormData, images: ExpenseImagePayload) => {
     if (isSubmittingRef.current || isSubmitting) return;
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
+      let imageUrls = images.existingUrls;
+      if (images.files.length > 0) {
+        const { data: uploaded } = await uploadsApi.uploadImages(images.files);
+        imageUrls = [...images.existingUrls, ...uploaded.urls];
+      }
+
       const payload = {
         amount: data.amount,
         description: data.description,
         date: format(data.date, 'yyyy-MM-dd'),
         category_id: parseInt(data.category_id),
         currency: data.currency,
+        images: imageUrls,
       };
 
       if (editingExpense) {

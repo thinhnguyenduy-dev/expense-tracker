@@ -1,0 +1,17 @@
+# Coolify / Docker Compose — same layout as the existing VPS app (xdecor):
+# Host: /data/coolify/expense-tracker/backend/uploads  →  Container: /app/uploads
+#
+# Coolify Persistent Storage (Dockerfile app):
+#   Source Path:      /data/coolify/expense-tracker/backend/uploads
+#   Destination Path: /app/uploads
+
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - /data/coolify/expense-tracker/backend/uploads:/app/uploads

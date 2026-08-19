@@ -60,3 +60,6 @@ htmlcov/
 
 # Alembic
 alembic/versions/*.pyc
+
+# User-uploaded expense images
+uploads/

@@ -11,6 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Persist receipt images across Coolify/Docker redeploys by mounting this path.
+ENV UPLOAD_DIR=/app/uploads
+RUN mkdir -p /app/uploads
+VOLUME ["/app/uploads"]
+
 # Expose port (FastAPI default is 8000)
 EXPOSE 8000
 

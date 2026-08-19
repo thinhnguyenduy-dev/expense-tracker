@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export function resolveUploadUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) {
+    return path;
+  }
+  return `${API_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -120,6 +128,7 @@ export interface Expense {
   original_amount?: number;
   original_currency?: string;
   exchange_rate?: number;
+  images?: string[];
 }
 
 export const expensesApi = {
@@ -128,10 +137,10 @@ export const expensesApi = {
   
   getOne: (id: number) => api.get<Expense>(`/expenses/${id}`),
   
-  create: (data: { amount: number; description: string; date: string; category_id: number; currency?: string }) =>
+  create: (data: { amount: number; description: string; date: string; category_id: number; currency?: string; images?: string[] }) =>
     api.post<Expense>('/expenses', data),
   
-  update: (id: number, data: { amount?: number; description?: string; date?: string; category_id?: number; currency?: string }) =>
+  update: (id: number, data: { amount?: number; description?: string; date?: string; category_id?: number; currency?: string; images?: string[] }) =>
     api.put<Expense>(`/expenses/${id}`, data),
   
   delete: (id: number) => api.delete(`/expenses/${id}`),
@@ -357,6 +366,16 @@ export const ocrApi = {
     const formData = new FormData();
     formData.append('file', file);
     return api.post<{ amount?: number; date?: string; merchant?: string; text?: string }>('/ocr/scan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+export const uploadsApi = {
+  uploadImages: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    return api.post<{ urls: string[] }>('/uploads/images', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

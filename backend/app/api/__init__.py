@@ -18,3 +18,4 @@ from .rates import router as rates_router
 from .budgets import router as budgets_router
 from .search import router as search_router
 from .ai import router as ai_router
+from .uploads import router as uploads_router

@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { FormattedCurrency } from "@/components/format/FormattedCurrency";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
-import { Expense } from "@/lib/api";
+import { Expense, resolveUploadUrl } from "@/lib/api";
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -29,6 +29,17 @@ export function ExpenseCard({ expense, onEdit, onDelete }: ExpenseCardProps) {
              )}
         </div>
       </div>
+
+      {(expense.images?.length ?? 0) > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {expense.images!.map((src) => (
+            <span key={src} className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={resolveUploadUrl(src)} alt="" className="h-full w-full object-cover" />
+            </span>
+          ))}
+        </div>
+      )}
       
       <div className="flex justify-end gap-2 mt-4 border-t border-border pt-3">
         <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground" onClick={() => onEdit(expense)}>

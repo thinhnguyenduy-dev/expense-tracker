@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric, Date
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric, Date, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
@@ -18,6 +18,9 @@ class Expense(Base):
     original_amount = Column(Numeric(12, 2), nullable=True)
     original_currency = Column(String(3), nullable=True)
     exchange_rate = Column(Numeric(10, 6), nullable=True)
+
+    # Public URLs of attached receipt / proof images
+    images = Column(JSON, nullable=False, default=list)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

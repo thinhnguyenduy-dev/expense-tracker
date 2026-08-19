@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { Expense } from '@/lib/api';
+import { Expense, resolveUploadUrl } from '@/lib/api';
 import { ExpenseCard } from './ExpenseCard';
 import { motion } from 'framer-motion';
 
@@ -191,8 +191,25 @@ export function ExpenseTable({
                     <span className="text-foreground">{expense.category?.name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-foreground max-w-xs truncate">
-                  {expense.description}
+                <TableCell className="text-foreground max-w-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{expense.description}</span>
+                    {(expense.images?.length ?? 0) > 0 && (
+                      <span className="relative inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-md border border-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={resolveUploadUrl(expense.images![0])}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                        {expense.images!.length > 1 && (
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[10px] font-medium text-white">
+                            +{expense.images!.length - 1}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-medium text-foreground">
                   {formatCurrency(Number(expense.amount))}

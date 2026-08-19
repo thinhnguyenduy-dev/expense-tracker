@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     ANTHROPIC_MODEL_NAME: str = "claude-3-sonnet-20240229"
 
+    # Receipt / expense images. Use an absolute path (e.g. /app/uploads) and
+    # mount a Coolify/Docker volume on that directory so files survive redeploys.
+    UPLOAD_DIR: str = "uploads"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

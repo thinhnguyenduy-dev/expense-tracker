@@ -1,11 +1,11 @@
 'use client';
 
-
-
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UseFormReturn, Controller } from 'react-hook-form';
 import { format } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
-import { Loader2, CalendarIcon, CameraIcon } from 'lucide-react';
+import { Loader2, CalendarIcon, CameraIcon, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -31,10 +31,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { Expense } from '@/lib/api';
-
-
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { Expense, resolveUploadUrl } from '@/lib/api';
 
 export interface Category {
   id: number;
@@ -51,6 +48,11 @@ export interface ExpenseFormData {
   currency?: string;
 }
 
+export interface ExpenseImagePayload {
+  existingUrls: string[];
+  files: File[];
+}
+
 interface ExpenseDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -58,8 +60,16 @@ interface ExpenseDialogProps {
   categories: Category[];
   editingExpense: Expense | null;
   isSubmitting: boolean;
-  onSubmit: (data: ExpenseFormData) => void;
+  onSubmit: (data: ExpenseFormData, images: ExpenseImagePayload) => void;
 }
+
+type ImageItem =
+  | { id: string; kind: 'existing'; url: string }
+  | { id: string; kind: 'new'; file: File; preview: string };
+
+const MAX_IMAGES = 5;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 export function ExpenseDialog({
   isOpen,
@@ -73,24 +83,54 @@ export function ExpenseDialog({
   const locale = useLocale();
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
-  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scannedRef = useRef(false);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
   const { control, register, watch, setValue, handleSubmit, formState: { errors } } = form;
   const selectedDate = watch('date');
 
+  useEffect(() => {
+    if (!isOpen) {
+      setImages((prev) => {
+        prev.forEach((item) => {
+          if (item.kind === 'new') URL.revokeObjectURL(item.preview);
+        });
+        return [];
+      });
+      scannedRef.current = false;
+      setPreviewSrc(null);
+      return;
+    }
 
+    scannedRef.current = false;
+    setImages(
+      (editingExpense?.images ?? []).map((url) => ({
+        id: url,
+        kind: 'existing' as const,
+        url,
+      }))
+    );
+  }, [isOpen, editingExpense]);
 
   const handleReceiptScan = async (file: File) => {
     const toastId = toast.loading(t('scanning'));
     try {
       const { ocrApi } = await import('@/lib/api');
       const { data } = await ocrApi.scanReceipt(file);
-      
+
       if (data.amount) setValue('amount', data.amount);
       if (data.date) setValue('date', new Date(data.date));
       if (data.merchant) setValue('description', data.merchant);
-      else setValue('description', 'Receipt scan ' + new Date().toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US'));
-      
+      else if (!watch('description')) {
+        setValue(
+          'description',
+          'Receipt scan ' + new Date().toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US')
+        );
+      }
+
       toast.success(t('scanSuccess'), { id: toastId });
     } catch (error) {
       console.error(error);
@@ -98,9 +138,65 @@ export function ExpenseDialog({
     }
   };
 
+  const addFiles = (fileList: FileList | File[]) => {
+    const incoming = Array.from(fileList);
+    if (incoming.length === 0) return;
+
+    const remaining = MAX_IMAGES - images.length;
+    if (remaining <= 0) {
+      toast.error(t('maxImages'));
+      return;
+    }
+
+    const next: ImageItem[] = [];
+    for (const file of incoming.slice(0, remaining)) {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        toast.error(t('invalidImage'));
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(t('imageTooLarge'));
+        continue;
+      }
+      next.push({
+        id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
+        kind: 'new',
+        file,
+        preview: URL.createObjectURL(file),
+      });
+    }
+
+    if (next.length === 0) return;
+
+    const firstNew = next[0];
+    const currentAmount = watch('amount');
+    setImages((prev) => [...prev, ...next]);
+
+    if (
+      !editingExpense &&
+      !scannedRef.current &&
+      firstNew.kind === 'new' &&
+      (!currentAmount || currentAmount === 0)
+    ) {
+      scannedRef.current = true;
+      handleReceiptScan(firstNew.file);
+    }
+  };
+
+  const removeImage = (id: string) => {
+    setImages((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target?.kind === 'new') URL.revokeObjectURL(target.preview);
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  const imageSrc = (item: ImageItem) =>
+    item.kind === 'existing' ? resolveUploadUrl(item.url) : item.preview;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">
             {editingExpense ? t('editExpense') : t('addExpense')}
@@ -109,44 +205,131 @@ export function ExpenseDialog({
             {editingExpense ? t('editExpenseDesc') : t('addExpenseDesc')}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form
+          onSubmit={handleSubmit((data) =>
+            onSubmit(data, {
+              existingUrls: images
+                .filter((item): item is Extract<ImageItem, { kind: 'existing' }> => item.kind === 'existing')
+                .map((item) => item.url),
+              files: images
+                .filter((item): item is Extract<ImageItem, { kind: 'new' }> => item.kind === 'new')
+                .map((item) => item.file),
+            })
+          )}
+        >
           <fieldset disabled={isSubmitting} className="contents">
           <div className="space-y-4 py-4">
-            {/* Scan Receipt Button (Only for new expenses) */}
-            {!editingExpense && (
-              <div className="relative group">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  id="receipt-upload"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleReceiptScan(file);
-                    e.target.value = '';
-                  }}
-                />
+            <div className="space-y-2">
+              <Label className="text-foreground">{t('attachments')}</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+
+              {images.length === 0 ? (
                 <button
                   type="button"
-                  className="w-full min-h-[100px] rounded-xl border-2 border-dashed border-border bg-muted/50 hover:bg-muted hover:border-emerald-500/70 transition-all duration-300 cursor-pointer group-hover:shadow-lg group-hover:shadow-emerald-500/10"
-                  onClick={() => document.getElementById('receipt-upload')?.click()}
+                  className={cn(
+                    'w-full min-h-[100px] rounded-xl border-2 border-dashed bg-muted/50 transition-all duration-300 cursor-pointer',
+                    isDragging
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : 'border-border hover:bg-muted hover:border-emerald-500/70 hover:shadow-lg hover:shadow-emerald-500/10'
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
+                  }}
                 >
                   <div className="flex flex-col items-center justify-center gap-3 py-4">
-                    <div className="p-3 rounded-full bg-muted group-hover:bg-emerald-500/20 transition-colors duration-300">
-                      <CameraIcon className="h-8 w-8 text-muted-foreground group-hover:text-emerald-500 transition-colors duration-300" />
+                    <div className="p-3 rounded-full bg-muted">
+                      <CameraIcon className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-foreground group-hover:text-emerald-500 transition-colors duration-300">
-                        {t('receiptScan')}
+                    <div className="text-center px-4">
+                      <p className="text-sm font-medium text-foreground">
+                        {editingExpense ? t('attachments') : t('receiptScan')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {t('receiptScanDesc')}
+                        {t('attachmentsDesc')}
                       </p>
                     </div>
                   </div>
                 </button>
-              </div>
-            )}
+              ) : (
+                <div
+                  className={cn(
+                    'rounded-xl border-2 border-dashed p-3 transition-colors',
+                    isDragging ? 'border-emerald-500 bg-emerald-500/10' : 'border-border bg-muted/30'
+                  )}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
+                  }}
+                >
+                  <div className="grid grid-cols-3 gap-2">
+                    {images.map((item) => (
+                      <div
+                        key={item.id}
+                        className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
+                      >
+                        <button
+                          type="button"
+                          className="h-full w-full"
+                          onClick={() => setPreviewSrc(imageSrc(item))}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={imageSrc(item)}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(item.id)}
+                          className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                          aria-label={t('removeImage')}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {images.length < MAX_IMAGES && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/50 text-muted-foreground hover:border-emerald-500/70 hover:text-emerald-500"
+                      >
+                        <Plus className="h-5 w-5" />
+                        <span className="text-[10px]">{t('addImage')}</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                    {t('attachmentsHint', { count: images.length, max: MAX_IMAGES })}
+                  </p>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
@@ -267,6 +450,25 @@ export function ExpenseDialog({
           </fieldset>
         </form>
       </DialogContent>
+      {previewSrc &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setPreviewSrc(null)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Escape' && setPreviewSrc(null)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewSrc}
+              alt=""
+              className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>,
+          document.body
+        )}
     </Dialog>
   );
 }

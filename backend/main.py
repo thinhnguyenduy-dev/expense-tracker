@@ -1,18 +1,20 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.logging import app_logger as logger
 from app.core.rate_limit import limiter
-from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router, search_router, ai_router
+from app.api import auth_router, categories_router, expenses_router, dashboard_router, recurring_expenses_router, users_router, goals_router, jars_router, incomes_router, transfers_router, reports_router, data_router, ocr_router, families_router, cron_router, rates_router, budgets_router, search_router, ai_router, uploads_router
 from app.middleware import SecurityHeadersMiddleware
 from app.middleware.logging import LoggingMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.database import SessionLocal
 from app.core.recurring_expense_service import RecurringExpenseService
 from app.core.reminder_service import ReminderService
+from app.services.upload_service import get_upload_root
 
 # Logging is initialized automatically when importing app_logger
 logger.info("🔧 Application starting...")
@@ -170,6 +172,10 @@ app.include_router(families_router, prefix="/api", tags=["Families"])
 app.include_router(budgets_router, prefix="/api")
 app.include_router(search_router, prefix="/api/search", tags=["Search"])
 app.include_router(ai_router, prefix="/api/ai", tags=["AI"])
+app.include_router(uploads_router, prefix="/api")
+
+upload_dir = get_upload_root()
+app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
 
 
 @app.get("/")

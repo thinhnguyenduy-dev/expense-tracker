@@ -21,6 +21,10 @@ from ..schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse
 from ..schemas.pagination import PaginatedResponse
 from .dashboard import invalidate_user_dashboard_cache
 from ..core.exchange_rate import exchange_rate_service
+from ..services.upload_service import (
+    delete_uploaded_files,
+    validate_expense_image_urls,
+)
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -382,6 +386,7 @@ async def create_expense(
     
     expense_data_dict = expense_data.model_dump()
     currency = expense_data_dict.pop("currency", None)
+    images = validate_expense_image_urls(expense_data_dict.pop("images", None) or [], current_user.id)
     
     # Currency Conversion Logic
     exchange_rate = None
@@ -416,7 +421,8 @@ async def create_expense(
         user_id=current_user.id,
         original_amount=original_amount,
         original_currency=original_currency,
-        exchange_rate=exchange_rate
+        exchange_rate=exchange_rate,
+        images=images,
     )
     db.add(expense)
     
@@ -488,6 +494,12 @@ async def update_expense(
     prev_category_id = expense.category_id
     
     update_data = expense_data.model_dump(exclude_unset=True)
+
+    if "images" in update_data:
+        new_images = validate_expense_image_urls(update_data["images"] or [], current_user.id)
+        removed_images = set(expense.images or []) - set(new_images)
+        delete_uploaded_files(list(removed_images))
+        update_data["images"] = new_images
     
     # If updating category, verify it belongs to user
     if "category_id" in update_data:
@@ -602,6 +614,8 @@ def delete_expense(
         from ..services.jar_service import JarService
         JarService.update_jar_balance(db, expense.category.jar_id, expense.amount)
 
+    delete_uploaded_files(expense.images)
+
     db.delete(expense)
     db.commit()
     
@@ -651,6 +665,9 @@ def bulk_delete_expenses(
     
     # Since we need to delete exactly what we found:
     ids_to_delete = [e.id for e in expenses_to_delete]
+
+    for expense in expenses_to_delete:
+        delete_uploaded_files(expense.images)
     
     deleted_count = db.query(Expense).filter(
         Expense.id.in_(ids_to_delete)
